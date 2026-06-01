@@ -369,11 +369,6 @@ export const Header: React.FC<HeaderProps> = ({
           <FileText className="w-4 h-4" />
         </button>
       </div>
-
-      {/* Credit */}
-      <div className="absolute bottom-1 right-3 text-[10px] text-[#eaddcf]/50 pointer-events-none select-none font-medium tracking-wide">
-        {t('creditLabel')}
-      </div>
     </div>
   );
 };

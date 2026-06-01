@@ -119,15 +119,6 @@
       color: #f1c40f;
       margin: 0 2px;
     }
-    .color-dot {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border-radius: 2px;
-      vertical-align: middle;
-      margin-right: 4px;
-      border: 1px solid #555;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -186,13 +177,13 @@
     <!-- ========== SECTION 1: O QUE É ========== -->
     <div class="section" lang="pt">
       <h2>🥁 O que é o BaqueMix?</h2>
-      <p>BaqueMix é um sequenciador rítmico interativo dedicado ao <strong>Maracatu de Baque Virado</strong>. Ele permite criar, visualizar e escutar padrões rítmicos tradicionais de Pernambuco diretamente no navegador.</p>
-      <p>A interface simula uma <strong>Roda de Maracatu</strong> com um misturador (table de mixage) para compor sequências de alfaia, caixa, gonguê, agbê, mineiro e vozes.</p>
+      <p>BaqueMix é um sequenciador rítmico interativo dedicado ao <strong>Maracatu de Baque Virado</strong>. Ele permite criar, visualizar e escutar padrões rítmicos de maracatu diretamente no navegador.</p>
+      <p>A interface simula um <strong>bloco de maracatu</strong> com um misturador (table de mixage) para compor sequências de alfaia, caixa, gonguê, agbê, mineiro e vozes.</p>
     </div>
     <div class="section" lang="fr">
       <h2>🥁 Qu'est-ce que BaqueMix ?</h2>
-      <p>BaqueMix est un séquenceur rythmique interactif dédié au <strong>Maracatu de Baque Virado</strong>. Il permet de créer, visualiser et écouter des patterns rythmiques traditionnels du Pernambouc directement dans votre navigateur.</p>
-      <p>L'interface simule une <strong>Roda de Maracatu</strong> avec un mixeur (table de mixage) pour composer des séquences d'alfaia, caixa, gonguê, agbê, mineiro et voix.</p>
+      <p>BaqueMix est un séquenceur rythmique interactif dédié au <strong>Maracatu de Baque Virado</strong>. Il permet de créer, visualiser et écouter des patterns rythmiques de maracatu directement dans votre navigateur.</p>
+      <p>L'interface simule un <strong>bloco de maracatu</strong> avec un mixeur (table de mixage) pour composer des séquences d'alfaia, caixa, gonguê, agbê, mineiro et voix.</p>
     </div>
 
     <!-- ========== SECTION 2: INTERFACE ========== -->
@@ -265,13 +256,22 @@
         <tr><td><span class="kbd">A</span> / <span class="kbd">a</span></td><td>Agudo (Forte / Fraco)</td></tr>
       </table>
 
-      <h3>Agbê & Mineiro (Shakers)</h3>
+      <h3>Agbê</h3>
       <table>
-        <tr><th>Tecla</th><th>Agbê</th><th>Mineiro</th></tr>
-        <tr><td><span class="kbd">D</span>/<span class="kbd">d</span></td><td>Direita</td><td>—</td></tr>
-        <tr><td><span class="kbd">G</span>/<span class="kbd">g</span></td><td>Esquerda</td><td>—</td></tr>
-        <tr><td><span class="kbd">P</span>/<span class="kbd">p</span></td><td>—</td><td>Cima</td></tr>
-        <tr><td><span class="kbd">T</span>/<span class="kbd">t</span></td><td>—</td><td>Baixo</td></tr>
+        <tr><th>Tecla</th><th>Direção</th></tr>
+        <tr><td><span class="kbd">D</span></td><td>Para a Direita — <strong>Forte</strong></td></tr>
+        <tr><td><span class="kbd">d</span></td><td>Para a Direita — <strong>Fraco</strong></td></tr>
+        <tr><td><span class="kbd">G</span></td><td>Para a Esquerda — <strong>Forte</strong></td></tr>
+        <tr><td><span class="kbd">g</span></td><td>Para a Esquerda — <strong>Fraco</strong></td></tr>
+      </table>
+
+      <h3>Mineiro</h3>
+      <table>
+        <tr><th>Tecla</th><th>Movimento</th></tr>
+        <tr><td><span class="kbd">P</span></td><td>Empurrar — <strong>Forte</strong></td></tr>
+        <tr><td><span class="kbd">p</span></td><td>Empurrar — <strong>Fraco</strong></td></tr>
+        <tr><td><span class="kbd">T</span></td><td>Puxar — <strong>Forte</strong></td></tr>
+        <tr><td><span class="kbd">t</span></td><td>Puxar — <strong>Fraco</strong></td></tr>
       </table>
 
       <h3>Voz / Coro</h3>
@@ -297,13 +297,22 @@
         <tr><td><span class="kbd">A</span> / <span class="kbd">a</span></td><td>Aigu (Fort / Faible)</td></tr>
       </table>
 
-      <h3>Agbê & Mineiro (Shakers)</h3>
+      <h3>Agbê</h3>
       <table>
-        <tr><th>Touche</th><th>Agbê</th><th>Mineiro</th></tr>
-        <tr><td><span class="kbd">D</span>/<span class="kbd">d</span></td><td>Droite</td><td>—</td></tr>
-        <tr><td><span class="kbd">G</span>/<span class="kbd">g</span></td><td>Gauche</td><td>—</td></tr>
-        <tr><td><span class="kbd">P</span>/<span class="kbd">p</span></td><td>—</td><td>Haut</td></tr>
-        <tr><td><span class="kbd">T</span>/<span class="kbd">t</span></td><td>—</td><td>Bas</td></tr>
+        <tr><th>Touche</th><th>Direction</th></tr>
+        <tr><td><span class="kbd">D</span></td><td>Vers la Droite — <strong>Fort</strong></td></tr>
+        <tr><td><span class="kbd">d</span></td><td>Vers la Droite — <strong>Faible</strong></td></tr>
+        <tr><td><span class="kbd">G</span></td><td>Vers la Gauche — <strong>Fort</strong></td></tr>
+        <tr><td><span class="kbd">g</span></td><td>Vers la Gauche — <strong>Faible</strong></td></tr>
+      </table>
+
+      <h3>Mineiro</h3>
+      <table>
+        <tr><th>Touche</th><th>Mouvement</th></tr>
+        <tr><td><span class="kbd">P</span></td><td>Pousser — <strong>Fort</strong></td></tr>
+        <tr><td><span class="kbd">p</span></td><td>Pousser — <strong>Faible</strong></td></tr>
+        <tr><td><span class="kbd">T</span></td><td>Tirer — <strong>Fort</strong></td></tr>
+        <tr><td><span class="kbd">t</span></td><td>Tirer — <strong>Faible</strong></td></tr>
       </table>
 
       <h3>Voix / Chœur</h3>
@@ -423,25 +432,37 @@
 
     <!-- ========== SECTION 8: SAUVEGARDER ========== -->
     <div class="section" lang="pt">
-      <h2>💾 Salvar / Carregar</h2>
+      <h2>💾 Salvar / Carregar / Apagar</h2>
       <ul>
-        <li><strong>Salvar</strong> — Baixa um arquivo .json com toda a configuração atual</li>
-        <li><strong>Carregar</strong> — Importa um arquivo .json para restaurar um ritmo</li>
+        <li><strong>💾 Salvar</strong> — Baixa um arquivo .json com toda a configuração atual (instrumentos, passos, BPM, etc.)</li>
+        <li><strong>📂 Carregar</strong> — Importa um arquivo .json para restaurar um ritmo salvo anteriormente</li>
+        <li><strong>🗑️ Apagar</strong> — Remove todos os instrumentos e reinicia a composição</li>
       </ul>
-      <div class="tip"><strong>💡 Biblioteca:</strong> Você pode colocar seus arquivos .json de ritmos na pasta <code>public/presets/</code> do projeto para criar sua biblioteca pessoal.</div>
+
+      <h3>🎙️ Gravador de Áudio</h3>
+      <p>Pressione o botão de gravação <strong>⏺</strong> para capturar o áudio da sua composição em tempo real. Quando parar a gravação, um arquivo de áudio será gerado automaticamente para download.</p>
+
+      <h3>📚 Biblioteca de Ritmos</h3>
+      <p>A aplicação inclui uma seleção de ritmos tradicionais no menu <strong>Presets</strong>. Novos ritmos são adicionados regularmente. Você também pode salvar e carregar seus próprios ritmos com os botões Salvar/Carregar.</p>
     </div>
     <div class="section" lang="fr">
-      <h2>💾 Sauvegarder / Charger</h2>
+      <h2>💾 Sauvegarder / Charger / Supprimer</h2>
       <ul>
-        <li><strong>Sauvegarder</strong> — Télécharge un fichier .json avec toute la configuration actuelle</li>
-        <li><strong>Charger</strong> — Importe un fichier .json pour restaurer un rythme</li>
+        <li><strong>💾 Sauvegarder</strong> — Télécharge un fichier .json avec toute la configuration actuelle (instruments, pas, BPM, etc.)</li>
+        <li><strong>📂 Charger</strong> — Importe un fichier .json pour restaurer un rythme sauvegardé précédemment</li>
+        <li><strong>🗑️ Supprimer</strong> — Supprime tous les instruments et réinitialise la composition</li>
       </ul>
-      <div class="tip"><strong>💡 Bibliothèque :</strong> Vous pouvez placer vos fichiers .json de rythmes dans le dossier <code>public/presets/</code> du projet pour créer votre bibliothèque personnelle.</div>
+
+      <h3>🎙️ Enregistreur Audio</h3>
+      <p>Appuyez sur le bouton d'enregistrement <strong>⏺</strong> pour capturer l'audio de votre composition en temps réel. Quand vous arrêtez l'enregistrement, un fichier audio est généré automatiquement pour le téléchargement.</p>
+
+      <h3>📚 Bibliothèque de Rythmes</h3>
+      <p>L'application inclut une sélection de rythmes traditionnels dans le menu <strong>Presets</strong>. De nouveaux rythmes sont ajoutés régulièrement. Vous pouvez aussi sauvegarder et charger vos propres rythmes avec les boutons Sauvegarder/Charger.</p>
     </div>
 
   </div>
 
-  <div class="credit">Illustration de fond : Toni Braga · BaqueMix © 2025</div>
+  <div class="credit">Créé par Julian Biblocq | Art: Toni Braga · BaqueMix © 2025</div>
 
   <script>
     function setLang(lang) {

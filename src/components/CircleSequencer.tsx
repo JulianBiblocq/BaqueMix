@@ -562,6 +562,9 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
         onClick={handleCanvasClick}
         className="max-w-full max-h-full aspect-square cursor-pointer block select-none"
       />
+      <div className="absolute top-2 right-3 text-[10px] text-[#eaddcf]/40 pointer-events-none select-none font-medium tracking-wide">
+        Créé par Julian Biblocq | Art: Toni Braga
+      </div>
     </div>
   );
 };
