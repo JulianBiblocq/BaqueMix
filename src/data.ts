@@ -5,7 +5,7 @@
 
 import { InstrumentConfig, Preset, TimeSignature } from './types';
 
-export const ASSETS_BASE_URL = 'https://julianbiblocq.github.io/BaqueMix/';
+export const ASSETS_BASE_URL = '';
 
 export const instrumentsConfig: InstrumentConfig[] = [
   {

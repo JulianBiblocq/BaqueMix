@@ -245,6 +245,15 @@ export const Header: React.FC<HeaderProps> = ({
           <Video className="w-4 h-4" />
         </button>
 
+        {/* Written Tutorial / Guide */}
+        <button
+          onClick={() => window.open('tutorial.html', '_blank')}
+          className="bg-[#8e44ad] text-[#f5f5f5] hover:opacity-90 px-3 py-1.5 text-sm font-bold border border-[#eaddcf] flex items-center justify-center cursor-pointer"
+          title="Guide / Tutorial"
+        >
+          <BookOpen className="w-4 h-4" />
+        </button>
+
         <div className="w-[1px] h-7 bg-[#444]" />
 
         {/* ADD INSTRUMENT DROPDOWN */}
