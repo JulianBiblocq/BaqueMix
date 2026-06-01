@@ -1,7 +1,6 @@
 {
   "bpm": 83,
   "timeSig": "4/4",
-  "letras": "",
   "circles": [
     {
       "id": 1,
@@ -449,7 +448,7 @@
       "isMute": false,
       "isSolo": false,
       "isHidden": false,
-      "volumeVal": 41,
+      "volumeVal": 84,
       "radius": 453.3333333333333
     },
     {
@@ -514,8 +513,15 @@
       "isMute": false,
       "isSolo": false,
       "isHidden": false,
-      "volumeVal": 43,
+      "volumeVal": 84,
       "radius": 495
     }
-  ]
+  ],
+  "letras": "Vou Pra Bahia Brincar\n\nVou vadiar Carnaval Eu",
+  "metadata": {
+    "toada": "Vou vadiar carnaval",
+    "nacao": "Maracatu Nação Encanto da Alegria",
+    "compositor": "!!!",
+    "ritmo": "Martelo"
+  }
 }
