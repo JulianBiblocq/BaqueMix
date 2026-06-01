@@ -191,88 +191,109 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
       const centerY = 600;
 
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-      ctx.shadowBlur = 32;
-      ctx.shadowOffsetY = 12;
+      ctx.save();
+      // Drop shadow for the whole drum
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 40;
+      ctx.shadowOffsetY = 15;
 
-      // Peau (Leather Skin drum gradient)
-      const bgGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 560);
-      bgGradient.addColorStop(0, '#1a1614');
-      bgGradient.addColorStop(0.7, '#0f0c0b');
-      bgGradient.addColorStop(1, '#000000');
+      const drumRadius = 560;
+      const rimRadius = 540;
+      const innerSkinRadius = 522;
 
+      // 1. Alfaia Body Outer Edge (underneath ropes)
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 560, 0, Math.PI * 2);
-      ctx.fillStyle = bgGradient;
+      ctx.arc(centerX, centerY, drumRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#1c110a';
       ctx.fill();
 
-      // Drum cords (8 symmetric visual binding strings)
-      const numCords = 8;
-      const rimRadius = 550;
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = '#a67c52';
+      // Reset shadow for internal elements
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // 2. Ropes (Cordas) - drawn over the body edge, pulling the rim
+      const numCords = 16;
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#cda579'; // Natural sisal/rope color
+      ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
+
       for (let i = 0; i < numCords; i++) {
-        const a = (i * Math.PI * 2) / numCords;
-        const na = ((i + 1) * Math.PI * 2) / numCords;
-        const ma = ((i + 0.5) * Math.PI * 2) / numCords;
+        const a1 = (i * Math.PI * 2) / numCords;
+        const a2 = ((i + 0.5) * Math.PI * 2) / numCords;
+        
+        // Rope going down and out
         ctx.beginPath();
-        ctx.moveTo(centerX + Math.cos(a) * rimRadius, centerY + Math.sin(a) * rimRadius);
-        ctx.lineTo(centerX + Math.cos(ma) * (rimRadius + 22), centerY + Math.sin(ma) * (rimRadius + 22));
-        ctx.lineTo(centerX + Math.cos(na) * rimRadius, centerY + Math.sin(na) * rimRadius);
+        ctx.moveTo(centerX + Math.cos(a1) * (rimRadius - 5), centerY + Math.sin(a1) * (rimRadius - 5));
+        ctx.lineTo(centerX + Math.cos(a2) * drumRadius, centerY + Math.sin(a2) * drumRadius);
+        const a3 = ((i + 1) * Math.PI * 2) / numCords;
+        ctx.lineTo(centerX + Math.cos(a3) * (rimRadius - 5), centerY + Math.sin(a3) * (rimRadius - 5));
         ctx.stroke();
+
+        // Add a slight shadow/highlight to the rope
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ebd1b7';
+        ctx.stroke();
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#cda579';
       }
 
-      // Wooden Rim
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, rimRadius, 0, Math.PI * 2);
-      ctx.lineWidth = 26;
-      ctx.strokeStyle = '#3e2723';
-      ctx.stroke();
+      // 3. Wooden Rim (Aro de madeira)
+      const woodGradient = ctx.createRadialGradient(centerX, centerY, innerSkinRadius, centerX, centerY, drumRadius);
+      woodGradient.addColorStop(0, '#2e190e'); // dark inner edge
+      woodGradient.addColorStop(0.3, '#5c351c'); // main wood color
+      woodGradient.addColorStop(0.7, '#4a2914'); // grain variation
+      woodGradient.addColorStop(1, '#1f1008'); // dark outer edge
 
       ctx.beginPath();
-      ctx.arc(centerX, centerY, rimRadius - 12, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, rimRadius, 0, Math.PI * 2);
+      ctx.lineWidth = 36;
+      ctx.strokeStyle = woodGradient;
+      ctx.stroke();
+
+      // Wood rim highlights/shadows for 3D effect
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, rimRadius - 17, 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, rimRadius + 17, 0, Math.PI * 2);
       ctx.lineWidth = 2;
       ctx.strokeStyle = 'rgba(255,255,255,0.1)';
       ctx.stroke();
 
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, rimRadius + 13, 0, Math.PI * 2);
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = '#120a05';
-      ctx.stroke();
+      // 4. Animal Skin (Couro)
+      const skinGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, innerSkinRadius);
+      // Keep it dark enough for the sequencer to be highly visible, but with a natural tone
+      skinGradient.addColorStop(0, '#26201b'); 
+      skinGradient.addColorStop(0.6, '#1a1512');
+      skinGradient.addColorStop(0.9, '#120d0a');
+      skinGradient.addColorStop(1, '#080504');
 
-      // Ropes knots
-      ctx.fillStyle = '#c89d70';
-      ctx.strokeStyle = '#5e3a1f';
-      ctx.lineWidth = 2;
-      for (let i = 0; i < numCords; i++) {
-        const a = (i * Math.PI * 2) / numCords;
-        ctx.save();
-        ctx.translate(centerX + Math.cos(a) * rimRadius, centerY + Math.sin(a) * rimRadius);
-        ctx.rotate(a);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, innerSkinRadius, 0, Math.PI * 2);
+      ctx.fillStyle = skinGradient;
+      ctx.fill();
+
+      // Add subtle skin texture (nuances)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
+      for (let i = 0; i < 5; i++) {
+        const offX = (Math.random() - 0.5) * innerSkinRadius;
+        const offY = (Math.random() - 0.5) * innerSkinRadius;
+        const r = 100 + Math.random() * 200;
         ctx.beginPath();
-        ctx.ellipse(0, 0, 10, 16, 0, 0, Math.PI * 2);
+        ctx.arc(centerX + offX, centerY + offY, r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-8, -6);
-        ctx.lineTo(8, -6);
-        ctx.moveTo(-10, 0);
-        ctx.lineTo(10, 0);
-        ctx.moveTo(-8, 6);
-        ctx.lineTo(8, 6);
-        ctx.strokeStyle = '#7a4b28';
-        ctx.stroke();
-        ctx.restore();
       }
-      ctx.restore();
 
-      // Outer aesthetic boundary
+      // Skin edge shadow (where it meets the rim)
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 565, 0, Math.PI * 2);
-      ctx.strokeStyle = '#2c3e50';
+      ctx.arc(centerX, centerY, innerSkinRadius, 0, Math.PI * 2);
       ctx.lineWidth = 8;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.stroke();
 
       // Render Time markers around the rim
