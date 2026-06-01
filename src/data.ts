@@ -126,7 +126,12 @@ export const i18n = {
     limitReached: "Limite máximo de instrumentos atingido (20)!",
     invalidFile: "Arquivo de ritmo inválido!",
     swingBtn: "Swing",
-    creditLabel: "Criado por Julian Biblocq | Arte: Toni Braga"
+    creditLabel: "Criado por Julian Biblocq | Arte: Toni Braga",
+    metaInfo: "Informações",
+    metaToada: "Nome da Toada",
+    metaNacao: "Nação / Bloco",
+    metaCompositor: "Compositor",
+    metaRitmo: "Ritmo"
   },
   fr: {
     loading: "Chargement des voix...",
@@ -171,7 +176,12 @@ export const i18n = {
     limitReached: "Limite maximale d'instruments atteinte (20) !",
     invalidFile: "Fichier de rythme invalide !",
     swingBtn: "Swing",
-    creditLabel: "Créé par Julian Biblocq | Art: Toni Braga"
+    creditLabel: "Créé par Julian Biblocq | Art: Toni Braga",
+    metaInfo: "Informations",
+    metaToada: "Nom de la Toada",
+    metaNacao: "Nação / Bloco",
+    metaCompositor: "Compositeur",
+    metaRitmo: "Rythme"
   }
 };
 

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Circle, Language } from '../types';
+import { Circle, Language, PresetMetadata } from '../types';
 import { i18n, instrumentsConfig } from '../data';
 
 interface RightSidebarProps {
@@ -12,8 +12,10 @@ interface RightSidebarProps {
   activePanel: 'legend' | 'letras' | null;
   onTogglePanel: (panel: 'legend' | 'letras') => void;
   circles: Circle[];
-  letrasValue: string;
+  letras: string;
   onLetrasChange: (val: string) => void;
+  metadata?: PresetMetadata;
+  onMetadataChange?: (val: PresetMetadata) => void;
   currentPlayState: {
     stepIndex: number;
     maxTicks: number;
@@ -27,8 +29,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   activePanel,
   onTogglePanel,
   circles,
-  letrasValue,
+  letras,
   onLetrasChange,
+  metadata,
+  onMetadataChange,
   currentPlayState,
   onExtractLyrics,
 }) => {
@@ -179,10 +183,48 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
               onClick={() => onTogglePanel('letras')}
               className="bg-[#333] text-[#eaddcf] border border-[#eaddcf] px-2 py-1 text-sm font-bold hover:bg-[#eaddcf] hover:text-black transition-colors"
             >
-              ▶
+              X
             </button>
           </div>
-          {/* Build unified syllable token list from ALL non-muted voice circles */}
+
+          {/* Metadata Frame */}
+          {metadata && onMetadataChange && (
+            <div className="flex flex-col gap-2 mb-4 p-3 border border-[#444] bg-[#221e1a] rounded">
+              <span className="text-[#f1c40f] text-sm font-bold uppercase tracking-wider mb-1">
+                {t('metaInfo')}
+              </span>
+              <input
+                type="text"
+                placeholder={t('metaToada')}
+                value={metadata.toada}
+                onChange={(e) => onMetadataChange({ ...metadata, toada: e.target.value })}
+                className="bg-[#121212] border border-[#444] text-[#eaddcf] text-xs p-1.5 focus:border-[#eaddcf] outline-none w-full"
+              />
+              <input
+                type="text"
+                placeholder={t('metaNacao')}
+                value={metadata.nacao}
+                onChange={(e) => onMetadataChange({ ...metadata, nacao: e.target.value })}
+                className="bg-[#121212] border border-[#444] text-[#eaddcf] text-xs p-1.5 focus:border-[#eaddcf] outline-none w-full"
+              />
+              <input
+                type="text"
+                placeholder={t('metaCompositor')}
+                value={metadata.compositor}
+                onChange={(e) => onMetadataChange({ ...metadata, compositor: e.target.value })}
+                className="bg-[#121212] border border-[#444] text-[#eaddcf] text-xs p-1.5 focus:border-[#eaddcf] outline-none w-full"
+              />
+              <input
+                type="text"
+                placeholder={t('metaRitmo')}
+                value={metadata.ritmo}
+                onChange={(e) => onMetadataChange({ ...metadata, ritmo: e.target.value })}
+                className="bg-[#121212] border border-[#444] text-[#eaddcf] text-xs p-1.5 focus:border-[#eaddcf] outline-none w-full"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end mb-2 shrink-0">
           {(() => {
             const voiceCircles = circles.filter(c => instrumentsConfig[c.instrumentIdx]?.type === 'voice' && !c.isMute);
             if (voiceCircles.length === 0) return null;
@@ -246,6 +288,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
               </div>
             );
           })()}
+          </div>
 
           <div className="flex-grow" />
 
@@ -257,9 +300,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           
           <div className="mt-4 pt-4 border-t border-[#333]">
              <textarea
-              className="w-full h-24 bg-[#111] border border-[#555] p-2 text-xs text-[#aaa] outline-none focus:border-[#f1c40f] resize-none"
+              className="flex-grow w-full bg-[#1c1815] text-[#eaddcf] border border-[#444] p-3 font-mono text-sm resize-none focus:outline-none focus:border-[#f1c40f]"
               placeholder={t('letrasPlaceholder')}
-              value={letrasValue}
+              value={letras}
               onChange={(e) => onLetrasChange(e.target.value)}
             />
             <button

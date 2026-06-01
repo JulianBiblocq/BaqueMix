@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
-import { Circle, Language, Preset, TimeSignature } from './types';
+import { Circle, Language, Preset, TimeSignature, PresetMetadata } from './types';
 import {
   instrumentsConfig,
   vouVadiarPreset,
@@ -39,6 +39,12 @@ export default function App() {
   const [activePresetName, setActivePresetName] = useState<string>('vou-vadiar');
   const [circles, setCircles] = useState<Circle[]>([]);
   const [letras, setLetras] = useState<string>('');
+  const [metadata, setMetadata] = useState<PresetMetadata>({
+    toada: '',
+    nacao: '',
+    compositor: '',
+    ritmo: ''
+  });
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
@@ -91,8 +97,10 @@ export default function App() {
         channels[inst.id].connect(meters[inst.id]);
 
         if (inst.type === 'voice') {
-          voiceSynths[inst.id] = new Tone.Synth({
-            oscillator: { type: 'triangle' },
+          voiceSynths[inst.id] = new Tone.AMSynth({
+            harmonicity: 1,
+            oscillator: { type: 'sine' },
+            modulation: { type: 'sine' },
             envelope: { attack: 0.05, decay: 0.2 },
             volume: -10,
           }).connect(channels[inst.id]);
@@ -264,7 +272,7 @@ export default function App() {
 
   // 2. Load Preset samambaia state initially
   useEffect(() => {
-    loadFallbackPreset('vou-vadiar');
+    loadFallbackPreset('Vou vadiar carnaval.json');
   }, []);
 
   // Sync levels display bar via non-re-rendering dynamic canvas interval
@@ -364,6 +372,7 @@ export default function App() {
 
     setCircles([]);
     setLetras('');
+    setMetadata(p.metadata || { toada: '', nacao: '', compositor: '', ritmo: '' });
 
     const copy: Circle[] = JSON.parse(JSON.stringify(p.circles));
     copy.forEach((c) => normalizeCircleData(c));
@@ -796,13 +805,14 @@ export default function App() {
 
   // Master Save Preset state down to local downloadable JSON
   const handleSaveState = () => {
-    const stateObj = {
+    const dataToSave: Preset = {
       bpm,
       timeSig,
-      letras,
       circles,
+      letras,
+      metadata
     };
-    const blob = new Blob([JSON.stringify(stateObj, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
     const dlLink = document.createElement('a');
     dlLink.href = URL.createObjectURL(blob);
     dlLink.download = 'rythme_samambaia.json';
@@ -969,8 +979,10 @@ export default function App() {
           activePanel={activeRightPanel}
           onTogglePanel={(p) => setActiveRightPanel(activeRightPanel === p ? null : p)}
           circles={circles}
-          letrasValue={letras}
-          onLetrasChange={(val) => setLetras(val)}
+          letras={letras}
+          onLetrasChange={setLetras}
+          metadata={metadata}
+          onMetadataChange={setMetadata}
           onExtractLyrics={handleExtractLyrics}
           currentPlayState={isPlaying ? {
             stepIndex: currentStepIndex,

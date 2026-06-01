@@ -34,11 +34,19 @@ export type TimeSignature = '4/4' | '3/4' | '2/4' | '6/8' | '12/8';
 
 export type Language = 'pt' | 'fr';
 
+export interface PresetMetadata {
+  toada: string;
+  nacao: string;
+  compositor: string;
+  ritmo: string;
+}
+
 export interface Preset {
   bpm: number;
   timeSig: TimeSignature;
   circles: Circle[];
   letras?: string;
+  metadata?: PresetMetadata;
 }
 
 export interface CatalogItem {
