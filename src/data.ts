@@ -126,7 +126,7 @@ export const i18n = {
     limitReached: "Limite máximo de instrumentos atingido (20)!",
     invalidFile: "Arquivo de ritmo inválido!",
     swingBtn: "Swing",
-    creditLabel: "Fundo: Toni Braga"
+    creditLabel: "Criado por Julian Biblocq | Arte: Toni Braga"
   },
   fr: {
     loading: "Chargement des voix...",
@@ -171,7 +171,7 @@ export const i18n = {
     limitReached: "Limite maximale d'instruments atteinte (20) !",
     invalidFile: "Fichier de rythme invalide !",
     swingBtn: "Swing",
-    creditLabel: "Fond: Toni Braga"
+    creditLabel: "Créé par Julian Biblocq | Art: Toni Braga"
   }
 };
 

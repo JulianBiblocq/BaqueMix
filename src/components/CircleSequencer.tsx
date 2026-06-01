@@ -278,16 +278,8 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
       ctx.fillStyle = skinGradient;
       ctx.fill();
 
-      // Add subtle skin texture (nuances)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
-      for (let i = 0; i < 5; i++) {
-        const offX = (Math.random() - 0.5) * innerSkinRadius;
-        const offY = (Math.random() - 0.5) * innerSkinRadius;
-        const r = 100 + Math.random() * 200;
-        ctx.beginPath();
-        ctx.arc(centerX + offX, centerY + offY, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      // Add subtle skin texture (nuances) - Pre-calculated or removed to avoid flickering
+      // Removed the random loop since it causes 60fps flickering without a cached texture.
 
       // Skin edge shadow (where it meets the rim)
       ctx.beginPath();

@@ -346,8 +346,22 @@ export default function App() {
     return group[0].id;
   };
 
-  const loadFallbackPreset = (name: string) => {
-    const p = name === 'baque-de-imale' ? baqueDeImalePreset : vouVadiarPreset;
+  const loadFallbackPreset = async (name: string) => {
+    let p;
+    if (name.endsWith('.json')) {
+      try {
+        const response = await fetch(`${ASSETS_BASE_URL}presets/${name}`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        p = await response.json();
+      } catch (error) {
+        console.error('Error fetching preset:', error);
+        window.alert(t('invalidFile'));
+        return;
+      }
+    } else {
+      p = name === 'baque-de-imale' ? baqueDeImalePreset : vouVadiarPreset;
+    }
+
     setCircles([]);
     setLetras('');
 
@@ -356,8 +370,8 @@ export default function App() {
     updateRadii(copy);
 
     setCircles(copy);
-    setBpm(Math.round(p.bpm));
-    setTimeSig(p.timeSig);
+    setBpm(Math.round(p.bpm || 90));
+    setTimeSig(p.timeSig || '4/4');
     measureCountRef.current = 0;
   };
 

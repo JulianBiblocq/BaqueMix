@@ -222,6 +222,8 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <option value="vou-vadiar">Vou vadiar carnaval</option>
           <option value="baque-de-imale">Baque de Imale</option>
+          <option value="Baque_de_Luanda.json">Baque de Luanda</option>
+          <option value="Vovo_falou.json">Vovó Falou</option>
         </select>
       </div>
 
@@ -368,8 +370,8 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
 
-      {/* Credit Toni Braga */}
-      <div className="absolute bottom-0.5 right-2 text-[9px] text-[#eaddcf]/30 pointer-events-none select-none">
+      {/* Credit */}
+      <div className="absolute bottom-1 right-3 text-[10px] text-[#eaddcf]/50 pointer-events-none select-none font-medium tracking-wide">
         {t('creditLabel')}
       </div>
     </div>
