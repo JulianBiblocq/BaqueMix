@@ -68,7 +68,7 @@ export const TransportBar: React.FC<TransportBarProps> = ({
 
         <button
           onClick={onSwingToggle}
-          className={`px-3 py-1 font-cactus font-bold text-sm flex items-center gap-1.5 cordel-border-sm cordel-button ${
+          className={`px-3 py-1 font-cactus font-bold text-sm flex items-center gap-1.5 cordel-border-sm cordel-button hidden md:flex ${
             isSwingOn ? 'bg-[var(--cordel-wood)] text-[var(--cordel-text)]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]'
           }`}
           title="Swing Maracatu"
@@ -93,7 +93,7 @@ export const TransportBar: React.FC<TransportBarProps> = ({
         </div>
 
         {/* Reverb Type Dropdown */}
-        <div className="flex items-center gap-2 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)]">
+        <div className="flex items-center gap-2 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)] hidden md:flex">
           <span className="font-cactus font-bold text-[var(--cordel-text)] text-xs uppercase">Reverb</span>
           <select
             value={reverbType}
@@ -139,7 +139,7 @@ export const TransportBar: React.FC<TransportBarProps> = ({
       </div>
 
       {/* Right side: Time Sig, Measures, Volume */}
-      <div className="flex items-center justify-end gap-4 flex-1">
+      <div className="hidden md:flex items-center justify-end gap-4 flex-1">
         
         <div className="flex items-center gap-1.5 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)] hidden md:flex">
           <span className="font-cactus font-bold text-[var(--cordel-text)] text-xs uppercase">{t('tsLabel')}</span>

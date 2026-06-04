@@ -293,10 +293,10 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
         </div>
 
         {/* ═══════════════════ BODY: Content + Legend sidebar ═══════════════════ */}
-        <div className="flex flex-1 overflow-hidden min-h-0">
+        <div className="flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden min-h-0">
 
           {/* ─── Main scrollable content ─── */}
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6" style={{ minWidth: 0 }}>
+          <div className="flex-1 md:overflow-y-auto p-3 md:p-5 flex flex-col gap-6" style={{ minWidth: 0 }}>
 
             {track.patterns.map((ptn, ptnIdx) => {
               const isSelected = track.selectedPatternId === ptn.id;
@@ -769,8 +769,7 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
 
           {/* ─── Right sidebar: Stroke legend ─── */}
           <div
-            className="border-l-[3px] border-[#1a1a1a] bg-[#ece4d0] p-4 shrink-0 overflow-y-auto flex flex-col gap-4"
-            style={{ width: '240px' }}
+            className="border-t-[3px] md:border-t-0 md:border-l-[3px] border-[#1a1a1a] bg-[#ece4d0] p-4 shrink-0 flex flex-col gap-4 w-full md:w-[240px] md:overflow-y-auto"
           >
             {/* Legend title */}
             <div className="border-b-[2px] border-[#1a1a1a] pb-2">

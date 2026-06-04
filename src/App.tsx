@@ -57,8 +57,9 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
   const [activeRightPanel, setActiveRightPanel] = useState<'legend' | 'letras' | null>(
-    window.innerWidth >= 1024 ? 'letras' : null
+    window.innerWidth <= 768 ? 'letras' : (window.innerWidth >= 1024 ? 'letras' : null)
   );
   const [viewMode, setViewMode] = useState<'roda' | 'console'>('roda');
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -66,6 +67,14 @@ export default function App() {
   const [tracksHistory, setTracksHistory] = useState<TrackGroup[][]>([]);
   const tracksHistoryRef = useRef<TrackGroup[][]>([]);
   const [reverbType, setReverbType] = useState<'room' | 'studio' | 'hall'>('studio');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     tracksHistoryRef.current = tracksHistory;
@@ -1352,6 +1361,26 @@ export default function App() {
         }}
         onUndo={handleUndo}
         canUndo={tracksHistory.length > 0}
+        isMobile={isMobile}
+        isSwingOn={isSwingOn}
+        onSwingToggle={() => setIsSwingOn(!isSwingOn)}
+        masterVol={masterVol}
+        onMasterVolChange={(val) => setMasterVol(val)}
+        timeSig={timeSig}
+        onTimeSigChange={handleTimeSigChange}
+        totalMeasures={totalMeasures}
+        onTotalMeasuresChange={(val) => {
+          setTotalMeasures(val);
+          setTracks(tracks.map(t => ({
+            ...t,
+            patterns: t.patterns.map(p => ({
+              ...p,
+              measureAssignments: Array(val).fill(false).map((_, i) => p.measureAssignments[i] || false)
+            }))
+          })));
+        }}
+        reverbType={reverbType}
+        onReverbTypeChange={setReverbType}
       />
 
       {/* Main Workspace workspace containing expanding grids layouts */}
@@ -1382,7 +1411,7 @@ export default function App() {
               currentStepIndex={currentStepIndex}
               maxTicks={getMaxTicks(timeSig)}
               timeSig={timeSig}
-              isLeftPanelCollapsed={isLeftPanelCollapsed}
+              isLeftPanelCollapsed={isMobile ? false : isLeftPanelCollapsed}
               onToggleLeftPanel={() => setIsLeftPanelCollapsed(true)}
               totalMeasures={totalMeasures}
               onTrackSelectPattern={(trackId, patternId) => {
@@ -1546,8 +1575,14 @@ export default function App() {
         {/* Right drawer sidebar context panel */}
         <RightSidebar
           lang={lang}
-          activePanel={activeRightPanel}
-          onTogglePanel={(p) => setActiveRightPanel(activeRightPanel === p ? null : p)}
+          activePanel={isMobile ? (activeRightPanel || 'letras') : activeRightPanel}
+          onTogglePanel={(p) => {
+            if (isMobile) {
+              setActiveRightPanel(activeRightPanel === 'letras' ? 'legend' : 'letras');
+            } else {
+              setActiveRightPanel(activeRightPanel === p ? null : p);
+            }
+          }}
           tracks={tracks}
           letras={letras}
           onLetrasChange={setLetras}
@@ -1559,6 +1594,7 @@ export default function App() {
             maxTicks: getMaxTicks(timeSig),
             activePatternIdByInst,
           } : null}
+          totalMeasures={totalMeasures}
         />
       </div>
       

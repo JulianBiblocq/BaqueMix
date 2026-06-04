@@ -86,7 +86,7 @@ export const Mixer: React.FC<MixerProps> = ({
         </span>
         <button
           onClick={onToggleLeftPanel}
-          className="bg-transparent border border-[#444] px-2.5 py-1 text-sm font-extrabold cursor-pointer text-[#eaddcf] hover:bg-[#eaddcf] hover:text-black transition-colors"
+          className="bg-transparent border border-[#444] px-2.5 py-1 text-sm font-extrabold cursor-pointer text-[#eaddcf] hover:bg-[#eaddcf] hover:text-black transition-colors hidden md:block"
           title={t('toggleBtn')}
         >
           ◀

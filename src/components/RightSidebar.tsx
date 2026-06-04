@@ -67,7 +67,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             </span>
             <button
               onClick={() => onTogglePanel('legend')}
-              className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm cordel-button px-2 py-1 text-sm font-bold hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors"
+              className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm cordel-button px-2 py-1 text-sm font-bold hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors hidden md:block"
               title={t('toggleLegendBtn')}
             >
               ▶
@@ -269,7 +269,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             </span>
             <button
               onClick={() => onTogglePanel('letras')}
-              className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm cordel-button px-2 py-1 text-sm font-bold hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors"
+              className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm cordel-button px-2 py-1 text-sm font-bold hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors hidden md:block"
             >
               X
             </button>

@@ -129,7 +129,8 @@ body {
   #circle-sequencer-panel {
     width: 100% !important;
     height: auto !important;
-    min-height: 340px !important;
+    min-height: 380px !important;
+    aspect-ratio: 1 / 1 !important;
     order: 1;
   }
 
