@@ -412,226 +412,238 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
                       className="step-boxes flex flex-wrap gap-y-4 gap-x-4"
                       id={`detail-voice-${track.id}-${ptn.id}`}
                     >
-                      {Array.from({ length: ptn.steps }).map((_, i) => {
-                        const state = ptn.activeSteps[i];
-                        const isActive = state !== 0;
-                        const isPux = state === 'P';
-                        const syl = ptn.lyrics?.[i] || '';
-                        const note = ptn.notes?.[i] || '';
-                        const typeText = isActive ? (isPux ? 'PUX' : 'CORO') : '---';
-                        const typeClass = isActive ? '' : 'bg-transparent text-[#666]';
-                        const typeStyle = isActive
-                          ? { backgroundColor: isPux ? inst.colors['P'] : inst.colors['C'], color: '#1a1a1a' }
-                          : {};
+                      {(() => {
+                        const groups = [];
+                        for (let g = 0; g < ptn.steps; g += 4) {
+                          groups.push(Array.from({ length: Math.min(4, ptn.steps - g) }, (_, idx) => g + idx));
+                        }
+                        return groups.map((group, groupIdx) => (
+                          <div key={groupIdx} className="flex gap-2.5 p-1.5 bg-[#ece4d0]/40 border border-[#1a1a1a]/10 rounded-sm shrink-0">
+                            {group.map((i) => {
+                              const state = ptn.activeSteps[i];
+                              const isActive = state !== 0;
+                              const isPux = state === 'P';
+                              const syl = ptn.lyrics?.[i] || '';
+                              const note = ptn.notes?.[i] || '';
+                              const typeText = isActive ? (isPux ? 'PUX' : 'CORO') : '---';
+                              const typeClass = isActive ? '' : 'bg-transparent text-[#666]';
+                              const typeStyle = isActive
+                                ? { backgroundColor: isPux ? inst.colors['P'] : inst.colors['C'], color: '#1a1a1a' }
+                                : {};
 
-                        const isCurrentStep = currentStep === i;
+                              const isCurrentStep = currentStep === i;
 
-                        // Calculate total micro-timing shift (manual + global swing)
-                        const manualMicro = ptn.microtimings?.[i] ?? 0;
-                        const swingOffset = getStepSwingPercent(i, ptn.steps);
-                        const totalShift = manualMicro + swingOffset;
-                        const shiftPx = (totalShift / 50) * 12; // Max 12px shift
+                              // Calculate total micro-timing shift (manual + global swing)
+                              const manualMicro = ptn.microtimings?.[i] ?? 0;
+                              const swingOffset = getStepSwingPercent(i, ptn.steps);
+                              const totalShift = manualMicro + swingOffset;
+                              const shiftPx = (totalShift / 50) * 12; // Max 12px shift
 
-                        return (
-                          <div key={i} className="relative" style={{ width: '56px' }}>
-                            {/* Axis vertical centerline (0%) behind steps */}
-                            <div className="absolute top-[20px] bottom-[10px] left-1/2 w-0 border-l border-dashed border-[#1a1a1a]/30 -translate-x-1/2 pointer-events-none z-0" />
-                            
-                            <div
-                              className={`v-card flex flex-col bg-[#f4ecd8] cordel-border-sm overflow-hidden z-10 relative transition-transform duration-100 ${
-                                isCurrentStep ? 'border-[#8b2a1a] shadow-[0_0_8px_rgba(139,42,26,0.5)]' : 'border-[#1a1a1a]'
-                              }`}
-                              style={{
-                                width: '56px',
-                                transform: `translateX(${shiftPx}px)`,
-                              }}
-                            >
-                              {/* Step number */}
-                              <div className="text-[8px] text-[#999] text-center font-bold bg-[#ece4d0] leading-tight py-0.5">
-                                {i + 1}
-                              </div>
+                              return (
+                                <div key={i} className="relative" style={{ width: '56px' }}>
+                                  {/* Axis vertical centerline (0%) behind steps */}
+                                  <div className="absolute top-[20px] bottom-[10px] left-1/2 w-0 border-l border-dashed border-[#1a1a1a]/30 -translate-x-1/2 pointer-events-none z-0" />
+                                  
+                                  <div
+                                    className={`v-card flex flex-col bg-[#f4ecd8] cordel-border-sm overflow-hidden z-10 relative transition-transform duration-100 ${
+                                      isCurrentStep ? 'border-[#8b2a1a] shadow-[0_0_8px_rgba(139,42,26,0.5)]' : 'border-[#1a1a1a]'
+                                    }`}
+                                    style={{
+                                      width: '56px',
+                                      transform: `translateX(${shiftPx}px)`,
+                                    }}
+                                  >
+                                    {/* Step number */}
+                                    <div className="text-[8px] text-[#999] text-center font-bold bg-[#ece4d0] leading-tight py-0.5">
+                                      {i + 1}
+                                    </div>
 
-                              {/* PUX / CORO toggle */}
-                              <div
-                                onClick={() => onVoiceTypeToggle(ptn.id, i)}
-                                className={`text-[9px] font-bold text-center py-0.5 cursor-pointer select-none uppercase ${typeClass}`}
-                                style={typeStyle}
-                              >
-                                {typeText}
-                              </div>
-
-                              {/* Syllable input */}
-                              <input
-                                type="text"
-                                value={syl}
-                                onChange={(e) => onVoiceSylChange(ptn.id, i, e.target.value)}
-                                placeholder="-"
-                                className="v-syl w-full text-center text-xs font-bold py-1 bg-transparent border-0 border-b border-[#1a1a1a]/30 text-[#1a1a1a] outline-none"
-                                onFocus={() => {
-                                  setSelectedStepIdx(i);
-                                  setSelectedPatternId(ptn.id);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Tab') {
-                                    e.preventDefault();
-                                    handleVoiceNav(e.target as HTMLInputElement, 'ArrowRight', 'syl');
-                                  } else if (['ArrowRight', 'ArrowLeft', 'Enter'].includes(e.key)) {
-                                    handleVoiceNav(e.target as HTMLInputElement, e.key, 'syl');
-                                  }
-                                }}
-                              />
-
-                              {/* Note input */}
-                              <input
-                                type="text"
-                                value={note}
-                                onChange={(e) => onVoiceNoteChange(ptn.id, i, e.target.value)}
-                                onBlur={(e) => onVoiceNoteBlur(ptn.id, i, e.target.value)}
-                                placeholder="C4"
-                                className="v-note w-full text-center text-[10px] py-1 bg-transparent border-0 text-[#1a1a1a] uppercase outline-none"
-                                onFocus={() => {
-                                  setSelectedStepIdx(i);
-                                  setSelectedPatternId(ptn.id);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Tab') {
-                                    e.preventDefault();
-                                    handleVoiceNav(e.target as HTMLInputElement, 'ArrowRight', 'note');
-                                  } else if (['ArrowRight', 'ArrowLeft', 'Enter'].includes(e.key)) {
-                                    handleVoiceNav(e.target as HTMLInputElement, e.key, 'note');
-                                  }
-                                }}
-                              />
-                              {/* Sculpting micro-bars */}
-                              <div className="w-full flex flex-col gap-[2px] p-[2px] bg-[#ece4d0] border-t border-[#1a1a1a]/20 shrink-0">
-                                <div className="h-[2px] bg-[#1a1a1a]/10 w-full relative">
-                                  <div className="h-[2px] bg-green-600 rounded-none transition-all" style={{ width: `${ptn.volumes?.[i] ?? 100}%` }} />
-                                </div>
-                                <div className="h-[2px] bg-[#1a1a1a]/10 w-full relative">
-                                  <div className="h-[2px] bg-amber-500 rounded-none transition-all" style={{ width: `${ptn.decays?.[i] ?? 100}%` }} />
-                                </div>
-                                <div className="h-[3px] bg-[#1a1a1a]/15 w-full relative overflow-hidden">
-                                  <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[#1a1a1a]/30" />
-                                  {totalShift !== 0 && (
+                                    {/* PUX / CORO toggle */}
                                     <div
-                                      className="absolute top-0 bottom-0 bg-[#2980b9] transition-all"
-                                      style={{
-                                        left: totalShift > 0 ? '50%' : 'auto',
-                                        right: totalShift < 0 ? '50%' : 'auto',
-                                        width: `${Math.min(50, (Math.abs(totalShift) / 50) * 50)}%`
+                                      onClick={() => onVoiceTypeToggle(ptn.id, i)}
+                                      className={`text-[9px] font-bold text-center py-0.5 cursor-pointer select-none uppercase ${typeClass}`}
+                                      style={typeStyle}
+                                    >
+                                      {typeText}
+                                    </div>
+
+                                    {/* Syllable input */}
+                                    <input
+                                      type="text"
+                                      value={syl}
+                                      onChange={(e) => onVoiceSylChange(ptn.id, i, e.target.value)}
+                                      placeholder="-"
+                                      className="v-syl w-full text-center text-xs font-bold py-1 bg-transparent border-0 border-b border-[#1a1a1a]/30 text-[#1a1a1a] outline-none"
+                                      onFocus={() => {
+                                        setSelectedStepIdx(i);
+                                        setSelectedPatternId(ptn.id);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Tab') {
+                                          e.preventDefault();
+                                          handleVoiceNav(e.target as HTMLInputElement, 'ArrowRight', 'syl');
+                                        } else if (['ArrowRight', 'ArrowLeft', 'Enter'].includes(e.key)) {
+                                          handleVoiceNav(e.target as HTMLInputElement, e.key, 'syl');
+                                        }
                                       }}
                                     />
-                                  )}
+
+                                    {/* Note input */}
+                                    <input
+                                      type="text"
+                                      value={note}
+                                      onChange={(e) => onVoiceNoteChange(ptn.id, i, e.target.value)}
+                                      onBlur={(e) => onVoiceNoteBlur(ptn.id, i, e.target.value)}
+                                      placeholder="C4"
+                                      className="v-note w-full text-center text-[10px] py-1 bg-transparent border-0 text-[#1a1a1a] uppercase outline-none"
+                                      onFocus={() => {
+                                        setSelectedStepIdx(i);
+                                        setSelectedPatternId(ptn.id);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Tab') {
+                                          e.preventDefault();
+                                          handleVoiceNav(e.target as HTMLInputElement, 'ArrowRight', 'note');
+                                        } else if (['ArrowRight', 'ArrowLeft', 'Enter'].includes(e.key)) {
+                                          handleVoiceNav(e.target as HTMLInputElement, e.key, 'note');
+                                        }
+                                      }}
+                                    />
+                                    {/* Sculpting micro-bars */}
+                                    <div className="w-full flex flex-col gap-[2px] p-[2px] bg-[#ece4d0] border-t border-[#1a1a1a]/20 shrink-0">
+                                      <div className="h-[2px] bg-[#1a1a1a]/10 w-full relative">
+                                        <div className="h-[2px] bg-green-600 rounded-none transition-all" style={{ width: `${ptn.volumes?.[i] ?? 100}%` }} />
+                                      </div>
+                                      <div className="h-[2px] bg-[#1a1a1a]/10 w-full relative">
+                                        <div className="h-[2px] bg-amber-500 rounded-none transition-all" style={{ width: `${ptn.decays?.[i] ?? 100}%` }} />
+                                      </div>
+                                      <div className="h-[3px] bg-[#1a1a1a]/15 w-full relative overflow-hidden">
+                                        <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[#1a1a1a]/30" />
+                                        {totalShift !== 0 && (
+                                          <div
+                                            className="absolute top-0 bottom-0 bg-[#2980b9] transition-all"
+                                            style={{
+                                              left: totalShift > 0 ? '50%' : 'auto',
+                                              right: totalShift < 0 ? '50%' : 'auto',
+                                              width: `${Math.min(50, (Math.abs(totalShift) / 50) * 50)}%`
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
+                        ));
+                      })()}
                     </div>
                   ) : (
                     /* ──── Instrument step grid ──── */
                     <div
-                      className="step-boxes flex flex-wrap gap-y-4 gap-x-6"
+                      className="step-boxes flex flex-wrap gap-y-4 gap-x-4"
                       id={`detail-steps-${track.id}-${ptn.id}`}
                     >
-                      {Array.from({ length: ptn.steps }).map((_, i) => {
-                        const val = ptn.activeSteps[i];
-                        const displayVal = getDisplayVal(val);
-                        const isActive = val !== 0 && val !== '';
-                        const isCurrentStep = currentStep === i;
-
-                        let colorStyle: React.CSSProperties = {};
-                        if (isActive) {
-                          const bgColor = inst.colors[val as string] || '#111';
-                          let txtColor = inst.colors.text || '#f4ecd8';
-                          if (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) {
-                            txtColor = '#000';
-                          }
-                          colorStyle = {
-                            backgroundColor: bgColor,
-                            borderColor: bgColor,
-                            color: txtColor,
-                          };
+                      {(() => {
+                        const groups = [];
+                        for (let g = 0; g < ptn.steps; g += 4) {
+                          groups.push(Array.from({ length: Math.min(4, ptn.steps - g) }, (_, idx) => g + idx));
                         }
+                        return groups.map((group, groupIdx) => (
+                          <div key={groupIdx} className="flex gap-1.5 p-1.5 bg-[#ece4d0]/40 border border-[#1a1a1a]/10 rounded-sm shrink-0">
+                            {group.map((i) => {
+                              const val = ptn.activeSteps[i];
+                              const displayVal = getDisplayVal(val);
+                              const isActive = val !== 0 && val !== '';
+                              const isCurrentStep = currentStep === i;
 
-                        /* Beat boundary spacing */
-                        const isBeatStart = i > 0 && i % 4 === 0;
+                              let colorStyle: React.CSSProperties = {};
+                              if (isActive) {
+                                const bgColor = inst.colors[val as string] || '#111';
+                                let txtColor = inst.colors.text || '#f4ecd8';
+                                if (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) {
+                                  txtColor = '#000';
+                                }
+                                colorStyle = {
+                                  backgroundColor: bgColor,
+                                  borderColor: bgColor,
+                                  color: txtColor,
+                                };
+                              }
 
-                        // Calculate total micro-timing shift (manual + global swing)
-                        const manualMicro = ptn.microtimings?.[i] ?? 0;
-                        const swingOffset = getStepSwingPercent(i, ptn.steps);
-                        const totalShift = manualMicro + swingOffset;
-                        const shiftPx = (totalShift / 50) * 12; // Max 12px shift
+                              // Calculate total micro-timing shift (manual + global swing)
+                              const manualMicro = ptn.microtimings?.[i] ?? 0;
+                              const swingOffset = getStepSwingPercent(i, ptn.steps);
+                              const totalShift = manualMicro + swingOffset;
+                              const shiftPx = (totalShift / 50) * 12; // Max 12px shift
 
-                        return (
-                          <React.Fragment key={i}>
-                            {isBeatStart && (
-                              <div className="w-1.5 shrink-0" />
-                            )}
-                            <div className="relative flex flex-col items-center" style={{ width: '36px' }}>
-                              {/* Axis vertical centerline (0%) behind steps */}
-                              <div className="absolute top-[12px] bottom-[15px] left-1/2 w-0 border-l border-dashed border-[#1a1a1a]/30 -translate-x-1/2 pointer-events-none z-0" />
+                              return (
+                                <div key={i} className="relative flex flex-col items-center" style={{ width: '36px' }}>
+                                  {/* Axis vertical centerline (0%) behind steps */}
+                                  <div className="absolute top-[12px] bottom-[15px] left-1/2 w-0 border-l border-dashed border-[#1a1a1a]/30 -translate-x-1/2 pointer-events-none z-0" />
 
-                              <div className="text-[8px] text-[#999] font-bold mb-0.5 z-10 relative">{i + 1}</div>
-                              <input
-                                type="text"
-                                maxLength={inst.id === 'caixa' ? 2 : 1}
-                                value={displayVal}
-                                onFocus={(e) => {
-                                  e.target.select();
-                                  setSelectedStepIdx(i);
-                                  setSelectedPatternId(ptn.id);
-                                }}
-                                onChange={(e) => onStepValueChange(ptn.id, i, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Tab' || e.key === 'Enter') e.preventDefault();
-                                  const inputEl = e.currentTarget as HTMLInputElement;
-                                  onStepKeyDown(ptn.id, i, e.key, inputEl.value, inputEl);
-                                }}
-                                className={`text-center text-sm font-bold cordel-border-sm outline-none p-0 box-border z-10 relative transition-all duration-200 ${
-                                  isCurrentStep
-                                    ? 'bg-[#1a1a1a] text-[#f4ecd8] border-[#8b2a1a] scale-110 shadow-[0_0_8px_rgba(139,42,26,0.6)]'
-                                    : val === 0
-                                      ? 'bg-[#f4ecd8] text-[#1a1a1a] focus:border-[#8b2a1a]'
-                                      : ''
-                                }`}
-                                style={{
-                                  width: '36px',
-                                  height: '36px',
-                                  transform: `translateX(${shiftPx}px)`,
-                                  ...(isCurrentStep ? {} : colorStyle),
-                                }}
-                              />
-                              {/* Sculpting micro-bars */}
-                              <div className="w-full flex flex-col gap-[2px] mt-1 z-10 relative">
-                                {/* Volume bar (Green) */}
-                                <div className="h-[2px] bg-[#1a1a1a]/10 w-full relative">
-                                  <div className="h-full bg-green-600 transition-all" style={{ width: `${ptn.volumes?.[i] ?? 100}%` }} />
+                                  <div className="text-[8px] text-[#999] font-bold mb-0.5 z-10 relative">{i + 1}</div>
+                                  <input
+                                    type="text"
+                                    maxLength={inst.id === 'caixa' ? 2 : 1}
+                                    value={displayVal}
+                                    onFocus={(e) => {
+                                      e.target.select();
+                                      setSelectedStepIdx(i);
+                                      setSelectedPatternId(ptn.id);
+                                    }}
+                                    onChange={(e) => onStepValueChange(ptn.id, i, e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Tab' || e.key === 'Enter') e.preventDefault();
+                                      const inputEl = e.currentTarget as HTMLInputElement;
+                                      onStepKeyDown(ptn.id, i, e.key, inputEl.value, inputEl);
+                                    }}
+                                    className={`text-center text-sm font-bold cordel-border-sm outline-none p-0 box-border z-10 relative transition-all duration-200 ${
+                                      isCurrentStep
+                                        ? 'bg-[#1a1a1a] text-[#f4ecd8] border-[#8b2a1a] scale-110 shadow-[0_0_8px_rgba(139,42,26,0.6)]'
+                                        : val === 0
+                                          ? 'bg-[#f4ecd8] text-[#1a1a1a] focus:border-[#8b2a1a]'
+                                          : ''
+                                    }`}
+                                    style={{
+                                      width: '36px',
+                                      height: '36px',
+                                      transform: `translateX(${shiftPx}px)`,
+                                      ...(isCurrentStep ? {} : colorStyle),
+                                    }}
+                                  />
+                                  {/* Sculpting micro-bars */}
+                                  <div className="w-full flex flex-col gap-[2px] mt-1 z-10 relative">
+                                    {/* Volume bar (Green) */}
+                                    <div className="h-[2px] bg-[#1a1a1a]/10 w-full relative">
+                                      <div className="h-full bg-green-600 transition-all" style={{ width: `${ptn.volumes?.[i] ?? 100}%` }} />
+                                    </div>
+                                    {/* Decay bar (Amber) */}
+                                    <div className="h-[2px] bg-[#1a1a1a]/10 w-full relative">
+                                      <div className="h-full bg-amber-500 transition-all" style={{ width: `${ptn.decays?.[i] ?? 100}%` }} />
+                                    </div>
+                                    {/* Micro-timing bar (Blue bi-directional) */}
+                                    <div className="h-[3px] bg-[#1a1a1a]/15 w-full relative overflow-hidden">
+                                      <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[#1a1a1a]/30" />
+                                      {totalShift !== 0 && (
+                                        <div
+                                          className="absolute top-0 bottom-0 bg-[#2980b9] transition-all"
+                                          style={{
+                                            left: totalShift > 0 ? '50%' : 'auto',
+                                            right: totalShift < 0 ? '50%' : 'auto',
+                                            width: `${Math.min(50, (Math.abs(totalShift) / 50) * 50)}%`
+                                          }}
+                                        />
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                {/* Decay bar (Amber) */}
-                                <div className="h-[2px] bg-[#1a1a1a]/10 w-full relative">
-                                  <div className="h-full bg-amber-500 transition-all" style={{ width: `${ptn.decays?.[i] ?? 100}%` }} />
-                                </div>
-                                {/* Micro-timing bar (Blue bi-directional) */}
-                                <div className="h-[3px] bg-[#1a1a1a]/15 w-full relative overflow-hidden">
-                                  <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[#1a1a1a]/30" />
-                                  {totalShift !== 0 && (
-                                    <div
-                                      className="absolute top-0 bottom-0 bg-[#2980b9] transition-all"
-                                      style={{
-                                        left: totalShift > 0 ? '50%' : 'auto',
-                                        right: totalShift < 0 ? '50%' : 'auto',
-                                        width: `${Math.min(50, (Math.abs(totalShift) / 50) * 50)}%`
-                                      }}
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </React.Fragment>
-                        );
-                      })}
+                              );
+                            })}
+                          </div>
+                        ));
+                      })()}
                     </div>
                   )}
 
