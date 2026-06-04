@@ -3,7 +3,6 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,14 +17,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main branch
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Checkout V2 branch
-        uses: actions/checkout@v4
-        with:
-          ref: v2-sequencer-engine
-          path: temp-v2
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -33,29 +26,11 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install dependencies (main/V1)
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build V1 (production)
-        run: |
-          npm run build
-          mv dist dist-prod
-
-      - name: Build V2 (test)
-        run: |
-          cd temp-v2
-          npm ci
-          DEPLOY_ENV=test npm run build
-          mv dist ../dist-test
-          cd ..
-          rm -rf temp-v2
-
-      - name: Assemble final dist
-        run: |
-          mkdir dist
-          mv dist-prod/* dist/
-          mkdir -p dist/test
-          mv dist-test/* dist/test/
+      - name: Build
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
