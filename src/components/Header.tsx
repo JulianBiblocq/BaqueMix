@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
     return (
       <div
         id="top-bar"
-        className="w-full h-[56px] bg-[var(--cordel-bg)] border-b-2 border-[var(--cordel-border)] flex items-center justify-between px-4 z-40 relative select-none shrink-0"
+        className="w-full h-[56px] bg-[var(--cordel-bg)] border-b-2 border-[var(--cordel-border)] flex items-center justify-between px-4 z-50 relative select-none shrink-0"
       >
         {/* Left: Hamburger menu toggle */}
         <div className="flex items-center gap-2" ref={mobileMenuRef}>
@@ -381,7 +381,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <div
       id="top-bar"
-      className="w-full min-h-[70px] bg-[var(--cordel-bg)] border-b-2 border-[var(--cordel-border)] flex flex-wrap items-center justify-between px-5 py-2.5 gap-2 z-20 relative select-none shrink-0"
+      className="w-full min-h-[70px] bg-[var(--cordel-bg)] border-b-2 border-[var(--cordel-border)] flex flex-wrap items-center justify-between px-5 py-2.5 gap-2 z-50 relative select-none shrink-0"
     >
       {/* LEFT: Burger, Title, Project Menu */}
       <div className="flex items-center gap-3">
