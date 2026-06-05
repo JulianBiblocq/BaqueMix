@@ -319,47 +319,47 @@ export default function App() {
         let currentTicks = maxTicksRef.current;
         let stepIdx = currentStepIndexRef.current;
 
-        // Apply measure-specific signature and BPM settings
+        // 1. Commuter la mesure si on arrive à la fin
         if (stepIdx === -1) {
           const firstMeasureIdx = measureCountRef.current % totalMeasuresRef.current;
           const firstTimeSig = measureTimeSigsRef.current[firstMeasureIdx] || '4/4';
           currentTicks = getMaxTicks(firstTimeSig);
           maxTicksRef.current = currentTicks;
-
-          const targetBpm = measureBpmsRef.current[firstMeasureIdx] || 100;
-          try {
-            Tone.Transport.bpm.cancelScheduledValues(time);
-            Tone.Transport.bpm.setValueAtTime(targetBpm, time);
-          } catch (e) {}
         } else if (stepIdx === currentTicks - 1) {
           measureCountRef.current++;
           const nextMeasureIdx = measureCountRef.current % totalMeasuresRef.current;
           const nextTimeSig = measureTimeSigsRef.current[nextMeasureIdx] || '4/4';
           currentTicks = getMaxTicks(nextTimeSig);
           maxTicksRef.current = currentTicks;
-
-          const targetBpm = measureBpmsRef.current[nextMeasureIdx] || 100;
-          const transition = measureBpmTransitionsRef.current[nextMeasureIdx] || 'immediate';
-
-          try {
-            Tone.Transport.bpm.cancelScheduledValues(time);
-            if (transition === 'ramp') {
-              const currentBpm = Tone.Transport.bpm.value;
-              const measureDurationSec = (5 * currentTicks) / Math.max(1, currentBpm + targetBpm);
-              Tone.Transport.bpm.setValueAtTime(currentBpm, time);
-              Tone.Transport.bpm.linearRampToValueAtTime(targetBpm, time + measureDurationSec);
-            } else {
-              Tone.Transport.bpm.setValueAtTime(targetBpm, time);
-            }
-          } catch (e) {}
         }
 
+        // 2. Avancer le pas
         stepIdx = (stepIdx + 1) % currentTicks;
         currentStepIndexRef.current = stepIdx;
         setCurrentStepIndex(stepIdx);
 
-        // Click metronome beat pulse
+        // 3. Appliquer le BPM de manière fluide ou immédiate à chaque pas
         const currentMeasureIdx = measureCountRef.current % totalMeasuresRef.current;
+        const targetBpm = measureBpmsRef.current[currentMeasureIdx] || 100;
+        const transition = measureBpmTransitionsRef.current[currentMeasureIdx] || 'immediate';
+
+        try {
+          if (transition === 'ramp') {
+            const prevMeasureIdx = (currentMeasureIdx - 1 + totalMeasuresRef.current) % totalMeasuresRef.current;
+            const startBpm = measureBpmsRef.current[prevMeasureIdx] || targetBpm;
+            
+            // Interpolation linéaire du BPM pour le pas actuel au sein de la mesure
+            const currentStepBpm = startBpm + (targetBpm - startBpm) * (stepIdx / currentTicks);
+            Tone.Transport.bpm.value = currentStepBpm;
+          } else {
+            // Pour une transition immédiate, on applique le BPM cible dès le premier pas de la mesure
+            if (stepIdx === 0) {
+              Tone.Transport.bpm.value = targetBpm;
+            }
+          }
+        } catch (e) {}
+
+        // Click metronome beat pulse
         const currentMeasureSig = measureTimeSigsRef.current[currentMeasureIdx] || '4/4';
         const markers = getMarkers(currentMeasureSig, currentTicks);
 
