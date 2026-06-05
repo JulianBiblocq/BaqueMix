@@ -23,9 +23,13 @@ interface TimelineSequencerProps {
   measureTimeSigs: TimeSignature[];
   measureBpms: number[];
   measureBpmTransitions: ('immediate' | 'ramp')[];
+  measureVols: number[];
+  measureVolTransitions: ('immediate' | 'ramp')[];
   onMeasureTimeSigChange: (measureIdx: number, val: TimeSignature) => void;
   onMeasureBpmChange: (measureIdx: number, val: number) => void;
   onMeasureTransitionChange: (measureIdx: number, val: 'immediate' | 'ramp') => void;
+  onMeasureVolChange: (measureIdx: number, val: number) => void;
+  onMeasureVolTransitionChange: (measureIdx: number, val: 'immediate' | 'ramp') => void;
 }
 
 const MEASURE_W = 480;
@@ -52,9 +56,13 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
   measureTimeSigs,
   measureBpms,
   measureBpmTransitions,
+  measureVols,
+  measureVolTransitions,
   onMeasureTimeSigChange,
   onMeasureBpmChange,
   onMeasureTransitionChange,
+  onMeasureVolChange,
+  onMeasureVolTransitionChange,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -162,6 +170,8 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
               const mTimeSig = measureTimeSigs[mIdx] || '4/4';
               const mBpm = measureBpms[mIdx] || 100;
               const mTransition = measureBpmTransitions[mIdx] || 'immediate';
+              const mVol = measureVols[mIdx] !== undefined ? measureVols[mIdx] : 100;
+              const mVolTransition = measureVolTransitions[mIdx] || 'immediate';
               const localBeats = mTimeSig === '3/4' || mTimeSig === '6/8' ? 3 : mTimeSig === '2/4' ? 2 : mTimeSig === '12/8' ? 12 : 4;
 
               return (
@@ -222,6 +232,39 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
                       >
                         {mTransition === 'ramp' ? (
                           <span className="text-amber-600 dark:text-amber-500 font-black">↗</span>
+                        ) : (
+                          <span className="opacity-60">→</span>
+                        )}
+                      </button>
+
+                      {/* Vol Input */}
+                      <div className="flex items-center gap-0.5 ml-1.5 border-l border-[var(--cordel-border)]/20 pl-1.5">
+                        <span className="text-[8px] opacity-75 font-cactus">VOL:</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={mVol}
+                          onChange={e => onMeasureVolChange(mIdx, Math.max(0, Math.min(100, Math.round(Number(e.target.value)))))}
+                          className="w-8 bg-[var(--cordel-bg)] text-[9px] font-bold border border-[var(--cordel-border)]/50 rounded px-0.5 py-px text-center outline-none"
+                          style={{ height: '18px' }}
+                        />
+                        <span className="text-[8px] opacity-75">%</span>
+                      </div>
+
+                      {/* Vol Transition Toggle */}
+                      <button
+                        onClick={() => onMeasureVolTransitionChange(mIdx, mVolTransition === 'immediate' ? 'ramp' : 'immediate')}
+                        className={`px-1 py-px text-[9px] font-extrabold border rounded transition-colors cursor-pointer flex items-center justify-center`}
+                        style={{ height: '18px', minWidth: '18px' }}
+                        title={
+                          mVolTransition === 'ramp'
+                            ? (lang === 'fr' ? 'Transition progressive (Fade)' : 'Transição progressiva (Fade)')
+                            : (lang === 'fr' ? 'Transition immédiate' : 'Transição imediata')
+                        }
+                      >
+                        {mVolTransition === 'ramp' ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-black">↗</span>
                         ) : (
                           <span className="opacity-60">→</span>
                         )}

@@ -33,6 +33,7 @@ Avec une identité visuelle unique inspirée de la littérature de **Cordel** et
 * **Arranjo Linear**: Organize e estruture suas composições ao longo do tempo (compasso por compasso) com uma visualização horizontal fluida.
 * **Assinatura Rítmica por Compasso**: Defina assinaturas rítmicas diferentes de maneira independente para cada compasso (**4/4, 3/4, 2/4, 6/8 ou 12/8**).
 * **BPM por Compasso & Rampas de Tempo (Aceleração / Arrasto)**: Crie acelerações e desacelerações de tempo contínuas e perfeitamente fluidas de uma medida a outra (uma dinâmica essencial no maracatu).
+* **Volume por Compasso & Fades / Volume par Mesure & Fades**: Controle o volume (0% a 100%) de cada compasso individualmente com transições imediatas ou progressivas (Fade In / Fade Out) / Contrôlez le volume (0% à 100%) de chaque mesure de manière indépendante avec des transitions immédiates ou progressives (Fade In / Fade Out).
 * **Modo Song**: Crie múltiplos padrões (patterns) para cada instrumento e escolha qual padrão deve ser tocado em cada compasso, ou adicione silêncio.
 
 ### 🎛️ 3. Escultura de Som por Passo (Micro-timing & Decay)

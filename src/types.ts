@@ -87,6 +87,8 @@ export interface Preset {
   measureTimeSigs?: TimeSignature[];
   measureBpms?: number[];
   measureBpmTransitions?: ('immediate' | 'ramp')[];
+  measureVols?: number[];
+  measureVolTransitions?: ('immediate' | 'ramp')[];
 }
 
 export interface CatalogItem {

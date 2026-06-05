@@ -72,20 +72,29 @@ export default function App() {
   const [measureTimeSigs, setMeasureTimeSigs] = useState<TimeSignature[]>([]);
   const [measureBpms, setMeasureBpms] = useState<number[]>([]);
   const [measureBpmTransitions, setMeasureBpmTransitions] = useState<('immediate' | 'ramp')[]>([]);
+  const [measureVols, setMeasureVols] = useState<number[]>([]);
+  const [measureVolTransitions, setMeasureVolTransitions] = useState<('immediate' | 'ramp')[]>([]);
 
   const measureTimeSigsRef = useRef<TimeSignature[]>([]);
   const measureBpmsRef = useRef<number[]>([]);
   const measureBpmTransitionsRef = useRef<('immediate' | 'ramp')[]>([]);
+  const measureVolsRef = useRef<number[]>([]);
+  const measureVolTransitionsRef = useRef<('immediate' | 'ramp')[]>([]);
+  const masterVolRef = useRef<number>(-6);
 
   const [songStructureHistory, setSongStructureHistory] = useState<{
     measureTimeSigs: TimeSignature[];
     measureBpms: number[];
     measureBpmTransitions: ('immediate' | 'ramp')[];
+    measureVols: number[];
+    measureVolTransitions: ('immediate' | 'ramp')[];
   }[]>([]);
   const songStructureHistoryRef = useRef<{
     measureTimeSigs: TimeSignature[];
     measureBpms: number[];
     measureBpmTransitions: ('immediate' | 'ramp')[];
+    measureVols: number[];
+    measureVolTransitions: ('immediate' | 'ramp')[];
   }[]>([]);
 
   useEffect(() => {
@@ -111,6 +120,18 @@ export default function App() {
   useEffect(() => {
     measureBpmTransitionsRef.current = measureBpmTransitions;
   }, [measureBpmTransitions]);
+
+  useEffect(() => {
+    measureVolsRef.current = measureVols;
+  }, [measureVols]);
+
+  useEffect(() => {
+    measureVolTransitionsRef.current = measureVolTransitions;
+  }, [measureVolTransitions]);
+
+  useEffect(() => {
+    masterVolRef.current = masterVol;
+  }, [masterVol]);
 
   useEffect(() => {
     songStructureHistoryRef.current = songStructureHistory;
@@ -152,6 +173,30 @@ export default function App() {
     });
 
     setMeasureBpmTransitions(prev => {
+      const arr = [...prev];
+      if (arr.length === totalMeasures) return prev;
+      while (arr.length < totalMeasures) {
+        arr.push('immediate');
+      }
+      if (arr.length > totalMeasures) {
+        arr.length = totalMeasures;
+      }
+      return arr;
+    });
+
+    setMeasureVols(prev => {
+      const arr = [...prev];
+      if (arr.length === totalMeasures) return prev;
+      while (arr.length < totalMeasures) {
+        arr.push(100);
+      }
+      if (arr.length > totalMeasures) {
+        arr.length = totalMeasures;
+      }
+      return arr;
+    });
+
+    setMeasureVolTransitions(prev => {
       const arr = [...prev];
       if (arr.length === totalMeasures) return prev;
       while (arr.length < totalMeasures) {
@@ -357,6 +402,23 @@ export default function App() {
               Tone.Transport.bpm.value = targetBpm;
             }
           }
+        } catch (e) {}
+
+        // 3b. Appliquer le volume de manière fluide ou immédiate à chaque pas (fondus)
+        const targetVolPercent = measureVolsRef.current[currentMeasureIdx] !== undefined ? measureVolsRef.current[currentMeasureIdx] : 100;
+        const volTransition = measureVolTransitionsRef.current[currentMeasureIdx] || 'immediate';
+        let currentVolPercent = targetVolPercent;
+
+        if (volTransition === 'ramp') {
+          const prevMeasureIdx = (currentMeasureIdx - 1 + totalMeasuresRef.current) % totalMeasuresRef.current;
+          const startVolPercent = measureVolsRef.current[prevMeasureIdx] !== undefined ? measureVolsRef.current[prevMeasureIdx] : 100;
+          currentVolPercent = startVolPercent + (targetVolPercent - startVolPercent) * (stepIdx / currentTicks);
+        }
+
+        try {
+          const globalGain = Tone.dbToGain(masterVolRef.current);
+          const finalGain = globalGain * (currentVolPercent / 100);
+          Tone.Destination.volume.value = Tone.gainToDb(finalGain === 0 ? 0.0001 : finalGain);
         } catch (e) {}
 
         // Click metronome beat pulse
@@ -674,9 +736,19 @@ export default function App() {
       ? p.measureBpmTransitions
       : Array(loadedMeasures).fill('immediate');
 
+    const loadedVols = p.measureVols && Array.isArray(p.measureVols)
+      ? p.measureVols.map((v: number) => Math.round(v))
+      : Array(loadedMeasures).fill(100);
+
+    const loadedVolTransitions = p.measureVolTransitions && Array.isArray(p.measureVolTransitions)
+      ? p.measureVolTransitions
+      : Array(loadedMeasures).fill('immediate');
+
     setMeasureBpms(loadedBpms);
     setMeasureTimeSigs(loadedTimeSigs);
     setMeasureBpmTransitions(loadedBpmTransitions);
+    setMeasureVols(loadedVols);
+    setMeasureVolTransitions(loadedVolTransitions);
 
     measureCountRef.current = 0;
   };
@@ -746,7 +818,9 @@ export default function App() {
       const cloned = {
         measureTimeSigs: [...measureTimeSigsRef.current],
         measureBpms: [...measureBpmsRef.current],
-        measureBpmTransitions: [...measureBpmTransitionsRef.current]
+        measureBpmTransitions: [...measureBpmTransitionsRef.current],
+        measureVols: [...measureVolsRef.current],
+        measureVolTransitions: [...measureVolTransitionsRef.current]
       };
       const next = [...prev, cloned];
       if (next.length > 50) next.shift();
@@ -773,6 +847,8 @@ export default function App() {
           setMeasureTimeSigs(previousState.measureTimeSigs);
           setMeasureBpms(previousState.measureBpms);
           setMeasureBpmTransitions(previousState.measureBpmTransitions);
+          if (previousState.measureVols) setMeasureVols(previousState.measureVols);
+          if (previousState.measureVolTransitions) setMeasureVolTransitions(previousState.measureVolTransitions);
         }
         return nextHistory;
       });
@@ -1172,6 +1248,24 @@ export default function App() {
     });
   };
 
+  const handleMeasureVolChange = (measureIdx: number, val: number) => {
+    pushUndoState();
+    setMeasureVols(prev => {
+      const arr = [...prev];
+      arr[measureIdx] = val;
+      return arr;
+    });
+  };
+
+  const handleMeasureVolTransitionChange = (measureIdx: number, val: 'immediate' | 'ramp') => {
+    pushUndoState();
+    setMeasureVolTransitions(prev => {
+      const arr = [...prev];
+      arr[measureIdx] = val;
+      return arr;
+    });
+  };
+
   const handleTimelineNavigate = (measureIdx: number, stepIdxInMeasure: number, stepsInMeasure: number) => {
     const mSig = measureTimeSigs[measureIdx] || timeSig;
     const currentTicks = getMaxTicks(mSig);
@@ -1435,7 +1529,9 @@ export default function App() {
       metadata,
       measureTimeSigs,
       measureBpms,
-      measureBpmTransitions
+      measureBpmTransitions,
+      measureVols,
+      measureVolTransitions
     };
     const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
     const dlLink = document.createElement('a');
@@ -1481,9 +1577,19 @@ export default function App() {
           ? data.measureBpmTransitions
           : Array(loadedMeasures).fill('immediate');
 
+        const loadedVols = data.measureVols && Array.isArray(data.measureVols)
+          ? data.measureVols.map((v: number) => Math.round(v))
+          : Array(loadedMeasures).fill(100);
+
+        const loadedVolTransitions = data.measureVolTransitions && Array.isArray(data.measureVolTransitions)
+          ? data.measureVolTransitions
+          : Array(loadedMeasures).fill('immediate');
+
         setMeasureBpms(loadedBpms);
         setMeasureTimeSigs(loadedTimeSigs);
         setMeasureBpmTransitions(loadedBpmTransitions);
+        setMeasureVols(loadedVols);
+        setMeasureVolTransitions(loadedVolTransitions);
 
         if (data.tracks) {
           loadedTracks = data.tracks;
@@ -1827,9 +1933,13 @@ export default function App() {
             measureTimeSigs={measureTimeSigs}
             measureBpms={measureBpms}
             measureBpmTransitions={measureBpmTransitions}
+            measureVols={measureVols}
+            measureVolTransitions={measureVolTransitions}
             onMeasureTimeSigChange={handleMeasureTimeSigChange}
             onMeasureBpmChange={handleMeasureBpmChange}
             onMeasureTransitionChange={handleMeasureTransitionChange}
+            onMeasureVolChange={handleMeasureVolChange}
+            onMeasureVolTransitionChange={handleMeasureVolTransitionChange}
           />
         )}
 
