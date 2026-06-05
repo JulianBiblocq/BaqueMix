@@ -1700,6 +1700,10 @@ export default function App() {
           setViewMode(mode);
           if (mode === 'console' || mode === 'timeline') {
             setActiveRightPanel(null);
+          } else if (mode === 'roda') {
+            if (window.innerWidth >= 1024) {
+              setActiveRightPanel('letras');
+            }
           }
         }}
         onUndo={handleUndo}
