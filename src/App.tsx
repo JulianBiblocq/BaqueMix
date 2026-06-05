@@ -345,7 +345,7 @@ export default function App() {
             Tone.Transport.bpm.cancelScheduledValues(time);
             if (transition === 'ramp') {
               const currentBpm = Tone.Transport.bpm.value;
-              const measureDurationSec = (currentTicks / 24) * (60 / currentBpm);
+              const measureDurationSec = (5 * currentTicks) / Math.max(1, currentBpm + targetBpm);
               Tone.Transport.bpm.setValueAtTime(currentBpm, time);
               Tone.Transport.bpm.linearRampToValueAtTime(targetBpm, time + measureDurationSec);
             } else {
