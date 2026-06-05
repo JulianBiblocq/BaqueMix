@@ -45,12 +45,63 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
   onNavigate,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startScrollLeft = useRef(0);
+
   const maxTicksVal = maxTicks || 96;
   const tickPos = currentStepIndex >= 0 ? currentStepIndex : 0;
   const playheadX = currentMeasure * MEASURE_W + (tickPos / maxTicksVal) * MEASURE_W;
 
   // Total scrollable content width (excluding sticky header column)
   const totalContentW = totalMeasures * MEASURE_W;
+
+  // 1. Mouse wheel horizontal scroll
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // 2. Drag-scroll global handlers
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !scrollRef.current) return;
+      const x = e.pageX - scrollRef.current.offsetLeft;
+      const walk = (x - startX.current) * 1.5; // Défilement avec multiplicateur
+      scrollRef.current.scrollLeft = startScrollLeft.current - walk;
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.cursor = '';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return; // Clic gauche uniquement
+    isDragging.current = true;
+    startX.current = e.pageX - (scrollRef.current?.offsetLeft || 0);
+    startScrollLeft.current = scrollRef.current?.scrollLeft || 0;
+    document.body.style.cursor = 'grabbing';
+    e.preventDefault();
+  };
 
   // Auto-scroll to keep playhead visible
   useEffect(() => {
@@ -82,8 +133,9 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
 
           {/* ══════════ RULER ROW ══════════ */}
           <div
-            className="flex h-10 border-b-2 border-[var(--cordel-border)] sticky top-0 z-30 bg-[var(--cordel-bg)]"
+            className="flex h-10 border-b-2 border-[var(--cordel-border)] sticky top-0 z-30 bg-[var(--cordel-bg)] cursor-grab active:cursor-grabbing select-none"
             style={{ width: `${HEADER_W + totalContentW}px` }}
+            onMouseDown={handleMouseDown}
           >
             {/* Sticky corner */}
             <div
@@ -297,8 +349,8 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
       {!isMobile && (
         <div className="h-8 border-t border-[var(--cordel-border)] flex items-center justify-center px-4 bg-[var(--cordel-bg)] text-[10px] font-bold opacity-80 uppercase tracking-widest gap-4 shrink-0">
           <span>💡 {lang === 'fr'
-            ? 'Cliquer sur la timeline pour naviguer · Utiliser les menus déroulants pour changer de motif'
-            : 'Clique na timeline para navegar · Use os menus para trocar de padrão'}</span>
+            ? 'Cliquer-glisser sur la règle ou utiliser la molette pour défiler · Cliquer sur la timeline pour naviguer'
+            : 'Clique e arraste na régua ou use o scroll para navegar · Clique na timeline para navegar'}</span>
         </div>
       )}
     </div>
