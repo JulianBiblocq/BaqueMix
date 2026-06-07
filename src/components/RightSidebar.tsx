@@ -204,6 +204,27 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
               </div>
             </div>
 
+            {/* Recording & WAV Export */}
+            <div className="relative flex flex-col gap-1 bg-[var(--cordel-bg)] cordel-border-sm p-2">
+              <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">
+                {t('wavExportTitle')}
+              </span>
+              <div className="text-[11px] text-[var(--cordel-text)] leading-relaxed">
+                <p dangerouslySetInnerHTML={{ __html: t('wavExportDesc') }} />
+              </div>
+            </div>
+
+            {/* Offline Mode */}
+            <div className="relative flex flex-col gap-1 bg-[var(--cordel-bg)] cordel-border-sm p-2">
+              <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">
+                {t('pwaOfflineTitle')}
+              </span>
+              <div className="text-[11px] text-[var(--cordel-text)] leading-relaxed">
+                <p dangerouslySetInnerHTML={{ __html: t('pwaOfflineDesc') }} />
+              </div>
+            </div>
+
+
             {/* Vocals */}
             <div className="relative flex flex-col gap-1 bg-[var(--cordel-bg)] cordel-border-sm p-2">
               <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">

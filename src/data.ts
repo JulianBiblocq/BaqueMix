@@ -151,7 +151,11 @@ export const i18n = {
     catDefault: "Catálogo",
     promptName: "Nome da sua Toada:",
     saveFile: "Salvar arquivo (.json)",
-    loadFile: "Carregar arquivo (.json)"
+    loadFile: "Carregar arquivo (.json)",
+    wavExportTitle: "🎙️ Gravação & Exportação WAV",
+    wavExportDesc: "• Clique no botão 🔴 REC para gravar a reprodução em tempo real.<br>• Clique novamente para parar e baixar um arquivo <b>.wav</b> (16-bit PCM estéreo sem perdas, compatível com iPhone e WhatsApp).",
+    pwaOfflineTitle: "📶 Modo Offline (PWA)",
+    pwaOfflineDesc: "• Este aplicativo funciona 100% offline para ensaios na rua.<br>• Uma vez carregado, as telas, sons e ritmos ficam guardados no aparelho mesmo sem internet."
   },
   fr: {
     loading: "Chargement des voix...",
@@ -221,7 +225,11 @@ export const i18n = {
     catDefault: "Catalogue",
     promptName: "Nom de votre Toada :",
     saveFile: "Sauvegarder fichier (.json)",
-    loadFile: "Charger fichier (.json)"
+    loadFile: "Charger fichier (.json)",
+    wavExportTitle: "🎙️ Enregistrement & Export WAV",
+    wavExportDesc: "• Cliquez sur le bouton 🔴 REC pour enregistrer le rendu en temps réel.<br>• Cliquez de nouveau pour arrêter et télécharger un fichier <b>.wav</b> (16-bit PCM stéréo sans perte, compatible iPhone et WhatsApp).",
+    pwaOfflineTitle: "📶 Mode Hors-Ligne (PWA)",
+    pwaOfflineDesc: "• Cette application fonctionne à 100% hors-ligne pour vos répétitions de rue.<br>• Une fois chargée, les visuels, sons et rythmes restent accessibles sans connexion internet."
   }
 };
 
