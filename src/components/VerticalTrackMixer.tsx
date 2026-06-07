@@ -36,6 +36,14 @@ interface VerticalTrackMixerProps {
   onAddPattern: () => void;
   onDeletePattern: (patternId: number) => void;
   onOpenDetailEditor: () => void;
+  onStepTouchStart?: (
+    e: React.MouseEvent | React.TouchEvent,
+    patternId: number,
+    stepIdx: number,
+    instId: string,
+    currentVal: string | number,
+    onSelect: (val: string) => void
+  ) => void;
 }
 
 export const VerticalTrackMixer: React.FC<VerticalTrackMixerProps> = ({
@@ -71,6 +79,7 @@ export const VerticalTrackMixer: React.FC<VerticalTrackMixerProps> = ({
   onAddPattern,
   onDeletePattern,
   onOpenDetailEditor,
+  onStepTouchStart,
 }) => {
   const [instDropdownOpen, setInstDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -79,6 +88,23 @@ export const VerticalTrackMixer: React.FC<VerticalTrackMixerProps> = ({
   const t = (key: string) => (i18n[lang] as any)[key] || key;
 
   const activePattern = track.patterns.find(p => p.id === track.selectedPatternId) || track.patterns[0];
+
+  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  const handleStart = (e: React.MouseEvent | React.TouchEvent, stepIdx: number, currentVal: string | number) => {
+    if (onStepTouchStart) {
+      if (e.type === 'touchstart') {
+        onStepTouchStart(e, activePattern.id, stepIdx, inst.id, currentVal, (newVal) => {
+          onStepValueChange(activePattern.id, stepIdx, newVal);
+        });
+      } else {
+        if ('button' in e && e.button !== 0) return;
+        onStepTouchStart(e, activePattern.id, stepIdx, inst.id, currentVal, (newVal) => {
+          onStepValueChange(activePattern.id, stepIdx, newVal);
+        });
+      }
+    }
+  };
 
   useEffect(() => {
     function clickOutside(e: MouseEvent) {
@@ -248,6 +274,18 @@ export const VerticalTrackMixer: React.FC<VerticalTrackMixerProps> = ({
                       type="text"
                       maxLength={inst.id === 'caixa' ? 2 : 1}
                       value={displayVal}
+                      readOnly={isTouchDevice}
+                      inputMode={isTouchDevice ? 'none' : undefined}
+                      onFocus={(e) => {
+                        if (!isTouchDevice) {
+                          e.target.select();
+                        }
+                      }}
+                      onMouseDown={(e) => handleStart(e, i, val)}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        handleStart(e, i, val);
+                      }}
                       onChange={(e) => onStepValueChange(activePattern.id, i, e.target.value)}
                       onKeyDown={(e) => onStepKeyDown(activePattern.id, i, e.key, displayVal, e.target as HTMLInputElement)}
                       style={{ backgroundColor: isActive ? stepColor : undefined, color: isActive ? textColor : undefined }}

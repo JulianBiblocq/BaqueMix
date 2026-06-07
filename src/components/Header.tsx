@@ -236,17 +236,28 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-cactus font-bold text-[var(--cordel-text)]">Mesures</span>
-                  <select
-                    value={totalMeasures}
-                    onChange={(e) => onTotalMeasuresChange(parseInt(e.target.value))}
-                    className="bg-transparent text-[var(--cordel-text)] font-cactus text-xs font-bold outline-none cursor-pointer cordel-border-sm px-1.5 py-0.5"
-                  >
-                    <option value="2" className="bg-[var(--cordel-bg)]">2</option>
-                    <option value="4" className="bg-[var(--cordel-bg)]">4</option>
-                    <option value="8" className="bg-[var(--cordel-bg)]">8</option>
-                    <option value="16" className="bg-[var(--cordel-bg)]">16</option>
-                    <option value="32" className="bg-[var(--cordel-bg)]">32</option>
-                  </select>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onTotalMeasuresChange(Math.max(1, totalMeasures - 1))}
+                      className="w-6 h-6 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)] font-bold text-xs cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]"
+                    >-</button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={64}
+                      value={totalMeasures}
+                      onChange={(e) => {
+                        const val = Math.max(1, Math.min(64, parseInt(e.target.value) || 1));
+                        onTotalMeasuresChange(val);
+                      }}
+                      className="w-10 text-center bg-transparent text-[var(--cordel-text)] font-cactus text-xs font-bold outline-none border border-[var(--cordel-border)] rounded-sm"
+                      style={{ height: '24px' }}
+                    />
+                    <button
+                      onClick={() => onTotalMeasuresChange(Math.min(64, totalMeasures + 1))}
+                      className="w-6 h-6 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)] font-bold text-xs cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]"
+                    >+</button>
+                  </div>
                 </div>
               </div>
 

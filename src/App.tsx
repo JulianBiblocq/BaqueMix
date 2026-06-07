@@ -24,6 +24,7 @@ import { ConsoleMixer } from './components/ConsoleMixer';
 import { CircleSequencer } from './components/CircleSequencer';
 import { RightSidebar } from './components/RightSidebar';
 import { TimelineSequencer } from './components/TimelineSequencer';
+import { TouchStrokeSelector, TouchSelectorState } from './components/TouchStrokeSelector';
 
 // Module scope audio engines to avoid duplicate instantiations on React re-renders
 let bMetroClick: Tone.Synth | null = null;
@@ -68,6 +69,8 @@ export default function App() {
   const [tracksHistory, setTracksHistory] = useState<TrackGroup[][]>([]);
   const tracksHistoryRef = useRef<TrackGroup[][]>([]);
   const [reverbType, setReverbType] = useState<'room' | 'studio' | 'hall'>('studio');
+  const [touchSelector, setTouchSelector] = useState<TouchSelectorState | null>(null);
+  const [hoveredStroke, setHoveredStroke] = useState<string | null>(null);
 
   const [measureTimeSigs, setMeasureTimeSigs] = useState<TimeSignature[]>([]);
   const [measureBpms, setMeasureBpms] = useState<number[]>([]);
@@ -1266,6 +1269,46 @@ export default function App() {
     });
   };
 
+  const handleTotalMeasuresChange = (val: number) => {
+    pushUndoState();
+    setTotalMeasures(val);
+    setTracks(tracks.map(t => ({
+      ...t,
+      patterns: t.patterns.map(p => ({
+        ...p,
+        measureAssignments: Array(val).fill(false).map((_, i) => p.measureAssignments[i] || false)
+      }))
+    })));
+  };
+
+  const handleStepTouchStart = (
+    e: React.MouseEvent | React.TouchEvent,
+    patternId: number,
+    stepIdx: number,
+    instId: string,
+    currentVal: string | number,
+    onSelect: (val: string) => void
+  ) => {
+    if ('button' in e && e.button !== 0) return;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    const targetEl = e.currentTarget as HTMLElement;
+    const rect = targetEl.getBoundingClientRect();
+
+    setTouchSelector({
+      patternId,
+      stepIdx,
+      instId,
+      x: rect.left + rect.width / 2,
+      y: rect.top,
+      currentVal,
+      onSelect,
+    });
+    setHoveredStroke(String(currentVal));
+  };
+
   const handleTimelineNavigate = (measureIdx: number, stepIdxInMeasure: number, stepsInMeasure: number) => {
     const mSig = measureTimeSigs[measureIdx] || timeSig;
     const currentTicks = getMaxTicks(mSig);
@@ -1716,16 +1759,7 @@ export default function App() {
         timeSig={timeSig}
         onTimeSigChange={handleTimeSigChange}
         totalMeasures={totalMeasures}
-        onTotalMeasuresChange={(val) => {
-          setTotalMeasures(val);
-          setTracks(tracks.map(t => ({
-            ...t,
-            patterns: t.patterns.map(p => ({
-              ...p,
-              measureAssignments: Array(val).fill(false).map((_, i) => p.measureAssignments[i] || false)
-            }))
-          })));
-        }}
+        onTotalMeasuresChange={handleTotalMeasuresChange}
         reverbType={reverbType}
         onReverbTypeChange={setReverbType}
       />
@@ -1750,6 +1784,7 @@ export default function App() {
               onStepsChange={handleTrackStepsChange}
               onStepValueChange={handleTrackStepValueChange}
               onStepKeyDown={handleTrackStepKeyDown}
+              onStepTouchStart={handleStepTouchStart}
               onVoiceTypeToggle={handleVoiceTypeToggle}
               onVoiceSylChange={handleVoiceSylChange}
               onVoiceNoteChange={handleVoiceNoteChange}
@@ -1849,6 +1884,7 @@ export default function App() {
               onStepsChange={handleTrackStepsChange}
               onStepValueChange={handleTrackStepValueChange}
               onStepKeyDown={handleTrackStepKeyDown}
+              onStepTouchStart={handleStepTouchStart}
               onVoiceTypeToggle={handleVoiceTypeToggle}
               onVoiceSylChange={handleVoiceSylChange}
               onVoiceNoteChange={handleVoiceNoteChange}
@@ -1944,6 +1980,7 @@ export default function App() {
             onMeasureTransitionChange={handleMeasureTransitionChange}
             onMeasureVolChange={handleMeasureVolChange}
             onMeasureVolTransitionChange={handleMeasureVolTransitionChange}
+            onTotalMeasuresChange={handleTotalMeasuresChange}
           />
         )}
 
@@ -1994,19 +2031,22 @@ export default function App() {
         timeSig={timeSig}
         onTimeSigChange={handleTimeSigChange}
         totalMeasures={totalMeasures}
-        onTotalMeasuresChange={(val) => {
-          setTotalMeasures(val);
-          setTracks(tracks.map(t => ({
-            ...t,
-            patterns: t.patterns.map(p => ({
-              ...p,
-              measureAssignments: Array(val).fill(false).map((_, i) => p.measureAssignments[i] || false)
-            }))
-          })));
-        }}
+        onTotalMeasuresChange={handleTotalMeasuresChange}
         reverbType={reverbType}
         onReverbTypeChange={setReverbType}
       />
+      {touchSelector && (
+        <TouchStrokeSelector
+          selector={touchSelector}
+          hoveredStroke={hoveredStroke}
+          setHoveredStroke={setHoveredStroke}
+          onClose={() => {
+            setTouchSelector(null);
+            setHoveredStroke(null);
+          }}
+          lang={lang}
+        />
+      )}
     </div>
   );
 }

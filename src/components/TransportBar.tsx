@@ -172,20 +172,33 @@ export const TransportBar: React.FC<TransportBarProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)] hidden md:flex">
-          <span className="font-cactus font-bold text-[var(--cordel-text)] text-xs uppercase">
+          <span className="font-cactus font-bold text-[var(--cordel-text)] text-xs uppercase mr-1">
             {lang === 'pt' ? 'Compassos' : lang === 'fr' ? 'Mesures' : 'Measures'}
           </span>
-          <select
-            value={totalMeasures}
-            onChange={(e) => onTotalMeasuresChange(parseInt(e.target.value))}
-            className="bg-transparent text-[var(--cordel-text)] font-cactus text-xs font-bold outline-none cursor-pointer"
-          >
-            <option value="2">2</option>
-            <option value="4">4</option>
-            <option value="8">8</option>
-            <option value="16">16</option>
-            <option value="32">32</option>
-          </select>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onTotalMeasuresChange(Math.max(1, totalMeasures - 1))}
+              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-[10px] cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm"
+              style={{ padding: 0 }}
+            >-</button>
+            <input
+              type="number"
+              min={1}
+              max={64}
+              value={totalMeasures}
+              onChange={(e) => {
+                const val = Math.max(1, Math.min(64, parseInt(e.target.value) || 1));
+                onTotalMeasuresChange(val);
+              }}
+              className="w-8 text-center bg-transparent text-[var(--cordel-text)] font-cactus text-xs font-bold outline-none border border-[var(--cordel-border)]/30 rounded-sm"
+              style={{ height: '20px' }}
+            />
+            <button
+              onClick={() => onTotalMeasuresChange(Math.min(64, totalMeasures + 1))}
+              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-[10px] cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm"
+              style={{ padding: 0 }}
+            >+</button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2" title="Volume Geral">

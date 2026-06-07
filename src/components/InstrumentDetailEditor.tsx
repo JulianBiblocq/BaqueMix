@@ -30,6 +30,14 @@ interface InstrumentDetailEditorProps {
   maxTicks: number;
   totalMeasures: number;
   isMobile: boolean;
+  onStepTouchStart?: (
+    e: React.MouseEvent | React.TouchEvent,
+    patternId: number,
+    stepIdx: number,
+    instId: string,
+    currentVal: string | number,
+    onSelect: (val: string) => void
+  ) => void;
 }
 
 /* ── Stroke legend definitions ─────────────────────────────── */
@@ -96,7 +104,7 @@ function getStrokesForInstrument(instId: string, instType: string): StrokeDef[] 
 const STEP_OPTIONS = [4, 8, 12, 16, 24, 32];
 
 /* ── Cycle step values helper on mobile ────────────────────────── */
-function getNextStepValue(instId: string, instType: string, currentVal: string | number): string | number {
+export function getNextStepValue(instId: string, instType: string, currentVal: string | number): string | number {
   const norm = typeof currentVal === 'string' ? currentVal.trim() : currentVal;
   
   if (instId === 'mineiro') {
@@ -183,6 +191,7 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
   maxTicks,
   totalMeasures,
   isMobile,
+  onStepTouchStart,
 }) => {
   const inst = instrumentsConfig[track.instrumentIdx];
   const t = (key: string) => (i18n[lang] as any)[key] || key;
@@ -192,6 +201,22 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
   const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
 
   const strokes = getStrokesForInstrument(inst.id, inst.type);
+  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  const handleStart = (e: React.MouseEvent | React.TouchEvent, patternId: number, stepIdx: number, currentVal: string | number) => {
+    if (onStepTouchStart) {
+      if (e.type === 'touchstart') {
+        onStepTouchStart(e, patternId, stepIdx, inst.id, currentVal, (newVal) => {
+          onStepValueChange(patternId, stepIdx, newVal);
+        });
+      } else {
+        if ('button' in e && e.button !== 0) return;
+        onStepTouchStart(e, patternId, stepIdx, inst.id, currentVal, (newVal) => {
+          onStepValueChange(patternId, stepIdx, newVal);
+        });
+      }
+    }
+  };
 
   /* Voice input navigation helper */
   const handleVoiceNav = useCallback((el: HTMLInputElement, key: string, type: 'syl' | 'note') => {
@@ -648,22 +673,19 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
                                     type="text"
                                     maxLength={inst.id === 'caixa' ? 2 : 1}
                                     value={displayVal}
-                                    readOnly={isMobile}
-                                    inputMode={isMobile ? 'none' : undefined}
+                                    readOnly={isTouchDevice}
+                                    inputMode={isTouchDevice ? 'none' : undefined}
                                     onFocus={(e) => {
-                                      if (!isMobile) {
+                                      if (!isTouchDevice) {
                                         e.target.select();
                                       }
                                       setSelectedStepIdx(i);
                                       setSelectedPatternId(ptn.id);
                                     }}
-                                    onClick={() => {
-                                      if (isMobile) {
-                                        const newVal = getNextStepValue(inst.id, inst.type, val);
-                                        onStepValueChange(ptn.id, i, String(newVal));
-                                        setSelectedStepIdx(i);
-                                        setSelectedPatternId(ptn.id);
-                                      }
+                                    onMouseDown={(e) => handleStart(e, ptn.id, i, val)}
+                                    onTouchStart={(e) => {
+                                      e.preventDefault();
+                                      handleStart(e, ptn.id, i, val);
                                     }}
                                     onChange={(e) => onStepValueChange(ptn.id, i, e.target.value)}
                                     onKeyDown={(e) => {

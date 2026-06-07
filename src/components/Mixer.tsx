@@ -38,6 +38,14 @@ interface MixerProps {
   onPatternAssign: (trackId: number, patternId: number, measureIdx: number, val: boolean) => void;
   onAddPattern: (trackId: number) => void;
   onDeletePattern: (trackId: number, patternId: number) => void;
+  onStepTouchStart?: (
+    e: React.MouseEvent | React.TouchEvent,
+    patternId: number,
+    stepIdx: number,
+    instId: string,
+    currentVal: string | number,
+    onSelect: (val: string) => void
+  ) => void;
 }
 
 export const Mixer: React.FC<MixerProps> = ({
@@ -70,6 +78,7 @@ export const Mixer: React.FC<MixerProps> = ({
   onPatternAssign,
   onAddPattern,
   onDeletePattern,
+  onStepTouchStart,
 }) => {
   const t = (key: string) => (i18n[lang] as any)[key] || key;
 
@@ -127,6 +136,7 @@ export const Mixer: React.FC<MixerProps> = ({
               onPatternAssign={(patternId, measureIdx, val) => onPatternAssign(track.id, patternId, measureIdx, val)}
               onAddPattern={() => onAddPattern(track.id)}
               onDeletePattern={(patternId) => onDeletePattern(track.id, patternId)}
+              onStepTouchStart={onStepTouchStart}
             />
           ))}
         </div>

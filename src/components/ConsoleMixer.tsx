@@ -38,6 +38,14 @@ interface ConsoleMixerProps {
   onStepMicrotimingChange: (trackId: number, patternId: number, stepIdx: number, val: number) => void;
   isSwingOn: boolean;
   isMobile: boolean;
+  onStepTouchStart?: (
+    e: React.MouseEvent | React.TouchEvent,
+    patternId: number,
+    stepIdx: number,
+    instId: string,
+    currentVal: string | number,
+    onSelect: (val: string) => void
+  ) => void;
 }
 
 export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
@@ -75,6 +83,7 @@ export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
   onStepDecayChange,
   onStepMicrotimingChange,
   isSwingOn,
+  onStepTouchStart,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [editingTrackId, setEditingTrackId] = useState<number | null>(null);
@@ -135,6 +144,7 @@ export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
             onAddPattern={() => onAddPattern(track.id)}
             onDeletePattern={(pid) => onDeletePattern(track.id, pid)}
             onOpenDetailEditor={() => setEditingTrackId(track.id)}
+            onStepTouchStart={onStepTouchStart}
           />
         ))}
         {tracks.length === 0 && (
@@ -173,6 +183,7 @@ export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
           currentMeasure={currentMeasure}
           maxTicks={maxTicks}
           totalMeasures={totalMeasures}
+          onStepTouchStart={onStepTouchStart}
         />
       )}
     </div>

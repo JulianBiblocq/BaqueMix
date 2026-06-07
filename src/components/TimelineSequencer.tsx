@@ -30,6 +30,7 @@ interface TimelineSequencerProps {
   onMeasureTransitionChange: (measureIdx: number, val: 'immediate' | 'ramp') => void;
   onMeasureVolChange: (measureIdx: number, val: number) => void;
   onMeasureVolTransitionChange: (measureIdx: number, val: 'immediate' | 'ramp') => void;
+  onTotalMeasuresChange: (val: number) => void;
 }
 
 const MEASURE_W = 480;
@@ -63,6 +64,7 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
   onMeasureTransitionChange,
   onMeasureVolChange,
   onMeasureVolTransitionChange,
+  onTotalMeasuresChange,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -149,12 +151,12 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
           We use a single wrapper with explicit width so the ruler row and
           every track row share the same coordinate space.
         */}
-        <div style={{ width: `${HEADER_W + totalContentW}px`, minHeight: '100%' }} className="relative">
+        <div style={{ width: `${HEADER_W + totalContentW + 150}px`, minHeight: '100%' }} className="relative">
 
           {/* ══════════ RULER ROW ══════════ */}
           <div
             className="flex h-16 border-b-2 border-[var(--cordel-border)] sticky top-0 z-30 bg-[var(--cordel-bg)] cursor-grab active:cursor-grabbing select-none"
-            style={{ width: `${HEADER_W + totalContentW}px` }}
+            style={{ width: `${HEADER_W + totalContentW + 150}px` }}
             onMouseDown={handleMouseDown}
           >
             {/* Sticky corner */}
@@ -286,6 +288,25 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
                 </div>
               );
             })}
+
+            {/* Quick Add Measure Button */}
+            <div
+              className="flex items-center justify-start px-4 z-40 bg-[var(--cordel-bg)] border-r border-[var(--cordel-border)]/30"
+              style={{ width: 150, minWidth: 150 }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => onTotalMeasuresChange(Math.min(64, totalMeasures + 1))}
+                className="px-2 py-1 bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm text-xs font-bold font-cactus cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] flex items-center justify-center gap-1 w-full"
+                title={lang === 'fr' ? 'Ajouter une mesure' : 'Adicionar compasso'}
+                style={{ height: '28px' }}
+              >
+                <span>➕</span>
+                <span>{lang === 'fr' ? 'Mesure' : 'Compasso'}</span>
+              </button>
+            </div>
           </div>
 
           {/* ══════════ TRACK ROWS ══════════ */}
