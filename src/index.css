@@ -312,7 +312,7 @@ body {
 /* Disable touch scroll actions and text selection on step grids and touch selector to guarantee smooth touch gestures */
 .step-boxes,
 .step-boxes * {
-  touch-action: none !important;
+  touch-action: pan-y !important;
   user-select: none !important;
   -webkit-user-select: none !important;
   -webkit-touch-callout: none !important;

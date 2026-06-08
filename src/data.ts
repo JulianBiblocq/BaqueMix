@@ -155,7 +155,9 @@ export const i18n = {
     wavExportTitle: "🎙️ Gravação & Exportação WAV",
     wavExportDesc: "• Clique no botão 🔴 REC para gravar a reprodução em tempo real.<br>• Clique novamente para parar e baixar um arquivo <b>.wav</b> (16-bit PCM estéreo sem perdas, compatível com iPhone e WhatsApp).",
     pwaOfflineTitle: "📶 Modo Offline (PWA)",
-    pwaOfflineDesc: "• Este aplicativo funciona 100% offline para ensaios na rua.<br>• Uma vez carregado, as telas, sons e ritmos ficam guardados no aparelho mesmo sem internet."
+    pwaOfflineDesc: "• Este aplicativo funciona 100% offline para ensaios na rua.<br>• Uma vez carregado, as telas, sons e ritmos ficam guardados no aparelho mesmo sem internet.",
+    feedbackBtn: "Feedback & Fórum",
+    feedbackTitle: "💬 Contato & Feedback"
   },
   fr: {
     loading: "Chargement des voix...",
@@ -229,7 +231,9 @@ export const i18n = {
     wavExportTitle: "🎙️ Enregistrement & Export WAV",
     wavExportDesc: "• Cliquez sur le bouton 🔴 REC pour enregistrer le rendu en temps réel.<br>• Cliquez de nouveau pour arrêter et télécharger un fichier <b>.wav</b> (16-bit PCM stéréo sans perte, compatible iPhone et WhatsApp).",
     pwaOfflineTitle: "📶 Mode Hors-Ligne (PWA)",
-    pwaOfflineDesc: "• Cette application fonctionne à 100% hors-ligne pour vos répétitions de rue.<br>• Une fois chargée, les visuels, sons et rythmes restent accessibles sans connexion internet."
+    pwaOfflineDesc: "• Cette application fonctionne à 100% hors-ligne pour vos répétitions de rue.<br>• Une fois chargée, les visuels, sons et rythmes restent accessibles sans connexion internet.",
+    feedbackBtn: "Feedback & Forum",
+    feedbackTitle: "💬 Contact & Forum"
   }
 };
 

@@ -326,7 +326,7 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
         style={{
           maxWidth: '1200px',
           width: '95vw',
-          maxHeight: '80vh',
+          maxHeight: isMobile ? '94vh' : '85vh',
           boxShadow: '8px 8px 0px 0px #1a1a1a',
         }}
       >
@@ -489,48 +489,6 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
                       </button>
                     )}
                   </div>
-
-                  {/* Measure assignments */}
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold uppercase text-[#666]">
-                      {lang === 'fr' ? 'Mesures' : 'Compassos'}:
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.from({ length: totalMeasures }).map((_, mIdx) => {
-                        const isChecked = ptn.measureAssignments[mIdx] || false;
-                        const isCurrent = isPlaying && currentMeasure === mIdx;
-                        return (
-                          <label
-                            key={mIdx}
-                            className="flex flex-col items-center cursor-pointer group"
-                            title={`${lang === 'fr' ? 'Mesure' : 'Compasso'} ${mIdx + 1}`}
-                          >
-                            <span className={`text-[9px] font-bold ${
-                              isCurrent ? 'text-[#8b2a1a]' : isChecked ? 'text-[#1a1a1a]' : 'text-[#999]'
-                            }`}>
-                              {mIdx + 1}
-                            </span>
-                            <div
-                              className={`w-5 h-5 cordel-border-sm flex items-center justify-center transition-colors ${
-                                isChecked
-                                  ? 'bg-[#1a1a1a]'
-                                  : 'bg-[#f4ecd8]'
-                              } ${isCurrent ? 'border-[#8b2a1a]' : ''} group-hover:bg-[#1a1a1a]`}
-                            >
-                              {isChecked && <span className="text-[#f4ecd8] text-[10px] font-bold leading-none">×</span>}
-                            </div>
-                            <input
-                              type="checkbox"
-                              className="hidden"
-                              checked={isChecked}
-                              onChange={(e) => onPatternAssign(ptn.id, mIdx, e.target.checked)}
-                            />
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   {/* Step grid */}
                   {inst.type === 'voice' ? (
                     /* ──── Voice step grid ──── */

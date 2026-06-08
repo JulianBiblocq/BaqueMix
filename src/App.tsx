@@ -39,6 +39,7 @@ let wavRecordingBuffersR: Float32Array[] = [];
 let scriptProcessorNode: ScriptProcessorNode | null = null;
 let reverbNode: Tone.Reverb | null = null;
 const reverbSends: { [id: string]: Tone.Gain } = {};
+let masterVolumeNode: Tone.Gain | null = null;
 
 function bufferToWav(leftBuffers: Float32Array[], rightBuffers: Float32Array[], sampleRate: number): Blob {
   let totalLength = 0;
@@ -365,23 +366,25 @@ export default function App() {
     const initAudio = async () => {
       if (bMetroClick) return; // already initialized
 
-      Tone.Destination.volume.value = masterVol;
+      if (!masterVolumeNode) {
+        masterVolumeNode = new Tone.Gain(1.0).toDestination();
+      }
 
       bMetroClick = new Tone.Synth({
         oscillator: { type: 'square' },
         envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.01 },
         volume: 4,
-      }).toDestination();
+      }).connect(masterVolumeNode);
 
       if (!reverbNode) {
-        reverbNode = new Tone.Reverb({ decay: 1.4, preDelay: 0.0 }).toDestination();
+        reverbNode = new Tone.Reverb({ decay: 1.4, preDelay: 0.0 }).connect(masterVolumeNode);
         reverbNode.generate().catch(err => console.error("Error generating initial Tone.Reverb:", err));
       }
 
       const totalAudioCount = instrumentsConfig.filter((i) => i.type !== 'voice').length;
 
       instrumentsConfig.forEach((inst) => {
-        channels[inst.id] = new Tone.Channel({ volume: 0 }).toDestination();
+        channels[inst.id] = new Tone.Channel({ volume: 0 }).connect(masterVolumeNode!);
         meters[inst.id] = new Tone.Meter();
         channels[inst.id].connect(meters[inst.id]);
 
@@ -1105,7 +1108,9 @@ export default function App() {
           wavRecordingBuffersR.push(new Float32Array(right));
         };
 
-        Tone.getDestination().connect(scriptProcessorNode);
+        if (masterVolumeNode) {
+          masterVolumeNode.connect(scriptProcessorNode);
+        }
         scriptProcessorNode.connect(audioContext.destination);
         setIsRecording(true);
       } catch (err) {
@@ -1116,7 +1121,9 @@ export default function App() {
       if (scriptProcessorNode) {
         try {
           scriptProcessorNode.disconnect();
-          Tone.getDestination().disconnect(scriptProcessorNode);
+          if (masterVolumeNode) {
+            masterVolumeNode.disconnect(scriptProcessorNode);
+          }
         } catch (e) {}
         scriptProcessorNode = null;
       }

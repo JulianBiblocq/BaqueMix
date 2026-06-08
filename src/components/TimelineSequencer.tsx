@@ -312,6 +312,21 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col w-full h-full overflow-hidden bg-[var(--cordel-bg)] text-[var(--cordel-text)] select-none">
+      {/* Séquenceur Title Sub-header with Partition Export Button */}
+      <div className="h-10 border-b-2 border-[var(--cordel-border)] px-4 flex items-center justify-between shrink-0 bg-[var(--cordel-bg)] z-10">
+        <span className="font-cactus font-bold text-xs md:text-sm uppercase tracking-wider flex items-center gap-1.5">
+          <span>🎞️ {lang === 'fr' ? 'Séquenceur Linéaire' : 'Sequenciador Linear'}</span>
+        </span>
+        <button
+          onClick={() => setTablatureModalOpen(true)}
+          className="bg-[var(--cordel-text)] text-[var(--cordel-bg)] font-bold text-[10px] md:text-xs px-2.5 py-0.5 md:py-1 rounded cordel-border-sm hover:opacity-85 transition-opacity cursor-pointer flex items-center gap-1 shadow-[1.5px_1.5px_0_var(--cordel-border)] font-sans"
+          title={lang === 'fr' ? 'Extraction de la tablature' : 'Extrair partitura'}
+        >
+          <span>📋</span>
+          <span>{lang === 'fr' ? 'Exporter la partition (TAB)' : 'Exportar partitura (TAB)'}</span>
+        </button>
+      </div>
+
       <div
         ref={scrollRef}
         className="flex-grow overflow-x-auto overflow-y-auto relative custom-scrollbar"
@@ -422,20 +437,10 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
           >
              {/* Sticky corner */}
              <div
-               className="sticky left-0 z-40 bg-[var(--cordel-bg)] border-r-2 border-[var(--cordel-border)] flex items-center justify-between px-3 font-cactus text-sm font-bold uppercase"
+               className="sticky left-0 z-40 bg-[var(--cordel-bg)] border-r-2 border-[var(--cordel-border)] flex items-center px-3 font-cactus text-sm font-bold uppercase"
                style={{ width: HEADER_W, minWidth: HEADER_W }}
              >
                <span>{lang === 'fr' ? 'Instruments' : 'Instrumentos'}</span>
-               <button
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   setTablatureModalOpen(true);
-                 }}
-                 className="bg-[var(--cordel-text)] text-[var(--cordel-bg)] font-bold text-[9px] px-1.5 py-0.5 rounded cordel-border-sm hover:opacity-85 transition-opacity cursor-pointer font-sans normal-case tracking-normal shrink-0"
-                 title={lang === 'fr' ? 'Extraction de la tablature' : 'Extrair partitura'}
-               >
-                 📋 TAB
-               </button>
              </div>
 
             {/* Measure labels */}

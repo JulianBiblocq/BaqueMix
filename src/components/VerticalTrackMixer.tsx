@@ -231,31 +231,15 @@ export const VerticalTrackMixer: React.FC<VerticalTrackMixerProps> = ({
             <button onClick={onAddPattern} className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] px-2 py-0.5 cordel-border-sm cordel-button text-[10px] font-bold hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]">+ Padrão</button>
           </div>
           
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {track.patterns.map((ptn, idx) => (
-              <div key={ptn.id} className="flex flex-col gap-1.5 pb-2 border-b border-[var(--cordel-border)]/50 last:border-0 last:pb-0">
+              <div key={ptn.id} className="flex flex-col gap-1.5 pb-1 last:pb-0">
                 <div className="flex items-center gap-2">
                   <input type="radio" checked={track.selectedPatternId === ptn.id} onChange={() => onSelectPattern(ptn.id)} className="w-4 h-4 accent-[var(--cordel-border)]" />
                   <span className={`font-cactus font-bold cursor-pointer ${track.selectedPatternId === ptn.id ? 'text-[var(--cordel-text)] text-sm' : 'text-[var(--cordel-text)]/60 text-xs'}`} onClick={() => onSelectPattern(ptn.id)}>Padrão {idx + 1} <span className="font-sans font-normal opacity-70">({ptn.steps} pas)</span></span>
                   {track.patterns.length > 1 && (
                     <button onClick={() => onDeletePattern(ptn.id)} className="text-[#8b2a1a] ml-auto text-xs px-1 font-bold hover:underline">✕</button>
                   )}
-                </div>
-                
-                {/* Hand-drawn measures checkboxes */}
-                <div className="grid grid-cols-8 gap-1.5 ml-6">
-                  {Array.from({ length: totalMeasures }).map((_, mIdx) => {
-                    const isChecked = ptn.measureAssignments[mIdx] || false;
-                    return (
-                      <label key={mIdx} className="flex flex-col items-center cursor-pointer group" title={`Mesure ${mIdx + 1}`}>
-                        <span className={`text-[9px] font-bold ${isChecked ? 'text-[var(--cordel-text)]' : 'text-[var(--cordel-text)]/40'}`}>{mIdx + 1}</span>
-                        <div className={`w-3.5 h-3.5 cordel-border-sm flex items-center justify-center transition-colors ${isChecked ? 'bg-[var(--cordel-border)]' : 'bg-[var(--cordel-bg)]'} group-hover:bg-[var(--cordel-border)]`}>
-                          {isChecked && <span className="text-[var(--cordel-bg)] text-[10px] font-bold leading-none">×</span>}
-                        </div>
-                        <input type="checkbox" className="hidden" checked={isChecked} onChange={(e) => onPatternAssign(ptn.id, mIdx, e.target.checked)} />
-                      </label>
-                    );
-                  })}
                 </div>
               </div>
             ))}

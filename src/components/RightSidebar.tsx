@@ -406,6 +406,25 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Contact & Feedback */}
+            <div className="relative flex flex-col gap-1 bg-[var(--cordel-bg)] cordel-border-sm p-3 text-center mt-2 shrink-0">
+              <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">
+                {t('feedbackTitle')}
+              </span>
+              <p className="text-[10px] text-[var(--cordel-text)] leading-relaxed mb-1.5">
+                {lang === 'fr' 
+                  ? "Une idée, un bug ou un retour ? Venez en discuter sur le forum !" 
+                  : "Uma ideia, um bug ou feedback? Venha conversar no fórum!"}
+              </p>
+              <button
+                onClick={() => window.open('https://github.com/JulianBiblocq/BaqueMix/discussions', '_blank')}
+                className="bg-[#27ae60] text-[#1a1a1a] hover:opacity-90 px-3 py-1 text-xs font-bold cordel-border-sm cursor-pointer mx-auto flex items-center gap-1"
+              >
+                <span>💬</span>
+                <span>{t('feedbackBtn')}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
