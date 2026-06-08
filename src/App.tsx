@@ -1092,6 +1092,7 @@ export default function App() {
   };
 
   const handleAudioRecordingToggle = async () => {
+    await Tone.start();
     const audioContext = Tone.getContext().rawContext;
 
     if (!isRecording) {
@@ -1109,7 +1110,7 @@ export default function App() {
         };
 
         if (masterVolumeNode) {
-          masterVolumeNode.connect(scriptProcessorNode);
+          masterVolumeNode.output.connect(scriptProcessorNode);
         }
         scriptProcessorNode.connect(audioContext.destination);
         setIsRecording(true);
@@ -1122,7 +1123,7 @@ export default function App() {
         try {
           scriptProcessorNode.disconnect();
           if (masterVolumeNode) {
-            masterVolumeNode.disconnect(scriptProcessorNode);
+            masterVolumeNode.output.disconnect(scriptProcessorNode);
           }
         } catch (e) {}
         scriptProcessorNode = null;

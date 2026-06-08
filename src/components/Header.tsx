@@ -299,7 +299,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }} className="px-2 py-1 bg-[#2980b9] text-[#1a1a1a] cordel-border-sm text-xs font-bold font-cactus hover:opacity-90 cursor-pointer">
                   🔗 Partager
                 </button>
-                <button onClick={() => { window.open('https://github.com/JulianBiblocq/BaqueMix/discussions', '_blank'); setMobileMenuOpen(false); }} className="px-2 py-1 bg-[#27ae60] text-[#1a1a1a] cordel-border-sm text-xs font-bold font-cactus hover:opacity-90 cursor-pointer col-span-2">
+                <button onClick={() => { window.open('https://github.com/JulianBiblocq/BaqueMix/issues', '_blank'); setMobileMenuOpen(false); }} className="px-2 py-1 bg-[#27ae60] text-[#1a1a1a] cordel-border-sm text-xs font-bold font-cactus hover:opacity-90 cursor-pointer col-span-2">
                   💬 {t('feedbackBtn')}
                 </button>
               </div>
@@ -621,7 +621,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <button
-          onClick={() => window.open('https://github.com/JulianBiblocq/BaqueMix/discussions', '_blank')}
+          onClick={() => window.open('https://github.com/JulianBiblocq/BaqueMix/issues', '_blank')}
           className="bg-[#27ae60] text-[#1a1a1a] hover:opacity-90 px-3 py-1.5 text-sm font-bold cordel-border-sm flex items-center justify-center cursor-pointer"
           title={t('feedbackBtn')}
         >

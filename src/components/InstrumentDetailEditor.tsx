@@ -324,9 +324,9 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
       <div
         className="bg-[#f4ecd8] cordel-border-sm text-[#1a1a1a] flex flex-col relative overflow-hidden"
         style={{
-          maxWidth: '1200px',
+          maxWidth: '1400px',
           width: '95vw',
-          maxHeight: isMobile ? '94vh' : '85vh',
+          maxHeight: isMobile ? '94vh' : '90vh',
           boxShadow: '8px 8px 0px 0px #1a1a1a',
         }}
       >
@@ -698,7 +698,6 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
                                       }
                                     }}
                                     onTouchStart={(e) => {
-                                      e.preventDefault();
                                       handleStart(e, ptn.id, i, val);
                                     }}
                                     onChange={(e) => onStepValueChange(ptn.id, i, e.target.value)}
