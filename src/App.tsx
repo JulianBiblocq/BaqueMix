@@ -1092,14 +1092,50 @@ export default function App() {
   };
 
   const handleAudioRecordingToggle = async () => {
+    let audioContext: any = null;
     try {
       await Tone.start();
       
-      const audioCtx = Tone.context;
-      const audioContext = (audioCtx as any)?.rawContext || audioCtx || (Tone.getContext() as any)?.rawContext;
+      const isNativeCtx = (ctx: any) => ctx && typeof ctx.createScriptProcessor === 'function';
+
+      if (Tone.context) {
+        const raw = (Tone.context as any).rawContext;
+        if (isNativeCtx(raw)) audioContext = raw;
+      }
+      
+      if (!audioContext && isNativeCtx(Tone.context)) {
+        audioContext = Tone.context;
+      }
+
+      if (!audioContext && typeof Tone.getContext === 'function') {
+        const raw = (Tone.getContext() as any)?.rawContext;
+        if (isNativeCtx(raw)) audioContext = raw;
+      }
+      
+      if (!audioContext && masterVolumeNode) {
+        const nativeNode = (masterVolumeNode as any).input || (masterVolumeNode as any).output;
+        if (nativeNode && isNativeCtx(nativeNode.context)) {
+          audioContext = nativeNode.context;
+        }
+      }
+      
+      if (!audioContext && Tone.Destination) {
+        const nativeDest = (Tone.Destination as any).input || (Tone.Destination as any).output;
+        if (nativeDest && isNativeCtx(nativeDest.context)) {
+          audioContext = nativeDest.context;
+        }
+      }
+
+      if (!audioContext) {
+        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtxClass) {
+          const tempCtx = new AudioCtxClass();
+          if (isNativeCtx(tempCtx)) audioContext = tempCtx;
+        }
+      }
       
       if (!audioContext) {
-        throw new Error("L'AudioContext n'est pas initialisé ou n'est pas supporté par ce navigateur.");
+        throw new Error("L'AudioContext natif n'a pas pu être résolu (createScriptProcessor non supporté).");
       }
 
       if (!isRecording) {
@@ -1148,7 +1184,8 @@ export default function App() {
       }
     } catch (err) {
       console.error("Erreur avec l'enregistrement WAV:", err);
-      alert("Erreur lors de l'enregistrement WAV : " + (err instanceof Error ? err.message : String(err)));
+      const ctxName = audioContext ? audioContext.constructor.name : 'null';
+      alert("Erreur lors de l'enregistrement WAV : " + (err instanceof Error ? err.message : String(err)) + " (ctx: " + ctxName + ")");
     }
   };
 
