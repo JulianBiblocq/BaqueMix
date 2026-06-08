@@ -111,6 +111,42 @@ function writeString(view: DataView, offset: number, string: string) {
 }
 
 export default function App() {
+  // PWA Auto-Update Check
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const response = await fetch(
+          `${window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/'}version.json?t=${Date.now()}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          const latestVersion = Number(data.version);
+          const CURRENT_VERSION = 5; // Matches version.json
+          
+          if (latestVersion > CURRENT_VERSION) {
+            console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              for (const registration of registrations) {
+                await registration.unregister();
+              }
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              for (const key of keys) {
+                await caches.delete(key);
+              }
+            }
+            window.location.reload();
+          }
+        }
+      } catch (err) {
+        console.warn('Auto-update check failed:', err);
+      }
+    };
+    checkVersion();
+  }, []);
+
   const [lang, setLang] = useState<Language>('pt');
   const [bpm, setBpm] = useState<number>(83);
   const [masterVol, setMasterVol] = useState<number>(-6);
@@ -1092,62 +1128,98 @@ export default function App() {
   };
 
   const handleAudioRecordingToggle = async () => {
+    // Check if this object is a native AudioContext
+    const isNativeAudioContextInstance = (obj: any): boolean => {
+      if (!obj) return false;
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const BaseAudioCtx = (window as any).BaseAudioContext;
+      if (AudioCtx && obj instanceof AudioCtx) return true;
+      if (BaseAudioCtx && obj instanceof BaseAudioCtx) return true;
+      
+      // Constructor name fallback
+      const name = obj.constructor?.name;
+      return name === 'AudioContext' || name === 'webkitAudioContext' || name === 'BaseAudioContext';
+    };
+
+    const isNativeCtx = (ctx: any) => ctx && typeof ctx.createScriptProcessor === 'function';
+
+    // Recursively search any object properties for the native AudioContext
+    const findNativeAudioContext = (obj: any, visited: Set<any> = new Set()): any => {
+      if (!obj || typeof obj !== 'object') return null;
+      if (visited.has(obj)) return null;
+      visited.add(obj);
+
+      if (isNativeAudioContextInstance(obj) && isNativeCtx(obj)) {
+        return obj;
+      }
+
+      // Avoid traversing DOM elements or React internal objects
+      if (obj.nodeType || obj.$$typeof) return null;
+
+      // Try standard properties first for speed
+      const directProps = ['_nativeContext', '_nativeAudioContext', 'rawContext', 'context'];
+      for (const prop of directProps) {
+        try {
+          const val = obj[prop];
+          if (val && typeof val === 'object') {
+            const found = findNativeAudioContext(val, visited);
+            if (found) return found;
+          }
+        } catch (e) {}
+      }
+
+      // Then search all other properties
+      for (const key of Object.keys(obj)) {
+        try {
+          const val = obj[key];
+          if (val && typeof val === 'object') {
+            const found = findNativeAudioContext(val, visited);
+            if (found) return found;
+          }
+        } catch (e) {}
+      }
+
+      // Search prototype
+      try {
+        const proto = Object.getPrototypeOf(obj);
+        if (proto) {
+          const found = findNativeAudioContext(proto, visited);
+          if (found) return found;
+        }
+      } catch (e) {}
+
+      return null;
+    };
+
+    // Resolve native AudioNode from any wrapper node
+    const getNativeNode = (node: any): any => {
+      if (!node) return null;
+      if (node instanceof AudioNode) return node;
+      if (node.output && node.output instanceof AudioNode) return node.output;
+      if (node.input && node.input instanceof AudioNode) return node.input;
+      if (node._gainNode && node._gainNode instanceof AudioNode) return node._gainNode;
+      if (node.output) return getNativeNode(node.output);
+      if (node.input) return getNativeNode(node.input);
+      return node;
+    };
+
     let audioContext: any = null;
     try {
       await Tone.start();
       
-      const isNativeCtx = (ctx: any) => ctx && typeof ctx.createScriptProcessor === 'function';
-
-      // Helper to unpack standardized-audio-context wrappers at all levels
-      const getNative = (ctx: any): any => {
-        if (!ctx) return null;
-        if (isNativeCtx(ctx)) return ctx;
-        if (ctx._nativeAudioContext && isNativeCtx(ctx._nativeAudioContext)) return ctx._nativeAudioContext;
-        if (ctx._nativeContext && isNativeCtx(ctx._nativeContext)) return ctx._nativeContext;
-        if (ctx.rawContext) {
-          const raw = ctx.rawContext;
-          if (isNativeCtx(raw)) return raw;
-          if (raw._nativeAudioContext && isNativeCtx(raw._nativeAudioContext)) return raw._nativeAudioContext;
-          if (raw._nativeContext && isNativeCtx(raw._nativeContext)) return raw._nativeContext;
-        }
-        if (ctx.context) {
-          const inner = ctx.context;
-          if (isNativeCtx(inner)) return inner;
-          if (inner._nativeAudioContext && isNativeCtx(inner._nativeAudioContext)) return inner._nativeAudioContext;
-          if (inner._nativeContext && isNativeCtx(inner._nativeContext)) return inner._nativeContext;
-          if (inner.rawContext) {
-            const rawInner = inner.rawContext;
-            if (isNativeCtx(rawInner)) return rawInner;
-            if (rawInner._nativeAudioContext && isNativeCtx(rawInner._nativeAudioContext)) return rawInner._nativeAudioContext;
-            if (rawInner._nativeContext && isNativeCtx(rawInner._nativeContext)) return rawInner._nativeContext;
-          }
-        }
-        return null;
-      };
-
       // 1. Try to get native context from masterVolumeNode
       if (masterVolumeNode) {
-        audioContext = getNative(masterVolumeNode.context);
+        audioContext = findNativeAudioContext(masterVolumeNode);
       }
 
       // 2. Try global Tone.context wrapper
       if (!audioContext && Tone.context) {
-        audioContext = getNative(Tone.context);
+        audioContext = findNativeAudioContext(Tone.context);
       }
 
       // 3. Try Tone.getContext() wrapper
       if (!audioContext && typeof Tone.getContext === 'function') {
-        audioContext = getNative(Tone.getContext());
-      }
-
-      // 4. Fallback to a brand new native context as last resort if Tone.js native context remains inaccessible
-      if (!audioContext) {
-        console.warn("Could not extract native AudioContext from Tone.js. Falling back to new AudioContext.");
-        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioCtxClass) {
-          const tempCtx = new AudioCtxClass();
-          if (isNativeCtx(tempCtx)) audioContext = tempCtx;
-        }
+        audioContext = findNativeAudioContext(Tone.getContext());
       }
 
       if (!audioContext) {
@@ -1198,7 +1270,7 @@ export default function App() {
 
         if (masterVolumeNode) {
           // Connect native Web Audio nodes directly to bypass Tone.js asserts
-          const nativeNode = (masterVolumeNode as any).output || (masterVolumeNode as any).input || (masterVolumeNode as any)._gainNode || masterVolumeNode;
+          const nativeNode = getNativeNode(masterVolumeNode);
           if (nativeNode && typeof nativeNode.connect === 'function') {
             nativeNode.connect(scriptProcessorNode);
           } else {
@@ -1214,12 +1286,14 @@ export default function App() {
           try {
             scriptProcessorNode.disconnect();
             if (masterVolumeNode) {
-              const nativeNode = (masterVolumeNode as any).input || (masterVolumeNode as any).output || masterVolumeNode;
-              if (typeof nativeNode.disconnect === 'function') {
+              const nativeNode = getNativeNode(masterVolumeNode);
+              if (nativeNode && typeof nativeNode.disconnect === 'function') {
                 try {
                   nativeNode.disconnect(scriptProcessorNode);
                 } catch (e) {
-                  nativeNode.disconnect();
+                  try {
+                    nativeNode.disconnect();
+                  } catch (inner) {}
                 }
               } else {
                 masterVolumeNode.disconnect(scriptProcessorNode);
