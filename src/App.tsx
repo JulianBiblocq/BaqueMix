@@ -1098,41 +1098,60 @@ export default function App() {
       
       const isNativeCtx = (ctx: any) => ctx && typeof ctx.createScriptProcessor === 'function';
 
-      // 1. Try to get native context from masterVolumeNode's context wrapper
-      if (masterVolumeNode && masterVolumeNode.context) {
-        const raw = (masterVolumeNode.context as any).rawContext || (masterVolumeNode.context as any)._context || (masterVolumeNode.context as any).context;
-        if (isNativeCtx(raw)) audioContext = raw;
+      // Helper to unpack standardized-audio-context wrappers at all levels
+      const getNative = (ctx: any): any => {
+        if (!ctx) return null;
+        if (isNativeCtx(ctx)) return ctx;
+        if (ctx._nativeAudioContext && isNativeCtx(ctx._nativeAudioContext)) return ctx._nativeAudioContext;
+        if (ctx._nativeContext && isNativeCtx(ctx._nativeContext)) return ctx._nativeContext;
+        if (ctx.rawContext) {
+          const raw = ctx.rawContext;
+          if (isNativeCtx(raw)) return raw;
+          if (raw._nativeAudioContext && isNativeCtx(raw._nativeAudioContext)) return raw._nativeAudioContext;
+          if (raw._nativeContext && isNativeCtx(raw._nativeContext)) return raw._nativeContext;
+        }
+        if (ctx.context) {
+          const inner = ctx.context;
+          if (isNativeCtx(inner)) return inner;
+          if (inner._nativeAudioContext && isNativeCtx(inner._nativeAudioContext)) return inner._nativeAudioContext;
+          if (inner._nativeContext && isNativeCtx(inner._nativeContext)) return inner._nativeContext;
+          if (inner.rawContext) {
+            const rawInner = inner.rawContext;
+            if (isNativeCtx(rawInner)) return rawInner;
+            if (rawInner._nativeAudioContext && isNativeCtx(rawInner._nativeAudioContext)) return rawInner._nativeAudioContext;
+            if (rawInner._nativeContext && isNativeCtx(rawInner._nativeContext)) return rawInner._nativeContext;
+          }
+        }
+        return null;
+      };
+
+      // 1. Try to get native context from masterVolumeNode
+      if (masterVolumeNode) {
+        audioContext = getNative(masterVolumeNode.context);
       }
 
       // 2. Try global Tone.context wrapper
       if (!audioContext && Tone.context) {
-        const raw = (Tone.context as any).rawContext || (Tone.context as any)._context || (Tone.context as any).context;
-        if (isNativeCtx(raw)) audioContext = raw;
+        audioContext = getNative(Tone.context);
       }
 
       // 3. Try Tone.getContext() wrapper
       if (!audioContext && typeof Tone.getContext === 'function') {
-        const raw = (Tone.getContext() as any)?.rawContext || (Tone.getContext() as any)?._context || (Tone.getContext() as any)?.context;
-        if (isNativeCtx(raw)) audioContext = raw;
+        audioContext = getNative(Tone.getContext());
       }
 
-      // 4. Try from masterVolumeNode's native output node directly if available
-      if (!audioContext && masterVolumeNode) {
-        const nativeNode = (masterVolumeNode as any).output || (masterVolumeNode as any).input || (masterVolumeNode as any)._gainNode || masterVolumeNode;
-        if (nativeNode && nativeNode.context && isNativeCtx(nativeNode.context)) {
-          audioContext = nativeNode.context;
+      // 4. Fallback to a brand new native context as last resort if Tone.js native context remains inaccessible
+      if (!audioContext) {
+        console.warn("Could not extract native AudioContext from Tone.js. Falling back to new AudioContext.");
+        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtxClass) {
+          const tempCtx = new AudioCtxClass();
+          if (isNativeCtx(tempCtx)) audioContext = tempCtx;
         }
       }
 
-      // 5. Try from Tone.Destination
-      if (!audioContext && Tone.Destination) {
-        const nativeDest = (Tone.Destination as any).input || (Tone.Destination as any).output || Tone.Destination;
-        const raw = nativeDest.context || (Tone.Destination.context as any)?.rawContext;
-        if (isNativeCtx(raw)) audioContext = raw;
-      }
-
       if (!audioContext) {
-        throw new Error("L'AudioContext de Tone.js n'a pas pu être résolu. Impossible de démarrer l'enregistrement.");
+        throw new Error("L'AudioContext de l'application n'a pas pu être résolu. Impossible de démarrer l'enregistrement.");
       }
 
       if (!isRecording) {
