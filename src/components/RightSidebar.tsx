@@ -40,6 +40,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const [zoomModalOpen, setZoomModalOpen] = React.useState<boolean>(false);
+  const [subTab, setSubTab] = React.useState<'toada' | 'info'>('toada');
 
   // Stop camera stream on unmount
   React.useEffect(() => {
@@ -444,247 +445,298 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             </button>
           </div>
 
-          {/* Metadata Frame */}
-          {metadata && onMetadataChange && (
-            <div className="flex flex-col gap-2 mb-4 p-3 bg-[var(--cordel-bg)] cordel-border-sm">
-              <span className="text-[var(--cordel-text)] font-cactus text-sm font-bold uppercase tracking-wider mb-1">
-                {t('metaInfo')}
+          {/* Sub-tab Selector */}
+          <div className="flex gap-2 mb-4 shrink-0">
+            <button
+              onClick={() => setSubTab('toada')}
+              className={`flex-1 py-1.5 font-cactus font-bold text-xs uppercase cordel-border-sm cursor-pointer transition-colors ${
+                subTab === 'toada'
+                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
+                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
+              }`}
+            >
+              📝 {lang === 'fr' ? 'Paroles' : 'Letra'}
+            </button>
+            <button
+              onClick={() => setSubTab('info')}
+              className={`flex-1 py-1.5 font-cactus font-bold text-xs uppercase cordel-border-sm cursor-pointer transition-colors ${
+                subTab === 'info'
+                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
+                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
+              }`}
+            >
+              ℹ️ Info
+            </button>
+          </div>
+
+          {/* Tab 1: Paroles / Lyrics */}
+          {subTab === 'toada' && (
+            <div className="flex flex-col flex-grow overflow-hidden min-h-0">
+              <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus mb-1 shrink-0">
+                {lang === 'fr' ? 'Paroles de la Toada' : 'Letra da Toada'}
               </span>
-              <input
-                type="text"
-                placeholder={t('metaToada')}
-                value={metadata.toada}
-                onChange={(e) => onMetadataChange({ ...metadata, toada: e.target.value })}
-                className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
+              <textarea
+                id="letras-textarea"
+                placeholder={t('letrasPlaceholder')}
+                value={letras}
+                onChange={(e) => onLetrasChange(e.target.value)}
+                className="w-full h-[150px] min-h-[100px] bg-[var(--cordel-bg)] text-[var(--cordel-text)] border-[2px] border-[var(--cordel-border)] p-2 font-sans text-xs outline-none resize-none focus:border-[var(--cordel-border)] mb-4 shrink-0"
               />
-              <input
-                type="text"
-                placeholder={t('metaNacao')}
-                value={metadata.nacao}
-                onChange={(e) => onMetadataChange({ ...metadata, nacao: e.target.value })}
-                className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
-              />
-              <input
-                type="text"
-                placeholder={t('metaCompositor')}
-                value={metadata.compositor}
-                onChange={(e) => onMetadataChange({ ...metadata, compositor: e.target.value })}
-                className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
-              />
-              <input
-                type="text"
-                placeholder={t('metaRitmo')}
-                value={metadata.ritmo}
-                onChange={(e) => onMetadataChange({ ...metadata, ritmo: e.target.value })}
-                className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
-              />
-              <input
-                type="text"
-                placeholder={lang === 'pt' ? 'Link do YouTube' : 'Lien YouTube'}
-                value={metadata.youtubeUrl || ''}
-                onChange={(e) => onMetadataChange({ ...metadata, youtubeUrl: e.target.value })}
-                className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
-              />
-              {metadata.youtubeUrl && getYouTubeEmbedUrl(metadata.youtubeUrl) && (
-                <div className="mt-2 aspect-video w-full rounded-none overflow-hidden cordel-border-sm">
-                  <iframe 
-                    width="100%" 
-                    height="100%" 
-                    src={getYouTubeEmbedUrl(metadata.youtubeUrl)} 
-                    frameBorder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowFullScreen
-                  />
-                </div>
-              )}
+              
+              <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus mb-1 shrink-0">
+                🎤 Karaokê
+              </span>
 
-              {/* Partition image block */}
-              <div className="border-t border-[var(--cordel-border)]/20 pt-2 mt-2 flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">
-                  {lang === 'fr' ? 'Partition / Signes rythmiques' : 'Partitura / Sinais do ritmo'}
-                </span>
-                <span className="text-[8px] text-[var(--cordel-text)] opacity-60">
-                  {lang === 'fr' 
-                    ? '(Image compressée automatiquement pour l\'export)' 
-                    : '(Imagem compactada automaticamente para exportação)'}
-                </span>
+              {/* Karaoke Viewer Container */}
+              <div className="flex-grow overflow-y-auto min-h-0 pr-1 custom-scrollbar">
+                {(() => {
+                  const voiceTracks = tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.type === 'voice' && !t.isMute);
+                  if (voiceTracks.length === 0) {
+                    return (
+                      <div className="text-[var(--cordel-text)] font-sans font-bold text-xs text-center mt-6 italic opacity-70">
+                        {lang === 'fr' 
+                          ? 'Ajoutez une piste de voix (non mutée) pour voir le karaoké.'
+                          : 'Adicione uma faixa de Voz/Coro (não mutada) para ver o karaokê.'}
+                      </div>
+                    );
+                  }
 
-                {metadata.partitionImage ? (
-                  <div className="flex flex-col gap-2">
-                    <div className="relative group cordel-border-sm overflow-hidden aspect-video bg-[#eaddcf] cursor-zoom-in" onClick={() => setZoomModalOpen(true)}>
-                      <img src={metadata.partitionImage} alt="Partition" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold uppercase transition-opacity">
-                        🔍 {lang === 'fr' ? 'Agrandir' : 'Ampliar'}
+                  // Determine which pattern is active per instrument (for karaoke turn)
+                  const activeByInst = currentPlayState?.activePatternIdByInst ?? {};
+
+                  type Token = { trackId: number; patternId: number; stepIdx: number; displayText: string; hasSpace: boolean; color: string; instIdx: number; isBreak?: boolean };
+                  const allTokens: Token[] = [];
+                  voiceTracks.forEach(t => {
+                    const inst = instrumentsConfig[t.instrumentIdx];
+                    t.patterns.forEach(ptn => {
+                      let addedTokensForPattern = false;
+                      for (let i = 0; i < ptn.steps; i++) {
+                        const state = ptn.activeSteps[i];
+                        const lyric = ptn.lyrics[i];
+                        if (!state || state === 0 || !lyric || lyric.trim() === '') continue;
+                        const isPux = state === 'P';
+                        const color = isPux ? inst.colors['P'] : inst.colors['C'];
+                        
+                        // Respect user's explicit trailing spaces
+                        const hasSpace = lyric.endsWith(' ');
+                        const displayText = lyric.replace(/-$/, '').trim();
+                        
+                        allTokens.push({ trackId: t.id, patternId: ptn.id, stepIdx: i, displayText, hasSpace, color, instIdx: t.instrumentIdx });
+                        addedTokensForPattern = true;
+                      }
+                      if (addedTokensForPattern) {
+                        allTokens.push({ trackId: t.id, patternId: ptn.id, stepIdx: -1, displayText: '', hasSpace: false, color: '', instIdx: t.instrumentIdx, isBreak: true });
+                      }
+                    });
+                  });
+
+                  return (
+                    <div className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm p-3 font-sans">
+                      <div className="flex flex-wrap gap-y-2 leading-loose text-base">
+                        {(() => {
+                          const words: Token[][] = [];
+                          let currentWord: Token[] = [];
+                          allTokens.forEach(tok => {
+                            if (tok.isBreak) {
+                              if (currentWord.length > 0) {
+                                words.push(currentWord);
+                                currentWord = [];
+                              }
+                              words.push([tok]);
+                              return;
+                            }
+                            currentWord.push(tok);
+                            if (tok.hasSpace) {
+                              words.push(currentWord);
+                              currentWord = [];
+                            }
+                          });
+                          if (currentWord.length > 0) words.push(currentWord);
+
+                          return words.map((word, wordIdx) => {
+                            if (word[0].isBreak) {
+                              return <div key={`break-${wordIdx}`} className="w-full h-1" />;
+                            }
+                            return (
+                              <span key={`word-${wordIdx}`} className="inline">
+                                {word.map((tok, idx) => {
+                                  const t = voiceTracks.find(x => x.id === tok.trackId);
+                                  if (!t) return null;
+
+                                  const groupActiveId = activeByInst[tok.instIdx];
+                                  const isThisPatternActive = currentPlayState !== null && (groupActiveId === tok.patternId || groupActiveId === undefined || groupActiveId === null);
+                                  const activePattern = t.patterns.find(p => p.id === tok.patternId);
+                                  if (!activePattern) return null;
+
+                                  const currentStep = (isThisPatternActive && currentPlayState)
+                                    ? Math.floor((currentPlayState.stepIndex / currentPlayState.maxTicks) * activePattern.steps)
+                                    : -1;
+                                  
+                                  const isHighlighted = isThisPatternActive && currentStep === tok.stepIdx;
+
+                                  return (
+                                    <span
+                                      key={`${tok.trackId}-${tok.patternId}-${tok.stepIdx}-${idx}`}
+                                      className={`transition-all duration-100 font-bold ${
+                                        isHighlighted ? 'scale-110 cordel-border-sm px-1' : ''
+                                      }`}
+                                      style={{
+                                        backgroundColor: isHighlighted ? 'var(--cordel-text)' : 'transparent',
+                                        color: isHighlighted ? 'var(--cordel-bg)' : 'var(--cordel-text)',
+                                        marginRight: tok.hasSpace ? '6px' : '0px',
+                                      }}
+                                    >
+                                      {tok.displayText}
+                                    </span>
+                                  );
+                                })}
+                              </span>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(lang === 'fr' ? "Supprimer cette image ?" : "Excluir esta imagem?")) {
-                          onMetadataChange({ ...metadata, partitionImage: undefined });
-                        }
-                      }}
-                      className="text-[#8b2a1a] font-bold text-[10px] text-left hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      🗑️ {lang === 'fr' ? 'Supprimer la photo' : 'Remover foto'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {cameraActive ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="aspect-video bg-black cordel-border-sm overflow-hidden relative">
-                          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={capturePhoto}
-                            className="flex-1 py-1 bg-emerald-600 text-white text-[10px] font-bold cordel-border-sm hover:opacity-85 cursor-pointer"
-                          >
-                            📸 {lang === 'fr' ? 'Capturer' : 'Capturar'}
-                          </button>
-                          <button
-                            onClick={stopCamera}
-                            className="py-1 px-3 bg-gray-300 text-black text-[10px] font-bold cordel-border-sm hover:opacity-85 cursor-pointer"
-                          >
-                            {lang === 'fr' ? 'Annuler' : 'Cancelar'}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <label className="flex-1 py-1 bg-[var(--cordel-bg)] text-[var(--cordel-text)] text-[10px] font-bold cordel-border-sm text-center cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors flex items-center justify-center gap-1">
-                          📁 {lang === 'fr' ? 'Fichier' : 'Arquivo'}
-                          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                        </label>
-                        <button
-                          onClick={startCamera}
-                          className="flex-1 py-1 bg-[var(--cordel-bg)] text-[var(--cordel-text)] text-[10px] font-bold cordel-border-sm hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors cursor-pointer flex items-center justify-center gap-1"
-                        >
-                          📷 {lang === 'fr' ? 'Photo' : 'Câmera'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           )}
 
-          <div className="flex justify-end mb-2 shrink-0">
-          {(() => {
-            const voiceTracks = tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.type === 'voice' && !t.isMute);
-            if (voiceTracks.length === 0) return null;
+          {/* Tab 2: Informations */}
+          {subTab === 'info' && (
+            <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar min-h-0">
+              {metadata && onMetadataChange ? (
+                <div className="flex flex-col gap-2 p-3 bg-[var(--cordel-bg)] cordel-border-sm">
+                  <span className="text-[var(--cordel-text)] font-cactus text-sm font-bold uppercase tracking-wider mb-1">
+                    {t('metaInfo')}
+                  </span>
+                  <input
+                    type="text"
+                    placeholder={t('metaToada')}
+                    value={metadata.toada}
+                    onChange={(e) => onMetadataChange({ ...metadata, toada: e.target.value })}
+                    className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
+                  />
+                  <input
+                    type="text"
+                    placeholder={t('metaNacao')}
+                    value={metadata.nacao}
+                    onChange={(e) => onMetadataChange({ ...metadata, nacao: e.target.value })}
+                    className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
+                  />
+                  <input
+                    type="text"
+                    placeholder={t('metaCompositor')}
+                    value={metadata.compositor}
+                    onChange={(e) => onMetadataChange({ ...metadata, compositor: e.target.value })}
+                    className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
+                  />
+                  <input
+                    type="text"
+                    placeholder={t('metaRitmo')}
+                    value={metadata.ritmo}
+                    onChange={(e) => onMetadataChange({ ...metadata, ritmo: e.target.value })}
+                    className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
+                  />
+                  <input
+                    type="text"
+                    placeholder={lang === 'pt' ? 'Link do YouTube' : 'Lien YouTube'}
+                    value={metadata.youtubeUrl || ''}
+                    onChange={(e) => onMetadataChange({ ...metadata, youtubeUrl: e.target.value })}
+                    className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
+                  />
+                  {metadata.youtubeUrl && getYouTubeEmbedUrl(metadata.youtubeUrl) && (
+                    <div className="mt-2 aspect-video w-full rounded-none overflow-hidden cordel-border-sm">
+                      <iframe 
+                        width="100%" 
+                        height="100%" 
+                        src={getYouTubeEmbedUrl(metadata.youtubeUrl)} 
+                        frameBorder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
 
-            // Determine which pattern is active per instrument (for karaoke turn)
-            const activeByInst = currentPlayState?.activePatternIdByInst ?? {};
+                  {/* Partition image block */}
+                  <div className="border-t border-[var(--cordel-border)]/20 pt-2 mt-2 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">
+                      {lang === 'fr' ? 'Partition / Signes rythmiques' : 'Partitura / Sinais do ritmo'}
+                    </span>
+                    <span className="text-[8px] text-[var(--cordel-text)] opacity-60">
+                      {lang === 'fr' 
+                        ? '(Image compressée automatiquement pour l\'export)' 
+                        : '(Imagem compactada automaticamente para exportação)'}
+                    </span>
 
-            type Token = { trackId: number; patternId: number; stepIdx: number; displayText: string; hasSpace: boolean; color: string; instIdx: number; isBreak?: boolean };
-            const allTokens: Token[] = [];
-            voiceTracks.forEach(t => {
-              const inst = instrumentsConfig[t.instrumentIdx];
-              t.patterns.forEach(ptn => {
-                let addedTokensForPattern = false;
-                for (let i = 0; i < ptn.steps; i++) {
-                  const state = ptn.activeSteps[i];
-                  const lyric = ptn.lyrics[i];
-                  if (!state || state === 0 || !lyric || lyric.trim() === '') continue;
-                  const isPux = state === 'P';
-                  const color = isPux ? inst.colors['P'] : inst.colors['C'];
-                  
-                  // Respect user's explicit trailing spaces
-                  const hasSpace = lyric.endsWith(' ');
-                  const hasDash = lyric.endsWith('-');
-                  const displayText = lyric.replace(/-$/, '').trim();
-                  
-                  
-                  allTokens.push({ trackId: t.id, patternId: ptn.id, stepIdx: i, displayText, hasSpace, color, instIdx: t.instrumentIdx });
-                  addedTokensForPattern = true;
-                }
-                if (addedTokensForPattern) {
-                  allTokens.push({ trackId: t.id, patternId: ptn.id, stepIdx: -1, displayText: '', hasSpace: false, color: '', instIdx: t.instrumentIdx, isBreak: true });
-                }
-              });
-            });
-
-            return (
-              <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
-                <div className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm p-3 font-sans">
-                  <div className="flex flex-wrap gap-y-2 leading-loose text-base">
-                    {(() => {
-                      const words: Token[][] = [];
-                      let currentWord: Token[] = [];
-                      allTokens.forEach(tok => {
-                        if (tok.isBreak) {
-                          if (currentWord.length > 0) {
-                            words.push(currentWord);
-                            currentWord = [];
-                          }
-                          words.push([tok]);
-                          return;
-                        }
-                        currentWord.push(tok);
-                        if (tok.hasSpace) {
-                          words.push(currentWord);
-                          currentWord = [];
-                        }
-                      });
-                      if (currentWord.length > 0) words.push(currentWord);
-
-                      return words.map((word, wordIdx) => {
-                        if (word[0].isBreak) {
-                          return <div key={`break-${wordIdx}`} className="w-full h-1" />;
-                        }
-                        return (
-                        <span key={`word-${wordIdx}`} className="inline">
-                          {word.map((tok, idx) => {
-                            const t = voiceTracks.find(x => x.id === tok.trackId);
-                            if (!t) return null;
-
-                            const groupActiveId = activeByInst[tok.instIdx];
-                            const isThisPatternActive = currentPlayState !== null && (groupActiveId === tok.patternId || groupActiveId === undefined || groupActiveId === null);
-                            const activePattern = t.patterns.find(p => p.id === tok.patternId);
-                            if (!activePattern) return null;
-
-                            const currentStep = (isThisPatternActive && currentPlayState)
-                              ? Math.floor((currentPlayState.stepIndex / currentPlayState.maxTicks) * activePattern.steps)
-                              : -1;
-                            
-                            const isHighlighted = isThisPatternActive && currentStep === tok.stepIdx;
-
-                            return (
-                              <span
-                                key={`${tok.trackId}-${tok.patternId}-${tok.stepIdx}-${idx}`}
-                                className={`transition-all duration-100 font-bold ${
-                                  isHighlighted ? 'scale-110 cordel-border-sm px-1' : ''
-                                }`}
-                                style={{
-                                  backgroundColor: isHighlighted ? 'var(--cordel-text)' : 'transparent',
-                                  color: isHighlighted ? 'var(--cordel-bg)' : 'var(--cordel-text)',
-                                  marginRight: tok.hasSpace ? '6px' : '0px',
-                                }}
+                    {metadata.partitionImage ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="relative group cordel-border-sm overflow-hidden aspect-video bg-[#eaddcf] cursor-zoom-in" onClick={() => setZoomModalOpen(true)}>
+                          <img src={metadata.partitionImage} alt="Partition" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold uppercase transition-opacity">
+                            🔍 {lang === 'fr' ? 'Agrandir' : 'Ampliar'}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(lang === 'fr' ? "Supprimer cette image ?" : "Excluir esta imagem?")) {
+                              onMetadataChange({ ...metadata, partitionImage: undefined });
+                            }
+                          }}
+                          className="text-[#8b2a1a] font-bold text-[10px] text-left hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          🗑️ {lang === 'fr' ? 'Supprimer la photo' : 'Remover foto'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {cameraActive ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="aspect-video bg-black cordel-border-sm overflow-hidden relative">
+                              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={capturePhoto}
+                                className="flex-1 py-1 bg-emerald-600 text-white text-[10px] font-bold cordel-border-sm hover:opacity-85 cursor-pointer"
                               >
-                                {tok.displayText}
-                              </span>
-                            );
-                          })}
-                        </span>
-                        );
-                      });
-                    })()}
+                                📸 {lang === 'fr' ? 'Capturer' : 'Capturar'}
+                              </button>
+                              <button
+                                onClick={stopCamera}
+                                className="py-1 px-3 bg-gray-300 text-black text-[10px] font-bold cordel-border-sm hover:opacity-85 cursor-pointer"
+                              >
+                                {lang === 'fr' ? 'Annuler' : 'Cancelar'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <label className="flex-1 py-1 bg-[var(--cordel-bg)] text-[var(--cordel-text)] text-[10px] font-bold cordel-border-sm text-center cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors flex items-center justify-center gap-1">
+                              📁 {lang === 'fr' ? 'Fichier' : 'Arquivo'}
+                              <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                            </label>
+                            <button
+                              onClick={startCamera}
+                              className="flex-1 py-1 bg-[var(--cordel-bg)] text-[var(--cordel-text)] text-[10px] font-bold cordel-border-sm hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              📷 {lang === 'fr' ? 'Photo' : 'Câmera'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            );
-          })()}
-          </div>
-
-          <div className="flex-grow" />
-
-          {tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.type === 'voice' && !t.isMute).length === 0 && (
-              <div className="text-[var(--cordel-text)] font-sans font-bold text-sm text-center mt-10 italic opacity-70">
-                Adicione uma faixa de Voz/Coro (não mutada) para ver a toada aqui.
-              </div>
+              ) : (
+                <div className="text-[var(--cordel-text)] font-sans font-bold text-xs text-center mt-10 italic opacity-70">
+                  {lang === 'fr' 
+                    ? 'Aucune métadonnée disponible pour ce rythme.' 
+                    : 'Nenhuma informação disponible para este rythme.'}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

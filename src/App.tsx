@@ -122,7 +122,7 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const latestVersion = Number(data.version);
-          const CURRENT_VERSION = 9; // Matches version.json
+          const CURRENT_VERSION = 10; // Matches version.json
           
           if (latestVersion > CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
@@ -678,34 +678,37 @@ export default function App() {
         const hasSolo = tracksRef.current.some((t) => t.isSolo);
         tracksRef.current.forEach((track) => {
           const currentMeasure = measureCountRef.current % totalMeasuresRef.current;
-          const activePattern = track.patterns.find(p => p.measureAssignments[currentMeasure]);
-          if (!activePattern) return;
-
           const inst = instrumentsConfig[track.instrumentIdx];
 
-          // Recording handling should run even if track is muted/soloed
-          if (inst.type === 'voice') {
-            if (stepIdx === 0 && vocalRecordingStateRef.current === 'waiting' && recordingVocalPatternId === activePattern.id) {
-              vocalRecordingStateRef.current = 'recording';
-              if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'inactive') {
-                try {
-                  vocalMediaRecorderRef.current.start();
-                } catch (err) {
-                  console.error("Failed to start MediaRecorder:", err);
+          // Recording handling should run even if track is muted/soloed or pattern is not assigned
+          if (inst.type === 'voice' && recordingVocalPatternId !== null) {
+            const hasPatternBeingRecorded = track.patterns.some(p => p.id === recordingVocalPatternId);
+            if (hasPatternBeingRecorded) {
+              if (stepIdx === 0 && vocalRecordingStateRef.current === 'waiting') {
+                vocalRecordingStateRef.current = 'recording';
+                if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'inactive') {
+                  try {
+                    vocalMediaRecorderRef.current.start();
+                  } catch (err) {
+                    console.error("Failed to start MediaRecorder:", err);
+                  }
                 }
               }
-            }
-            if (stepIdx === currentTicks - 1 && vocalRecordingStateRef.current === 'recording' && recordingVocalPatternId === activePattern.id) {
-              vocalRecordingStateRef.current = 'inactive';
-              if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'recording') {
-                try {
-                  vocalMediaRecorderRef.current.stop();
-                } catch (err) {
-                  console.error("Failed to stop MediaRecorder:", err);
+              if (stepIdx === currentTicks - 1 && vocalRecordingStateRef.current === 'recording') {
+                vocalRecordingStateRef.current = 'inactive';
+                if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'recording') {
+                  try {
+                    vocalMediaRecorderRef.current.stop();
+                  } catch (err) {
+                    console.error("Failed to stop MediaRecorder:", err);
+                  }
                 }
               }
             }
           }
+
+          const activePattern = track.patterns.find(p => p.measureAssignments[currentMeasure]);
+          if (!activePattern) return;
 
           const canPlay = hasSolo ? track.isSolo : !track.isMute;
           if (!canPlay) return;
@@ -2130,7 +2133,28 @@ export default function App() {
         vocalRecordingStateRef.current = 'inactive';
       };
       
-      const measureIdx = targetPattern.measureAssignments.indexOf(true);
+      let measureIdx = targetPattern.measureAssignments.indexOf(true);
+      if (measureIdx === -1) {
+        pushUndoState();
+        setTracks((prevTracks) => {
+          return prevTracks.map((t) => {
+            const hasPattern = t.patterns.some((p) => p.id === patternId);
+            if (!hasPattern) return t;
+            return {
+              ...t,
+              patterns: t.patterns.map((p) => {
+                if (p.id === patternId) {
+                  const assign = [...p.measureAssignments];
+                  assign[0] = true;
+                  return { ...p, measureAssignments: assign };
+                }
+                return p;
+              }),
+            };
+          });
+        });
+        measureIdx = 0;
+      }
       
       vocalRecordingStateRef.current = 'waiting';
       setRecordingVocalPatternId(patternId);
@@ -2139,7 +2163,7 @@ export default function App() {
       await Tone.start();
       
       if (!isPlayingRef.current) {
-        measureCountRef.current = measureIdx >= 0 ? measureIdx : 0;
+        measureCountRef.current = measureIdx;
         currentStepIndexRef.current = -1;
         Tone.Transport.seconds = 0;
         if (Tone.Transport.state !== 'started') {
