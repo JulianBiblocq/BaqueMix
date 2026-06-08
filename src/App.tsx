@@ -1152,8 +1152,13 @@ export default function App() {
         };
 
         if (masterVolumeNode) {
-          // Connect direct Tone.js node to the native script processor.
-          masterVolumeNode.connect(scriptProcessorNode);
+          // Connect native Web Audio nodes directly to bypass Tone.js asserts
+          const nativeNode = (masterVolumeNode as any).input || (masterVolumeNode as any).output || masterVolumeNode;
+          if (typeof nativeNode.connect === 'function') {
+            nativeNode.connect(scriptProcessorNode);
+          } else {
+            masterVolumeNode.connect(scriptProcessorNode);
+          }
         }
         scriptProcessorNode.connect(audioContext.destination);
         setIsRecording(true);
@@ -1164,7 +1169,16 @@ export default function App() {
           try {
             scriptProcessorNode.disconnect();
             if (masterVolumeNode) {
-              masterVolumeNode.disconnect(scriptProcessorNode);
+              const nativeNode = (masterVolumeNode as any).input || (masterVolumeNode as any).output || masterVolumeNode;
+              if (typeof nativeNode.disconnect === 'function') {
+                try {
+                  nativeNode.disconnect(scriptProcessorNode);
+                } catch (e) {
+                  nativeNode.disconnect();
+                }
+              } else {
+                masterVolumeNode.disconnect(scriptProcessorNode);
+              }
             }
           } catch (e) {
             console.warn("Erreur lors de la déconnexion du scriptProcessorNode:", e);
@@ -1185,7 +1199,9 @@ export default function App() {
     } catch (err) {
       console.error("Erreur avec l'enregistrement WAV:", err);
       const ctxName = audioContext ? audioContext.constructor.name : 'null';
-      alert("Erreur lors de l'enregistrement WAV : " + (err instanceof Error ? err.message : String(err)) + " (ctx: " + ctxName + ")");
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const errStack = err instanceof Error ? err.stack : 'pas de stack';
+      alert("Erreur WAV : " + errMsg + "\n(ctx: " + ctxName + ")\n\nStack:\n" + errStack);
     }
   };
 
