@@ -72,7 +72,27 @@
         window.addEventListener('load', () => {
           const base = window.location.pathname.startsWith('/BaqueMix') ? '/BaqueMix/' : '/';
           navigator.serviceWorker.register(base + 'sw.js')
-            .then(reg => console.log('Service Worker registered:', reg.scope))
+            .then(reg => {
+              console.log('Service Worker registered:', reg.scope);
+              
+              // Detect updates to the service worker code
+              reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                if (installingWorker) {
+                  installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed') {
+                      if (navigator.serviceWorker.controller) {
+                        // A new service worker has been installed and is ready to activate
+                        console.log('New content is available; prompting refresh.');
+                        if (confirm('Une nouvelle version de BaqueMix est disponible. Voulez-vous recharger la page pour l\'appliquer ?')) {
+                          window.location.reload();
+                        }
+                      }
+                    }
+                  };
+                }
+              };
+            })
             .catch(err => console.error('Service Worker registration failed:', err));
         });
       }
