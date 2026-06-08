@@ -386,6 +386,7 @@ export default function App() {
   // For vocal recording
   const [isRecordingVocal, setIsRecordingVocal] = useState<boolean>(false);
   const [recordingVocalPatternId, setRecordingVocalPatternId] = useState<number | null>(null);
+  const recordingVocalPatternIdRef = useRef<number | null>(null);
   const vocalMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const vocalAudioChunksRef = useRef<Blob[]>([]);
   const vocalRecordingStateRef = useRef<'inactive' | 'waiting' | 'recording'>('inactive');
@@ -439,7 +440,8 @@ export default function App() {
     maxTicksRef.current = getMaxTicks(timeSig);
     isMetroOnRef.current = isMetroOn;
     isSwingOnRef.current = isSwingOn;
-  }, [tracks, totalMeasures, isPlaying, currentStepIndex, timeSig, isMetroOn, isSwingOn]);
+    recordingVocalPatternIdRef.current = recordingVocalPatternId;
+  }, [tracks, totalMeasures, isPlaying, currentStepIndex, timeSig, isMetroOn, isSwingOn, recordingVocalPatternId]);
 
   useEffect(() => {
     const voicePatternIds: number[] = [];
@@ -681,8 +683,8 @@ export default function App() {
           const inst = instrumentsConfig[track.instrumentIdx];
 
           // Recording handling should run even if track is muted/soloed or pattern is not assigned
-          if (inst.type === 'voice' && recordingVocalPatternId !== null) {
-            const hasPatternBeingRecorded = track.patterns.some(p => p.id === recordingVocalPatternId);
+          if (inst.type === 'voice' && recordingVocalPatternIdRef.current !== null) {
+            const hasPatternBeingRecorded = track.patterns.some(p => p.id === recordingVocalPatternIdRef.current);
             if (hasPatternBeingRecorded) {
               if (stepIdx === 0 && vocalRecordingStateRef.current === 'waiting') {
                 vocalRecordingStateRef.current = 'recording';
@@ -1159,6 +1161,9 @@ export default function App() {
     } else {
       mainLoop?.stop();
       Tone.Transport.pause();
+      if (isRecordingVocal) {
+        stopVocalRecording();
+      }
       // Stop ongoing voice synthesizers decay
       instrumentsConfig.forEach((inst) => {
         if (samplers[inst.id]) samplers[inst.id].stopAll();
@@ -1176,6 +1181,9 @@ export default function App() {
   const handleRewind = () => {
     mainLoop?.stop();
     Tone.Transport.stop();
+    if (isRecordingVocal) {
+      stopVocalRecording();
+    }
     instrumentsConfig.forEach((inst) => {
       if (samplers[inst.id]) samplers[inst.id].stopAll();
       if (voiceSynths[inst.id]) voiceSynths[inst.id].triggerRelease();
