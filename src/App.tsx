@@ -127,7 +127,7 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const latestVersion = Number(data.version);
-          const CURRENT_VERSION = 14; // Matches version.json
+          const CURRENT_VERSION = 15; // Matches version.json
           
           if (latestVersion > CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
@@ -225,6 +225,7 @@ export default function App() {
   const measureVolsRef = useRef<number[]>([]);
   const measureVolTransitionsRef = useRef<('immediate' | 'ramp')[]>([]);
   const masterVolRef = useRef<number>(-6);
+  const lastSetVolumeDbRef = useRef<number | null>(null);
 
   const songSectionsRef = useRef<SongSection[]>([]);
 
@@ -831,7 +832,11 @@ export default function App() {
         try {
           const globalGain = Tone.dbToGain(masterVolRef.current);
           const finalGain = globalGain * (currentVolPercent / 100);
-          Tone.Destination.volume.value = Tone.gainToDb(finalGain === 0 ? 0.0001 : finalGain);
+          const targetDb = Tone.gainToDb(finalGain === 0 ? 0.0001 : finalGain);
+          if (lastSetVolumeDbRef.current === null || Math.abs(lastSetVolumeDbRef.current - targetDb) > 0.05) {
+            Tone.Destination.volume.value = targetDb;
+            lastSetVolumeDbRef.current = targetDb;
+          }
         } catch (e) {}
 
         // Click metronome beat pulse
@@ -1126,6 +1131,49 @@ export default function App() {
     isCompressorOn, compThreshold, compRatio, compAttack, compRelease,
     isLimiterOn, limiterThreshold
   ]);
+
+  // 1c. Rebuild Master Effects routing chain dynamically when effects are toggled to bypass inactive nodes
+  useEffect(() => {
+    if (!masterVolumeNode || !masterMeterNode) return;
+
+    try {
+      // Disconnect all nodes from their outgoing connections
+      masterVolumeNode.disconnect();
+      if (masterLowCutNode) masterLowCutNode.disconnect();
+      if (masterEqNode) masterEqNode.disconnect();
+      if (masterCompressorNode) masterCompressorNode.disconnect();
+      if (masterLimiterNode) masterLimiterNode.disconnect();
+      masterMeterNode.disconnect();
+
+      // Build active chain
+      let lastNode: Tone.ToneAudioNode = masterVolumeNode;
+
+      if (isLowCutOn && masterLowCutNode) {
+        lastNode.connect(masterLowCutNode);
+        lastNode = masterLowCutNode;
+      }
+
+      if (isEqOn && masterEqNode) {
+        lastNode.connect(masterEqNode);
+        lastNode = masterEqNode;
+      }
+
+      if (isCompressorOn && masterCompressorNode) {
+        lastNode.connect(masterCompressorNode);
+        lastNode = masterCompressorNode;
+      }
+
+      if (isLimiterOn && masterLimiterNode) {
+        lastNode.connect(masterLimiterNode);
+        lastNode = masterLimiterNode;
+      }
+
+      lastNode.connect(masterMeterNode);
+      masterMeterNode.toDestination();
+    } catch (err) {
+      console.warn("Failed to reconnect master effects chain:", err);
+    }
+  }, [isLowCutOn, isEqOn, isCompressorOn, isLimiterOn]);
 
   // Update BPM of Transport
   useEffect(() => {
