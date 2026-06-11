@@ -50,7 +50,7 @@ interface HeaderProps {
   onShare?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
+const HeaderComponent: React.FC<HeaderProps> = ({
   lang,
   onLangToggle,
   preset,
@@ -619,3 +619,16 @@ export const Header: React.FC<HeaderProps> = ({
     </div>
   );
 };
+
+export const Header = React.memo(HeaderComponent, (prevProps, nextProps) => {
+  const keys = Object.keys(prevProps) as Array<keyof HeaderProps>;
+  for (const key of keys) {
+    if (typeof prevProps[key] === 'function') {
+      continue;
+    }
+    if (prevProps[key] !== nextProps[key]) {
+      return false;
+    }
+  }
+  return true;
+});

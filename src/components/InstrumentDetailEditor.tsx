@@ -183,7 +183,7 @@ export function getNextStepValue(instId: string, instType: string, currentVal: s
 
 /* ── Component ─────────────────────────────────────────────── */
 
-export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
+const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = ({
   lang,
   track,
   onClose,
@@ -1328,3 +1328,34 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
     </div>
   );
 };
+
+export const InstrumentDetailEditor = React.memo(InstrumentDetailEditorComponent, (prevProps, nextProps) => {
+  const prevStepsSig = prevProps.track.patterns.map(p => {
+    const prevStep = (prevProps.isPlaying && prevProps.currentStepIndex >= 0)
+      ? Math.floor((prevProps.currentStepIndex / prevProps.maxTicks) * p.steps)
+      : -1;
+    return `${p.id}:${prevStep}`;
+  }).join(',');
+
+  const nextStepsSig = nextProps.track.patterns.map(p => {
+    const nextStep = (nextProps.isPlaying && nextProps.currentStepIndex >= 0)
+      ? Math.floor((nextProps.currentStepIndex / nextProps.maxTicks) * p.steps)
+      : -1;
+    return `${p.id}:${nextStep}`;
+  }).join(',');
+
+  if (prevStepsSig !== nextStepsSig) {
+    return false;
+  }
+
+  const keys = Object.keys(prevProps) as Array<keyof InstrumentDetailEditorProps>;
+  for (const key of keys) {
+    if (typeof prevProps[key] === 'function') {
+      continue;
+    }
+    if (prevProps[key] !== nextProps[key]) {
+      return false;
+    }
+  }
+  return true;
+});

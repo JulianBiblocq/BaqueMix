@@ -274,7 +274,7 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const latestVersion = Number(data.version);
-          const CURRENT_VERSION = 24; // Matches version.json
+          const CURRENT_VERSION = 25; // Matches version.json
           
           if (latestVersion > CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
@@ -1233,13 +1233,13 @@ export default function App() {
 
   // Sync levels display bar via non-re-rendering dynamic canvas interval
   useEffect(() => {
-    const updateLocalMenders = () => {
-      const dbToPercent = (db: number) => {
-        if (db < -50) return 0;
-        if (db > 0) return 100;
-        return Math.floor(((db + 50) / 50) * 100);
-      };
+    const dbToPercent = (db: number) => {
+      if (db < -50) return 0;
+      if (db > 0) return 100;
+      return Math.floor(((db + 50) / 50) * 100);
+    };
 
+    const updateLocalMenders = () => {
       tracksRef.current.forEach((c) => {
         const inst = instrumentsConfig[c.instrumentIdx];
         const bar = document.getElementById(`meter-bar-${c.id}`);
@@ -1255,11 +1255,9 @@ export default function App() {
           }
         }
       });
-
-
     };
 
-    const timer = setInterval(updateLocalMenders, 40);
+    const timer = setInterval(updateLocalMenders, 80);
     return () => clearInterval(timer);
   }, []);
 

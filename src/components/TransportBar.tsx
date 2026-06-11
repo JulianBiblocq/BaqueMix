@@ -24,7 +24,7 @@ interface TransportBarProps {
   viewMode: 'roda' | 'console' | 'timeline';
 }
 
-export const TransportBar: React.FC<TransportBarProps> = ({
+const TransportBarComponent: React.FC<TransportBarProps> = ({
   lang,
   isPlaying,
   onTogglePlay,
@@ -189,3 +189,16 @@ export const TransportBar: React.FC<TransportBarProps> = ({
     </div>
   );
 };
+
+export const TransportBar = React.memo(TransportBarComponent, (prevProps, nextProps) => {
+  const keys = Object.keys(prevProps) as Array<keyof TransportBarProps>;
+  for (const key of keys) {
+    if (typeof prevProps[key] === 'function') {
+      continue;
+    }
+    if (prevProps[key] !== nextProps[key]) {
+      return false;
+    }
+  }
+  return true;
+});

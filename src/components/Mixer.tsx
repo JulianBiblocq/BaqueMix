@@ -51,7 +51,7 @@ interface MixerProps {
   canPaste: boolean;
 }
 
-export const Mixer: React.FC<MixerProps> = ({
+const MixerComponent: React.FC<MixerProps> = ({
   lang,
   tracks,
   onMoveUp,
@@ -155,3 +155,38 @@ export const Mixer: React.FC<MixerProps> = ({
     </div>
   );
 };
+
+export const Mixer = React.memo(MixerComponent, (prevProps, nextProps) => {
+  if (prevProps.isLeftPanelCollapsed && nextProps.isLeftPanelCollapsed) return true;
+
+  const getVisualSteps = (props: any) => {
+    return props.tracks
+      .map((t: any) => {
+        const activePattern = t.patterns.find((p: any) => p.id === t.selectedPatternId) || t.patterns[0];
+        if (!activePattern) return '-1';
+        const currentStep = (props.isPlaying && props.currentStepIndex >= 0)
+          ? Math.floor((props.currentStepIndex / props.maxTicks) * activePattern.steps)
+          : -1;
+        return `${t.id}:${currentStep}`;
+      })
+      .join(',');
+  };
+
+  const prevVisualSteps = getVisualSteps(prevProps);
+  const nextVisualSteps = getVisualSteps(nextProps);
+
+  if (prevVisualSteps !== nextVisualSteps) {
+    return false;
+  }
+
+  const keys = Object.keys(prevProps) as Array<keyof MixerProps>;
+  for (const key of keys) {
+    if (typeof prevProps[key] === 'function') {
+      continue;
+    }
+    if (prevProps[key] !== nextProps[key]) {
+      return false;
+    }
+  }
+  return true;
+});

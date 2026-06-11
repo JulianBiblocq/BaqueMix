@@ -48,7 +48,7 @@ interface TrackMixerProps {
   canPaste?: boolean;
 }
 
-export const TrackMixer: React.FC<TrackMixerProps> = ({
+const TrackMixerComponent: React.FC<TrackMixerProps> = ({
   lang,
   track,
   index,
@@ -683,3 +683,30 @@ export const TrackMixer: React.FC<TrackMixerProps> = ({
     </div>
   );
 };
+
+export const TrackMixer = React.memo(TrackMixerComponent, (prevProps, nextProps) => {
+  const prevActivePattern = prevProps.track.patterns.find(p => p.id === prevProps.track.selectedPatternId) || prevProps.track.patterns[0];
+  const nextActivePattern = nextProps.track.patterns.find(p => p.id === nextProps.track.selectedPatternId) || nextProps.track.patterns[0];
+  
+  const prevStep = (prevProps.isPlaying && prevProps.currentStepIndex >= 0)
+    ? Math.floor((prevProps.currentStepIndex / prevProps.maxTicks) * prevActivePattern.steps)
+    : -1;
+  const nextStep = (nextProps.isPlaying && nextProps.currentStepIndex >= 0)
+    ? Math.floor((nextProps.currentStepIndex / nextProps.maxTicks) * nextActivePattern.steps)
+    : -1;
+
+  if (prevStep !== nextStep) {
+    return false;
+  }
+
+  const keys = Object.keys(prevProps) as Array<keyof TrackMixerProps>;
+  for (const key of keys) {
+    if (typeof prevProps[key] === 'function') {
+      continue;
+    }
+    if (prevProps[key] !== nextProps[key]) {
+      return false;
+    }
+  }
+  return true;
+});

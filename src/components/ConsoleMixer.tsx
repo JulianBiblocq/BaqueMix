@@ -66,7 +66,7 @@ interface ConsoleMixerProps {
   onVocalGuideToggle?: (enabled: boolean) => void;
 }
 
-export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
+const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
   isMobile,
   lang,
   tracks,
@@ -247,3 +247,36 @@ export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
     </div>
   );
 };
+
+export const ConsoleMixer = React.memo(ConsoleMixerComponent, (prevProps, nextProps) => {
+  const getVisualSteps = (props: any) => {
+    return props.tracks
+      .map((t: any) => {
+        const activePattern = t.patterns.find((p: any) => p.id === t.selectedPatternId) || t.patterns[0];
+        if (!activePattern) return '-1';
+        const currentStep = (props.isPlaying && props.currentStepIndex >= 0)
+          ? Math.floor((props.currentStepIndex / props.maxTicks) * activePattern.steps)
+          : -1;
+        return `${t.id}:${currentStep}`;
+      })
+      .join(',');
+  };
+
+  const prevVisualSteps = getVisualSteps(prevProps);
+  const nextVisualSteps = getVisualSteps(nextProps);
+
+  if (prevVisualSteps !== nextVisualSteps) {
+    return false;
+  }
+
+  const keys = Object.keys(prevProps) as Array<keyof ConsoleMixerProps>;
+  for (const key of keys) {
+    if (typeof prevProps[key] === 'function') {
+      continue;
+    }
+    if (prevProps[key] !== nextProps[key]) {
+      return false;
+    }
+  }
+  return true;
+});

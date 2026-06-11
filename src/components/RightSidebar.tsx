@@ -25,7 +25,7 @@ interface RightSidebarProps {
   totalMeasures: number;
 }
 
-export const RightSidebar: React.FC<RightSidebarProps> = ({
+const RightSidebarComponent: React.FC<RightSidebarProps> = ({
   lang,
   activePanel,
   onTogglePanel,
@@ -771,3 +771,51 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     </>
   );
 };
+
+export const RightSidebar = React.memo(RightSidebarComponent, (prevProps, nextProps) => {
+  if (prevProps.activePanel !== 'letras' && nextProps.activePanel !== 'letras') {
+    return (
+      prevProps.lang === nextProps.lang &&
+      prevProps.activePanel === nextProps.activePanel &&
+      prevProps.tracks === nextProps.tracks &&
+      prevProps.letras === nextProps.letras &&
+      prevProps.metadata === nextProps.metadata &&
+      prevProps.totalMeasures === nextProps.totalMeasures
+    );
+  }
+
+  const getVisualSteps = (props: RightSidebarProps) => {
+    if (!props.currentPlayState) return '';
+    const { stepIndex, maxTicks, activePatternIdByInst } = props.currentPlayState;
+    return props.tracks
+      .filter(t => instrumentsConfig[t.instrumentIdx]?.type === 'voice' && !t.isMute)
+      .map(t => {
+        const activePatternId = activePatternIdByInst?.[t.instrumentIdx];
+        const activePattern = t.patterns.find(p => p.id === activePatternId) || t.patterns[0];
+        if (!activePattern) return '-1';
+        const isThisPatternActive = !activePatternIdByInst || activePatternIdByInst[t.instrumentIdx] === activePattern.id;
+        if (!isThisPatternActive) return '-1';
+        const currentStep = Math.floor((stepIndex / maxTicks) * activePattern.steps);
+        return `${t.id}:${currentStep}`;
+      })
+      .join(',');
+  };
+
+  const prevVisualSteps = getVisualSteps(prevProps);
+  const nextVisualSteps = getVisualSteps(nextProps);
+
+  if (prevVisualSteps !== nextVisualSteps) {
+    return false;
+  }
+
+  const keys = Object.keys(prevProps) as Array<keyof RightSidebarProps>;
+  for (const key of keys) {
+    if (typeof prevProps[key] === 'function') {
+      continue;
+    }
+    if (prevProps[key] !== nextProps[key]) {
+      return false;
+    }
+  }
+  return true;
+});
