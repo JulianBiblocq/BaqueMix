@@ -127,7 +127,7 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const latestVersion = Number(data.version);
-          const CURRENT_VERSION = 13; // Matches version.json
+          const CURRENT_VERSION = 14; // Matches version.json
           
           if (latestVersion > CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
@@ -618,36 +618,41 @@ export default function App() {
       if (bMetroClick) return; // already initialized
 
       if (!masterVolumeNode) {
-        masterVolumeNode = new Tone.Gain(1.0);
-        masterLowCutNode = new Tone.Filter({
-          type: 'highpass',
-          frequency: 10,
-          Q: 0.707
-        });
-        masterEqNode = new Tone.EQ3({
-          low: 0,
-          mid: 0,
-          high: 0
-        });
-        masterCompressorNode = new Tone.Compressor({
-          threshold: 0,
-          ratio: 1,
-          attack: 0.03,
-          release: 0.25
-        });
-        masterLimiterNode = new Tone.Limiter({
-          threshold: 20
-        });
-        masterMeterNode = new Tone.Meter({
-          normalRange: false
-        });
+        try {
+          masterVolumeNode = new Tone.Gain(1.0);
+          masterLowCutNode = new Tone.Filter({
+            type: 'highpass',
+            frequency: 10,
+            Q: 0.707
+          });
+          masterEqNode = new Tone.EQ3({
+            low: 0,
+            mid: 0,
+            high: 0
+          });
+          masterCompressorNode = new Tone.Compressor({
+            threshold: 0,
+            ratio: 1,
+            attack: 0.03,
+            release: 0.25
+          });
+          masterLimiterNode = new Tone.Limiter({
+            threshold: 0
+          });
+          masterMeterNode = new Tone.Meter({
+            normalRange: false
+          });
 
-        masterVolumeNode.connect(masterLowCutNode);
-        masterLowCutNode.connect(masterEqNode);
-        masterEqNode.connect(masterCompressorNode);
-        masterCompressorNode.connect(masterLimiterNode);
-        masterLimiterNode.connect(masterMeterNode);
-        masterMeterNode.toDestination();
+          masterVolumeNode.connect(masterLowCutNode);
+          masterLowCutNode.connect(masterEqNode);
+          masterEqNode.connect(masterCompressorNode);
+          masterCompressorNode.connect(masterLimiterNode);
+          masterLimiterNode.connect(masterMeterNode);
+          masterMeterNode.toDestination();
+        } catch (e) {
+          console.error("Failed to initialize master effects chain, falling back to clean master:", e);
+          masterVolumeNode = new Tone.Gain(1.0).toDestination();
+        }
       }
 
       bMetroClick = new Tone.Synth({
@@ -1113,7 +1118,7 @@ export default function App() {
     }
 
     if (masterLimiterNode) {
-      masterLimiterNode.threshold.value = isLimiterOn ? limiterThreshold : 20;
+      masterLimiterNode.threshold.value = isLimiterOn ? limiterThreshold : 0;
     }
   }, [
     isLowCutOn, lowCutFreq,
