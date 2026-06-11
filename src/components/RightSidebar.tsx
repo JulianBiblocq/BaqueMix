@@ -42,7 +42,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const [zoomModalOpen, setZoomModalOpen] = React.useState<boolean>(false);
-  const [subTab, setSubTab] = React.useState<'toada' | 'info'>('toada');
+  const [subTab, setSubTab] = React.useState<'toada' | 'info'>('info');
 
   // Stop camera stream on unmount
   React.useEffect(() => {

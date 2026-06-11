@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { TrackGroup, Language, Pattern } from '../types';
 import { i18n, instrumentsConfig, ASSETS_BASE_URL } from '../data';
 import { PanKnob } from './PanKnob';
@@ -260,7 +261,7 @@ export const TrackMixer: React.FC<TrackMixerProps> = ({
             }`}
             title="Ocultar pista"
           >
-            {track.isHidden ? '🙈' : '👁️'}
+            {track.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           </button>
           <button
             onClick={onDelete}
@@ -298,27 +299,6 @@ export const TrackMixer: React.FC<TrackMixerProps> = ({
       <div className="bg-[#f4ecd8] cordel-border-sm p-2 mb-2 relative z-[2] text-xs">
         <div className="flex justify-between items-center mb-1.5 border-b-[2px] border-[#1a1a1a] pb-1">
           <span className="font-cactus font-bold uppercase">{t('patterns')}:</span>
-          <div className="flex gap-1 shrink-0">
-            <button
-              onClick={() => onCopyPattern && onCopyPattern(activePattern)}
-              className="px-1.5 py-0.5 bg-[#eaddcf] text-[9px] font-bold cordel-border-sm hover:bg-[#1a1a1a] hover:text-[#f4ecd8] cursor-pointer"
-              title="Copier le motif actif"
-            >
-              📋 Copier
-            </button>
-            <button
-              onClick={() => onPastePattern && onPastePattern(track.id, activePattern.id)}
-              disabled={!canPaste}
-              className={`px-1.5 py-0.5 text-[9px] font-bold cordel-border-sm cursor-pointer ${
-                canPaste 
-                  ? 'bg-[#eaddcf] text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-[#f4ecd8]' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
-              }`}
-              title="Coller le motif copié"
-            >
-              📥 Coller
-            </button>
-          </div>
         </div>
         {/* Patterns Summary (No checkboxes) */}
         <div className="grid grid-cols-2 gap-1 w-full max-h-[80px] overflow-y-auto custom-scrollbar">

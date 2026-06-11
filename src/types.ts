@@ -93,6 +93,19 @@ export interface Preset {
   measureVols?: number[];
   measureVolTransitions?: ('immediate' | 'ramp')[];
   songSections?: SongSection[];
+  masterLowCutOn?: boolean;
+  masterLowCutFreq?: number;
+  masterEqOn?: boolean;
+  masterEqLow?: number;
+  masterEqMid?: number;
+  masterEqHigh?: number;
+  masterCompressorOn?: boolean;
+  masterCompThreshold?: number;
+  masterCompRatio?: number;
+  masterCompAttack?: number;
+  masterCompRelease?: number;
+  masterLimiterOn?: boolean;
+  masterLimiterThreshold?: number;
 }
 
 export interface CatalogItem {

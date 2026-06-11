@@ -47,6 +47,7 @@ interface HeaderProps {
   onTotalMeasuresChange: (val: number) => void;
   reverbType: 'room' | 'studio' | 'hall';
   onReverbTypeChange: (type: 'room' | 'studio' | 'hall') => void;
+  onShare?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -83,6 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
   onTotalMeasuresChange,
   reverbType,
   onReverbTypeChange,
+  onShare,
 }) => {
   const [addDropOpen, setAddDropOpen] = useState(false);
   const addDropRef = useRef<HTMLDivElement>(null);
@@ -286,14 +288,8 @@ export const Header: React.FC<HeaderProps> = ({
                   📖 Guide
                 </button>
                 <button onClick={() => {
-                  const url = window.location.href;
-                  const text = lang === 'pt' ? 'Descubra BaqueMix, um sequenciador de ritmos de Maracatu!' : 'Découvrez BaqueMix, un séquenceur de rythmes de Maracatu !';
-                  if (navigator.share) {
-                    navigator.share({ title: 'BaqueMix', text, url }).catch(() => {});
-                  } else {
-                    navigator.clipboard.writeText(url).then(() => {
-                      window.alert(lang === 'pt' ? 'Link copiado!' : 'Lien copié !');
-                    });
+                  if (onShare) {
+                    onShare();
                   }
                   setMobileMenuOpen(false);
                 }} className="px-2 py-1 bg-[#2980b9] text-[#1a1a1a] cordel-border-sm text-xs font-bold font-cactus hover:opacity-90 cursor-pointer">
@@ -602,16 +598,8 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={() => {
-            const url = window.location.href;
-            const text = lang === 'pt'
-              ? 'Descubra BaqueMix, um sequenciador de ritmos de Maracatu!'
-              : 'Découvrez BaqueMix, un séquenceur de rythmes de Maracatu !';
-            if (navigator.share) {
-              navigator.share({ title: 'BaqueMix', text, url }).catch(() => {});
-            } else {
-              navigator.clipboard.writeText(url).then(() => {
-                window.alert(lang === 'pt' ? 'Link copiado!' : 'Lien copié !');
-              });
+            if (onShare) {
+              onShare();
             }
           }}
           className="bg-[#2980b9] text-[#1a1a1a] hover:opacity-90 px-3 py-1.5 text-sm font-bold cordel-border-sm flex items-center justify-center cursor-pointer"
