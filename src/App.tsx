@@ -730,29 +730,39 @@ export default function App() {
             if (hasPatternBeingRecorded) {
               if (stepIdx === 0 && vocalRecordingStateRef.current === 'waiting') {
                 vocalRecordingStateRef.current = 'recording';
-                if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'inactive') {
-                  try {
-                    vocalMediaRecorderRef.current.start();
-                  } catch (err) {
-                    console.error("Failed to start MediaRecorder:", err);
+                const startDelayMs = Math.max(0, (time - Tone.context.rawContext.currentTime) * 1000);
+                setTimeout(() => {
+                  if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'inactive') {
+                    try {
+                      vocalMediaRecorderRef.current.start();
+                      console.log(`Vocal MediaRecorder started (delay applied: ${startDelayMs.toFixed(1)}ms)`);
+                    } catch (err) {
+                      console.error("Failed to start MediaRecorder via timeout:", err);
+                    }
                   }
-                }
+                }, startDelayMs);
               }
               if (stepIdx === currentTicks - 1 && vocalRecordingStateRef.current === 'recording') {
                 vocalRecordingStateRef.current = 'inactive';
-                let stopped = false;
-                if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'recording') {
-                  try {
-                    vocalMediaRecorderRef.current.stop();
-                    stopped = true;
-                  } catch (err) {
-                    console.error("Failed to stop MediaRecorder:", err);
+                const stepDurationSec = Tone.Time('96n').toSeconds();
+                const stopDelayMs = Math.max(0, (time + stepDurationSec - Tone.context.rawContext.currentTime) * 1000);
+                setTimeout(() => {
+                  let stopped = false;
+                  if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'recording') {
+                    try {
+                      vocalMediaRecorderRef.current.stop();
+                      console.log(`Vocal MediaRecorder stopped (delay applied: ${stopDelayMs.toFixed(1)}ms)`);
+                      stopped = true;
+                    } catch (err) {
+                      console.error("Failed to stop MediaRecorder via timeout:", err);
+                    }
                   }
-                }
-                if (!stopped) {
-                  setIsRecordingVocal(false);
-                  setRecordingVocalPatternId(null);
-                }
+                  if (!stopped) {
+                    setIsRecordingVocal(false);
+                    setRecordingVocalPatternId(null);
+                    cleanupVocalNodes();
+                  }
+                }, stopDelayMs);
               }
             }
           }

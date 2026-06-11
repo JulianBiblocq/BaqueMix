@@ -630,13 +630,13 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
                                 <input
                                   type="range"
                                   min="0"
-                                  max="400"
+                                  max="800"
                                   step="5"
                                   value={ptn.vocalLatency || 0}
                                   onChange={(e) => onVocalLatencyChange && onVocalLatencyChange(ptn.id, parseInt(e.target.value) || 0)}
                                   className="flex-grow accent-green-700 cursor-pointer h-1 bg-[#1a1a1a]/10"
                                 />
-                                <span className="text-[8px] font-bold opacity-60 shrink-0">400 ms</span>
+                                <span className="text-[8px] font-bold opacity-60 shrink-0">800 ms</span>
                               </div>
                               <span className="text-[8px] text-[#666] font-medium leading-normal">
                                 {lang === 'fr' 
