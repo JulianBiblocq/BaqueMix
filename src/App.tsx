@@ -41,10 +41,6 @@ let scriptProcessorNode: ScriptProcessorNode | null = null;
 let reverbNode: Tone.Reverb | null = null;
 const reverbSends: { [id: string]: Tone.Gain } = {};
 let masterVolumeNode: Tone.Gain | null = null;
-let masterEqNode: Tone.EQ3 | null = null;
-let masterCompressorNode: Tone.Compressor | null = null;
-let masterLimiterNode: Tone.Limiter | null = null;
-let masterMeterNode: Tone.Meter | null = null;
 
 function bufferToWav(leftBuffers: Float32Array[], rightBuffers: Float32Array[], sampleRate: number): Blob {
   let totalLength = 0;
@@ -126,7 +122,7 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const latestVersion = Number(data.version);
-          const CURRENT_VERSION = 18; // Matches version.json
+          const CURRENT_VERSION = 19; // Matches version.json
           
           if (latestVersion > CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
@@ -168,20 +164,6 @@ export default function App() {
     compositor: '',
     ritmo: ''
   });
-
-  // Master FX states
-  const [isEqOn, setIsEqOn] = useState<boolean>(false);
-  const [eqLow, setEqLow] = useState<number>(0);
-  const [eqMid, setEqMid] = useState<number>(0);
-  const [eqHigh, setEqHigh] = useState<number>(0);
-  const [isCompressorOn, setIsCompressorOn] = useState<boolean>(false);
-  const [compThreshold, setCompThreshold] = useState<number>(-20);
-  const [compRatio, setCompRatio] = useState<number>(4);
-  const [compAttack, setCompAttack] = useState<number>(0.03);
-  const [compRelease, setCompRelease] = useState<number>(0.25);
-  const [isLimiterOn, setIsLimiterOn] = useState<boolean>(false);
-  const [limiterThreshold, setLimiterThreshold] = useState<number>(-1);
-
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -222,7 +204,6 @@ export default function App() {
   const measureVolsRef = useRef<number[]>([]);
   const measureVolTransitionsRef = useRef<('immediate' | 'ramp')[]>([]);
   const masterVolRef = useRef<number>(-6);
-  const lastSetVolumeDbRef = useRef<number | null>(null);
 
   const songSectionsRef = useRef<SongSection[]>([]);
 
@@ -414,8 +395,6 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSwingOn, setIsSwingOn] = useState<boolean>(true);
-
-  const [currentMeasure, setCurrentMeasure] = useState<number>(0);
 
   // Measure counter tracks loops boundaries
   const measureCountRef = useRef<number>(0);
@@ -615,42 +594,8 @@ export default function App() {
     const initAudio = async () => {
       if (bMetroClick) return; // already initialized
 
-      try {
-        Tone.getContext().lookAhead = 0.25;
-      } catch (err) {
-        console.warn("Failed to set Tone.js lookAhead:", err);
-      }
-
       if (!masterVolumeNode) {
-        try {
-          masterVolumeNode = new Tone.Gain(1.0);
-          masterEqNode = new Tone.EQ3({
-            low: 0,
-            mid: 0,
-            high: 0
-          });
-          masterCompressorNode = new Tone.Compressor({
-            threshold: 0,
-            ratio: 1,
-            attack: 0.03,
-            release: 0.25
-          });
-          masterLimiterNode = new Tone.Limiter({
-            threshold: 0
-          });
-          masterMeterNode = new Tone.Meter({
-            normalRange: false
-          });
-
-          masterVolumeNode.connect(masterEqNode);
-          masterEqNode.connect(masterCompressorNode);
-          masterCompressorNode.connect(masterLimiterNode);
-          masterLimiterNode.connect(masterMeterNode);
-          masterMeterNode.toDestination();
-        } catch (e) {
-          console.error("Failed to initialize master effects chain, falling back to clean master:", e);
-          masterVolumeNode = new Tone.Gain(1.0).toDestination();
-        }
+        masterVolumeNode = new Tone.Gain(1.0).toDestination();
       }
 
       bMetroClick = new Tone.Synth({
@@ -790,9 +735,6 @@ export default function App() {
         if (visualStep !== prevVisualStep || stepIdx === 0) {
           setCurrentStepIndex(stepIdx);
         }
-        if (stepIdx === 0) {
-          setCurrentMeasure(measureCountRef.current % totalMeasuresRef.current);
-        }
 
         // 3. Appliquer le BPM de manière fluide ou immédiate à chaque pas
         const currentMeasureIdx = measureCountRef.current % totalMeasuresRef.current;
@@ -829,11 +771,7 @@ export default function App() {
         try {
           const globalGain = Tone.dbToGain(masterVolRef.current);
           const finalGain = globalGain * (currentVolPercent / 100);
-          const targetDb = Tone.gainToDb(finalGain === 0 ? 0.0001 : finalGain);
-          if (lastSetVolumeDbRef.current === null || Math.abs(lastSetVolumeDbRef.current - targetDb) > 0.05) {
-            Tone.Destination.volume.value = targetDb;
-            lastSetVolumeDbRef.current = targetDb;
-          }
+          Tone.Destination.volume.value = Tone.gainToDb(finalGain === 0 ? 0.0001 : finalGain);
         } catch (e) {}
 
         // Click metronome beat pulse
@@ -1098,69 +1036,6 @@ export default function App() {
     }
   }, []);
 
-  // 1b. Synchronize Master Effects parameters with Tone.js nodes
-  useEffect(() => {
-    if (!masterVolumeNode) return;
-
-    if (masterEqNode) {
-      masterEqNode.low.value = isEqOn ? eqLow : 0;
-      masterEqNode.mid.value = isEqOn ? eqMid : 0;
-      masterEqNode.high.value = isEqOn ? eqHigh : 0;
-    }
-
-    if (masterCompressorNode) {
-      masterCompressorNode.threshold.value = isCompressorOn ? compThreshold : 0;
-      masterCompressorNode.ratio.value = isCompressorOn ? compRatio : 1;
-      masterCompressorNode.attack.value = compAttack;
-      masterCompressorNode.release.value = compRelease;
-    }
-
-    if (masterLimiterNode) {
-      masterLimiterNode.threshold.value = isLimiterOn ? limiterThreshold : 0;
-    }
-  }, [
-    isEqOn, eqLow, eqMid, eqHigh,
-    isCompressorOn, compThreshold, compRatio, compAttack, compRelease,
-    isLimiterOn, limiterThreshold
-  ]);
-
-  // 1c. Rebuild Master Effects routing chain dynamically when effects are toggled to bypass inactive nodes
-  useEffect(() => {
-    if (!masterVolumeNode || !masterMeterNode) return;
-
-    try {
-      // Disconnect all nodes from their outgoing connections
-      masterVolumeNode.disconnect();
-      if (masterEqNode) masterEqNode.disconnect();
-      if (masterCompressorNode) masterCompressorNode.disconnect();
-      if (masterLimiterNode) masterLimiterNode.disconnect();
-      masterMeterNode.disconnect();
-
-      // Build active chain
-      let lastNode: Tone.ToneAudioNode = masterVolumeNode;
-
-      if (isEqOn && masterEqNode) {
-        lastNode.connect(masterEqNode);
-        lastNode = masterEqNode;
-      }
-
-      if (isCompressorOn && masterCompressorNode) {
-        lastNode.connect(masterCompressorNode);
-        lastNode = masterCompressorNode;
-      }
-
-      if (isLimiterOn && masterLimiterNode) {
-        lastNode.connect(masterLimiterNode);
-        lastNode = masterLimiterNode;
-      }
-
-      lastNode.connect(masterMeterNode);
-      masterMeterNode.toDestination();
-    } catch (err) {
-      console.warn("Failed to reconnect master effects chain:", err);
-    }
-  }, [isEqOn, isCompressorOn, isLimiterOn]);
-
   // Update BPM of Transport
   useEffect(() => {
     Tone.Transport.bpm.value = bpm;
@@ -1187,25 +1062,11 @@ export default function App() {
 
   // 2. Load Preset catalog initially
   useEffect(() => {
-    const hash = window.location.hash;
-    let loadedFromHash = false;
-    if (hash && hash.startsWith('#state=')) {
-      try {
-        const base64Str = hash.substring(7);
-        const jsonStr = decodeURIComponent(escape(atob(base64Str)));
-        const stateData = JSON.parse(jsonStr);
-        applyPresetState(stateData);
-        loadedFromHash = true;
-      } catch (err) {
-        console.error("Failed to load shared state from URL hash:", err);
-      }
-    }
-
     fetch(`${ASSETS_BASE_URL}presets/catalog.json`)
       .then((res) => res.json())
       .then((files: string[]) => {
         setPresetFiles(files);
-        if (files.length > 0 && !loadedFromHash) {
+        if (files.length > 0) {
           setActivePresetName(files[0]);
           loadFallbackPreset(files[0]);
         }
@@ -1237,29 +1098,6 @@ export default function App() {
           }
         }
       });
-
-      // Sync master meter (vertical, horizontal, and mini horizontal versions)
-      if (masterMeterNode) {
-        const val = isPlayingRef.current ? dbToPercent(masterMeterNode.getValue() as number) + '%' : '0%';
-        
-        const masterBarV = document.getElementById('meter-bar-master');
-        if (masterBarV) {
-          masterBarV.style.height = val;
-          masterBarV.style.width = '100%';
-        }
-        
-        const masterBarH = document.getElementById('meter-bar-master-horizontal');
-        if (masterBarH) {
-          masterBarH.style.width = val;
-          masterBarH.style.height = '100%';
-        }
-        
-        const masterBarHMini = document.getElementById('meter-bar-master-horizontal-mini');
-        if (masterBarHMini) {
-          masterBarHMini.style.width = val;
-          masterBarHMini.style.height = '100%';
-        }
-      }
     };
 
     const timer = setInterval(updateLocalMenders, 40);
@@ -1548,7 +1386,6 @@ export default function App() {
     setCurrentStepIndex(-1);
     currentStepIndexRef.current = -1;
     measureCountRef.current = 0;
-    setCurrentMeasure(0);
     Tone.Transport.seconds = 0;
   };
 
@@ -1880,7 +1717,6 @@ export default function App() {
     setTimeSig(selectValue);
     setCurrentStepIndex(-1);
     measureCountRef.current = 0;
-    setCurrentMeasure(0);
 
     let targetSteps = 16;
     if (selectValue === '3/4' || selectValue === '6/8') targetSteps = 12;
@@ -2437,7 +2273,6 @@ export default function App() {
     setCurrentStepIndex(-1);
     currentStepIndexRef.current = -1;
     measureCountRef.current = 0;
-    setCurrentMeasure(0);
     Tone.Transport.seconds = 0;
 
     // Start playback
@@ -2613,7 +2448,6 @@ export default function App() {
     const tickIdx = Math.max(0, Math.min(currentTicks - 1, Math.floor((stepIdxInMeasure / stepsInMeasure) * currentTicks)));
     
     measureCountRef.current = measureIdx;
-    setCurrentMeasure(measureIdx % totalMeasures);
     currentStepIndexRef.current = tickIdx - 1; // -1 so the next loop cycle increments to tickIdx
     setCurrentStepIndex(tickIdx);
     maxTicksRef.current = currentTicks;
@@ -3100,18 +2934,7 @@ export default function App() {
       measureBpmTransitions,
       measureVols,
       measureVolTransitions,
-      songSections,
-      masterEqOn: isEqOn,
-      masterEqLow: eqLow,
-      masterEqMid: eqMid,
-      masterEqHigh: eqHigh,
-      masterCompressorOn: isCompressorOn,
-      masterCompThreshold: compThreshold,
-      masterCompRatio: compRatio,
-      masterCompAttack: compAttack,
-      masterCompRelease: compRelease,
-      masterLimiterOn: isLimiterOn,
-      masterLimiterThreshold: limiterThreshold
+      songSections
     };
     const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
     const dlLink = document.createElement('a');
@@ -3134,155 +2957,80 @@ export default function App() {
     dlLink.click();
   };
 
-  function applyPresetState(data: any) {
-    try {
-      if (data.bpm) {
-        setBpm(Math.round(data.bpm));
-      }
-      if (data.timeSig) {
-        setTimeSig(data.timeSig);
-      }
-      if (data.letras !== undefined) {
-        setLetras(data.letras);
-      }
-      if (data.metadata) {
-        setMetadata(data.metadata);
-      }
-
-      // Restore Master FX settings
-      setIsEqOn(!!data.masterEqOn);
-      setEqLow(data.masterEqLow !== undefined ? data.masterEqLow : 0);
-      setEqMid(data.masterEqMid !== undefined ? data.masterEqMid : 0);
-      setEqHigh(data.masterEqHigh !== undefined ? data.masterEqHigh : 0);
-      setIsCompressorOn(!!data.masterCompressorOn);
-      setCompThreshold(data.masterCompThreshold !== undefined ? data.masterCompThreshold : -20);
-      setCompRatio(data.masterCompRatio !== undefined ? data.masterCompRatio : 4);
-      setCompAttack(data.masterCompAttack !== undefined ? data.masterCompAttack : 0.03);
-      setCompRelease(data.masterCompRelease !== undefined ? data.masterCompRelease : 0.25);
-      setIsLimiterOn(!!data.masterLimiterOn);
-      setLimiterThreshold(data.masterLimiterThreshold !== undefined ? data.masterLimiterThreshold : -1);
-
-      let loadedTracks: TrackGroup[] = [];
-      let loadedMeasures = data.totalMeasures || 8;
-
-      const defaultBpm = Math.round(data.bpm || 90);
-      const defaultTimeSig = data.timeSig || '4/4';
-
-      const loadedBpms = data.measureBpms && Array.isArray(data.measureBpms)
-        ? data.measureBpms.map((b: number) => Math.round(b))
-        : Array(loadedMeasures).fill(defaultBpm);
-
-      const loadedTimeSigs = data.measureTimeSigs && Array.isArray(data.measureTimeSigs)
-        ? data.measureTimeSigs
-        : Array(loadedMeasures).fill(defaultTimeSig);
-
-      const loadedBpmTransitions = data.measureBpmTransitions && Array.isArray(data.measureBpmTransitions)
-        ? data.measureBpmTransitions
-        : Array(loadedMeasures).fill('immediate');
-
-      const loadedVols = data.measureVols && Array.isArray(data.measureVols)
-        ? data.measureVols.map((v: number) => Math.round(v))
-        : Array(loadedMeasures).fill(100);
-
-      const loadedVolTransitions = data.measureVolTransitions && Array.isArray(data.measureVolTransitions)
-        ? data.measureVolTransitions
-        : Array(loadedMeasures).fill('immediate');
-
-      setMeasureBpms(loadedBpms);
-      setMeasureTimeSigs(loadedTimeSigs);
-      setMeasureBpmTransitions(loadedBpmTransitions);
-      setMeasureVols(loadedVols);
-      setMeasureVolTransitions(loadedVolTransitions);
-
-      if (data.tracks) {
-        loadedTracks = data.tracks;
-        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
-      } else if (data.circles) {
-        loadedTracks = migrateCirclesToTracks(data.circles, loadedMeasures);
-        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
-      }
-
-      updateRadii(loadedTracks);
-      setTracks(loadedTracks);
-      setTotalMeasures(loadedMeasures);
-      if (data.songSections && Array.isArray(data.songSections)) {
-        setSongSections(data.songSections);
-      } else {
-        setSongSections([]);
-      }
-      measureCountRef.current = 0;
-      setCurrentMeasure(0);
-    } catch (err) {
-      console.error("Failed to apply preset state:", err);
-      throw err;
-    }
-  }
-
   // Master Load state from uploaded JSON
   const handleLoadState = (file: File) => {
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
         const data = JSON.parse(evt.target?.result as string);
-        applyPresetState(data);
+        if (data.bpm) {
+          setBpm(Math.round(data.bpm));
+        }
+        if (data.timeSig) {
+          setTimeSig(data.timeSig);
+        }
+        if (data.letras !== undefined) {
+          setLetras(data.letras);
+        }
+        if (data.metadata) {
+          setMetadata(data.metadata);
+        }
+
+        let loadedTracks: TrackGroup[] = [];
+        let loadedMeasures = data.totalMeasures || 8;
+
+        const defaultBpm = Math.round(data.bpm || bpm || 90);
+        const defaultTimeSig = data.timeSig || timeSig || '4/4';
+
+        const loadedBpms = data.measureBpms && Array.isArray(data.measureBpms)
+          ? data.measureBpms.map((b: number) => Math.round(b))
+          : Array(loadedMeasures).fill(defaultBpm);
+
+        const loadedTimeSigs = data.measureTimeSigs && Array.isArray(data.measureTimeSigs)
+          ? data.measureTimeSigs
+          : Array(loadedMeasures).fill(defaultTimeSig);
+
+        const loadedBpmTransitions = data.measureBpmTransitions && Array.isArray(data.measureBpmTransitions)
+          ? data.measureBpmTransitions
+          : Array(loadedMeasures).fill('immediate');
+
+        const loadedVols = data.measureVols && Array.isArray(data.measureVols)
+          ? data.measureVols.map((v: number) => Math.round(v))
+          : Array(loadedMeasures).fill(100);
+
+        const loadedVolTransitions = data.measureVolTransitions && Array.isArray(data.measureVolTransitions)
+          ? data.measureVolTransitions
+          : Array(loadedMeasures).fill('immediate');
+
+        setMeasureBpms(loadedBpms);
+        setMeasureTimeSigs(loadedTimeSigs);
+        setMeasureBpmTransitions(loadedBpmTransitions);
+        setMeasureVols(loadedVols);
+        setMeasureVolTransitions(loadedVolTransitions);
+
+        if (data.tracks) {
+          loadedTracks = data.tracks;
+          loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+        } else if (data.circles) {
+          loadedTracks = migrateCirclesToTracks(data.circles, loadedMeasures);
+          loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+        }
+
+        updateRadii(loadedTracks);
+        setTracks(loadedTracks);
+        setTotalMeasures(loadedMeasures);
+        if (data.songSections && Array.isArray(data.songSections)) {
+          setSongSections(data.songSections);
+        } else {
+          setSongSections([]);
+        }
+        measureCountRef.current = 0;
       } catch (err) {
         window.alert(t('invalidFile'));
       }
     };
     reader.readAsText(file);
   };
-
-  function handleShare() {
-    const dataToSave: Preset = {
-      bpm,
-      timeSig,
-      totalMeasures,
-      tracks,
-      letras,
-      metadata,
-      measureTimeSigs,
-      measureBpms,
-      measureBpmTransitions,
-      measureVols,
-      measureVolTransitions,
-      songSections,
-      masterEqOn: isEqOn,
-      masterEqLow: eqLow,
-      masterEqMid: eqMid,
-      masterEqHigh: eqHigh,
-      masterCompressorOn: isCompressorOn,
-      masterCompThreshold: compThreshold,
-      masterCompRatio: compRatio,
-      masterCompAttack: compAttack,
-      masterCompRelease: compRelease,
-      masterLimiterOn: isLimiterOn,
-      masterLimiterThreshold: limiterThreshold
-    };
-    try {
-      const jsonStr = JSON.stringify(dataToSave);
-      const base64Str = btoa(unescape(encodeURIComponent(jsonStr)));
-      const shareUrl = window.location.origin + window.location.pathname + '#state=' + base64Str;
-      
-      const text = lang === 'pt' 
-        ? 'Descubra BaqueMix, um sequenciador de ritmos de Maracatu!' 
-        : 'Découvrez BaqueMix, un séquenceur de rythmes de Maracatu !';
-      
-      if (navigator.share) {
-        navigator.share({
-          title: 'BaqueMix',
-          text: text,
-          url: shareUrl
-        }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          window.alert(lang === 'pt' ? 'Link de compartilhamento copiado!' : 'Lien de partage copié !');
-        });
-      }
-    } catch (e) {
-      console.error("Failed to generate share link", e);
-      window.alert(lang === 'pt' ? 'Erro ao gerar o link de compartilhamento.' : 'Erreur lors de la génération du lien de partage.');
-    }
-  }
 
   const handleStepValueSelectAndToggle = (
     trackId: number,
@@ -3324,6 +3072,7 @@ export default function App() {
   tracks.forEach(t => {
     if (activePatternIdByInst[t.instrumentIdx] === undefined) {
       if (isPlaying) {
+        const currentMeasure = measureCountRef.current % totalMeasuresRef.current;
         const activePattern = t.patterns.find(p => p.measureAssignments[currentMeasure]);
         activePatternIdByInst[t.instrumentIdx] = activePattern ? activePattern.id : null;
       } else {
@@ -3338,6 +3087,7 @@ export default function App() {
       const hasSoloPattern = t.patterns.some(p => p.id === soloPatternPlayId);
       activePatternIdByTrack[t.id] = hasSoloPattern ? soloPatternPlayId : null;
     } else {
+      const currentMeasure = measureCountRef.current % totalMeasuresRef.current;
       const activePattern = t.patterns.find(p => p.measureAssignments[currentMeasure]);
       activePatternIdByTrack[t.id] = activePattern ? activePattern.id : null;
     }
@@ -3364,7 +3114,6 @@ export default function App() {
         preset={activePresetName}
         presetFiles={presetFiles}
         onPresetChange={handlePresetSelect}
-        onShare={handleShare}
         onClear={() => {
           pushUndoState();
           setTracks([]);
@@ -3493,30 +3242,6 @@ export default function App() {
                 onCopyPattern={handleCopyPattern}
                 onPastePattern={handlePastePattern}
                 canPaste={!!copiedPattern}
-                masterVol={masterVol}
-                onMasterVolChange={setMasterVol}
-                isEqOn={isEqOn}
-                setIsEqOn={setIsEqOn}
-                eqLow={eqLow}
-                setEqLow={setEqLow}
-                eqMid={eqMid}
-                setEqMid={setEqMid}
-                eqHigh={eqHigh}
-                setEqHigh={setEqHigh}
-                isCompressorOn={isCompressorOn}
-                setIsCompressorOn={setIsCompressorOn}
-                compThreshold={compThreshold}
-                setCompThreshold={setCompThreshold}
-                compRatio={compRatio}
-                setCompRatio={setCompRatio}
-                compAttack={compAttack}
-                setCompAttack={setCompAttack}
-                compRelease={compRelease}
-                setCompRelease={setCompRelease}
-                isLimiterOn={isLimiterOn}
-                setIsLimiterOn={setIsLimiterOn}
-                limiterThreshold={limiterThreshold}
-                setLimiterThreshold={setLimiterThreshold}
               />
             )}
 
@@ -3527,9 +3252,9 @@ export default function App() {
                 tracks={tracks}
                 isPlaying={isPlaying}
                 currentStepIndex={currentStepIndex}
-                currentMeasure={currentMeasure}
-                maxTicks={getMaxTicks(measureTimeSigs[currentMeasure] || timeSig)}
-                timeSig={measureTimeSigs[currentMeasure] || timeSig}
+                currentMeasure={measureCountRef.current % totalMeasures}
+                maxTicks={getMaxTicks(measureTimeSigs[measureCountRef.current % totalMeasures] || timeSig)}
+                timeSig={measureTimeSigs[measureCountRef.current % totalMeasures] || timeSig}
                 totalMeasures={totalMeasures}
                 onTogglePlay={handleTogglePlay}
                 onStepChange={handleStepValueSelectAndToggle}
@@ -3541,7 +3266,6 @@ export default function App() {
                 measureBpms={measureBpms}
                 measureVols={measureVols}
                 isMobile={isMobile}
-                onNavigateMeasure={(measureIdx) => handleTimelineNavigate(measureIdx, 0, 16)}
               />
             )}
           </>
@@ -3571,7 +3295,7 @@ export default function App() {
               onVoiceNoteBlur={handleVoiceNoteBlur}
               isPlaying={isPlaying}
               currentStepIndex={currentStepIndex}
-              currentMeasure={currentMeasure}
+              currentMeasure={measureCountRef.current % totalMeasures}
               maxTicks={getMaxTicks(timeSig)}
               timeSig={timeSig}
               totalMeasures={totalMeasures}
@@ -3654,30 +3378,6 @@ export default function App() {
               soloPatternPlayId={soloPatternPlayId}
               onStartSoloPattern={handleStartSoloPattern}
               onStopSoloPattern={handleStopSoloPattern}
-              masterVol={masterVol}
-              onMasterVolChange={setMasterVol}
-              isEqOn={isEqOn}
-              setIsEqOn={setIsEqOn}
-              eqLow={eqLow}
-              setEqLow={setEqLow}
-              eqMid={eqMid}
-              setEqMid={setEqMid}
-              eqHigh={eqHigh}
-              setEqHigh={setEqHigh}
-              isCompressorOn={isCompressorOn}
-              setIsCompressorOn={setIsCompressorOn}
-              compThreshold={compThreshold}
-              setCompThreshold={setCompThreshold}
-              compRatio={compRatio}
-              setCompRatio={setCompRatio}
-              compAttack={compAttack}
-              setCompAttack={setCompAttack}
-              compRelease={compRelease}
-              setCompRelease={setCompRelease}
-              isLimiterOn={isLimiterOn}
-              setIsLimiterOn={setIsLimiterOn}
-              limiterThreshold={limiterThreshold}
-              setLimiterThreshold={setLimiterThreshold}
             />
           </div>
         )}
@@ -3687,7 +3387,7 @@ export default function App() {
             tracks={tracks}
             isPlaying={isPlaying}
             currentStepIndex={currentStepIndex}
-            currentMeasure={currentMeasure}
+            currentMeasure={measureCountRef.current % totalMeasures}
             maxTicks={getMaxTicks(timeSig)}
             totalMeasures={totalMeasures}
             isMobile={isMobile}
@@ -3805,6 +3505,10 @@ export default function App() {
         onSwingToggle={() => setIsSwingOn(!isSwingOn)}
         masterVol={masterVol}
         onMasterVolChange={(val) => setMasterVol(val)}
+        timeSig={timeSig}
+        onTimeSigChange={handleTimeSigChange}
+        totalMeasures={totalMeasures}
+        onTotalMeasuresChange={handleTotalMeasuresChange}
         reverbType={reverbType}
         onReverbTypeChange={setReverbType}
       />

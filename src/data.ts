@@ -158,20 +158,7 @@ export const i18n = {
     pwaOfflineTitle: "📶 Modo Offline (PWA)",
     pwaOfflineDesc: "• Este aplicativo funciona 100% offline para ensaios na rua.<br>• Uma vez carregado, as telas, sons e ritmos ficam guardados no aparelho mesmo sem internet.",
     feedbackBtn: "Feedback & Fórum",
-    feedbackTitle: "💬 Contato & Feedback",
-    masterFx: "Efeitos Master",
-    limiter: "Limitador",
-    compressor: "Compressor",
-    lowCut: "Corte de Graves",
-    eq: "Equalizador",
-    threshold: "Limiar",
-    ratio: "Razão",
-    attack: "Ataque",
-    release: "Liberação",
-    eqLow: "Graves",
-    eqMid: "Médios",
-    eqHigh: "Agudos",
-    recommendation: "Recomendado"
+    feedbackTitle: "💬 Contato & Feedback"
   },
   fr: {
     loading: "Chargement des voix...",
@@ -248,20 +235,7 @@ export const i18n = {
     pwaOfflineTitle: "📶 Mode Hors-Ligne (PWA)",
     pwaOfflineDesc: "• Cette application fonctionne à 100% hors-ligne pour vos répétitions de rue.<br>• Une fois chargée, les visuels, sons et rythmes restent accessibles sans connexion internet.",
     feedbackBtn: "Feedback & Forum",
-    feedbackTitle: "💬 Contact & Forum",
-    masterFx: "Effets Master",
-    limiter: "Limiteur",
-    compressor: "Compresseur",
-    lowCut: "Coupe-Bas",
-    eq: "Égaliseur",
-    threshold: "Seuil",
-    ratio: "Ratio",
-    attack: "Attaque",
-    release: "Relâchement",
-    eqLow: "Graves",
-    eqMid: "Médiums",
-    eqHigh: "Aigus",
-    recommendation: "Recommandé"
+    feedbackTitle: "💬 Contact & Forum"
   }
 };
 
