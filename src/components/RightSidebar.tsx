@@ -279,14 +279,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   <span>{t('legendAlfaiaBarulho')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-6 h-[18px] text-[9px] font-bold bg-[#8c7b7b] text-[#f4ecd8] mr-1">
-                    x
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#8c7b7b] text-[#f4ecd8]">
+                    X / x
                   </span>
                   <span>{t('legendAlfaiaCerclage')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-6 h-[18px] text-[9px] font-bold bg-[#ff8da1] text-[#1a1a1a] mr-1">
-                    i
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#ff8da1] text-[#1a1a1a]">
+                    I / i
                   </span>
                   <span>{t('legendAlfaiaIguarassu')}</span>
                 </div>
@@ -300,28 +300,31 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
               </span>
               <div className="flex flex-col gap-1 text-[11px] text-[var(--cordel-text)]">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-6 h-[18px] text-[9px] font-bold bg-[#a855f7] text-[#f4ecd8] mr-0.5">
-                    rd
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#a855f7] text-[#f4ecd8]">
+                    R / r
                   </span>
-                  <span className="inline-flex items-center justify-center w-6 h-[18px] text-[9px] font-bold bg-[#d8b4fe] text-[#1a1a1a] mr-1">
-                    Re
-                  </span>
-                  <span>{t('legendCaixaRufada')}</span>
+                  <span>{t('legendCaixaRufadaD')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-6 h-[18px] text-[9px] font-bold bg-[#7e7b8c] text-[#f4ecd8] mr-1">
-                    x
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#d8b4fe] text-[#1a1a1a]">
+                    Z / z
+                  </span>
+                  <span>{t('legendCaixaRufadaG')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#7e7b8c] text-[#f4ecd8]">
+                    X / x
                   </span>
                   <span>{t('legendCaixaCerclage')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-6 h-[18px] text-[9px] font-bold bg-[#d946ef] text-[#f4ecd8] mr-1">
-                    f
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#d946ef] text-[#f4ecd8]">
+                    F / f
                   </span>
                   <span>{t('legendCaixaFla')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#4a044e] text-[#f4ecd8] mr-1">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#4a044e] text-[#f4ecd8]">
                     T / t
                   </span>
                   <span>{t('legendCaixaBarulho')}</span>
@@ -375,14 +378,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   <span>{t('agbeD')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#133816] text-[#f4ecd8] mr-1">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#133816] text-[#f4ecd8]">
                     T / t
                   </span>
                   <span>{t('legendAgbeBarulho')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-6 h-[18px] text-[9px] font-bold bg-[#86efac] text-[#1a1a1a] mr-1">
-                    s
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#86efac] text-[#1a1a1a]">
+                    S / s
                   </span>
                   <span>{t('legendAgbeSaut')}</span>
                 </div>
