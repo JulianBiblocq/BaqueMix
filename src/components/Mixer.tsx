@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TrackGroup, Language } from '../types';
 import { TrackMixer } from './TrackMixer';
 import { i18n } from '../data';
@@ -150,6 +150,8 @@ export const Mixer: React.FC<MixerProps> = ({
           ))}
         </div>
       </div>
+
+
     </div>
   );
 };

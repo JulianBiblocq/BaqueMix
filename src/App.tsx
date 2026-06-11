@@ -122,7 +122,7 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const latestVersion = Number(data.version);
-          const CURRENT_VERSION = 20; // Matches version.json
+          const CURRENT_VERSION = 21; // Matches version.json
           
           if (latestVersion > CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
@@ -164,6 +164,9 @@ export default function App() {
     compositor: '',
     ritmo: ''
   });
+
+
+
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -395,6 +398,8 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSwingOn, setIsSwingOn] = useState<boolean>(true);
+
+  const [currentMeasure, setCurrentMeasure] = useState<number>(0);
 
   // Measure counter tracks loops boundaries
   const measureCountRef = useRef<number>(0);
@@ -735,6 +740,9 @@ export default function App() {
         if (visualStep !== prevVisualStep || stepIdx === 0) {
           setCurrentStepIndex(stepIdx);
         }
+        if (stepIdx === 0) {
+          setCurrentMeasure(measureCountRef.current % totalMeasuresRef.current);
+        }
 
         // 3. Appliquer le BPM de manière fluide ou immédiate à chaque pas
         const currentMeasureIdx = measureCountRef.current % totalMeasuresRef.current;
@@ -1036,6 +1044,8 @@ export default function App() {
     }
   }, []);
 
+
+
   // Update BPM of Transport
   useEffect(() => {
     Tone.Transport.bpm.value = bpm;
@@ -1062,11 +1072,25 @@ export default function App() {
 
   // 2. Load Preset catalog initially
   useEffect(() => {
+    const hash = window.location.hash;
+    let loadedFromHash = false;
+    if (hash && hash.startsWith('#state=')) {
+      try {
+        const base64Str = hash.substring(7);
+        const jsonStr = decodeURIComponent(escape(atob(base64Str)));
+        const stateData = JSON.parse(jsonStr);
+        applyPresetState(stateData);
+        loadedFromHash = true;
+      } catch (err) {
+        console.error("Failed to load shared state from URL hash:", err);
+      }
+    }
+
     fetch(`${ASSETS_BASE_URL}presets/catalog.json`)
       .then((res) => res.json())
       .then((files: string[]) => {
         setPresetFiles(files);
-        if (files.length > 0) {
+        if (files.length > 0 && !loadedFromHash) {
           setActivePresetName(files[0]);
           loadFallbackPreset(files[0]);
         }
@@ -1098,6 +1122,8 @@ export default function App() {
           }
         }
       });
+
+
     };
 
     const timer = setInterval(updateLocalMenders, 40);
@@ -1386,6 +1412,7 @@ export default function App() {
     setCurrentStepIndex(-1);
     currentStepIndexRef.current = -1;
     measureCountRef.current = 0;
+    setCurrentMeasure(0);
     Tone.Transport.seconds = 0;
   };
 
@@ -1717,6 +1744,7 @@ export default function App() {
     setTimeSig(selectValue);
     setCurrentStepIndex(-1);
     measureCountRef.current = 0;
+    setCurrentMeasure(0);
 
     let targetSteps = 16;
     if (selectValue === '3/4' || selectValue === '6/8') targetSteps = 12;
@@ -2273,6 +2301,7 @@ export default function App() {
     setCurrentStepIndex(-1);
     currentStepIndexRef.current = -1;
     measureCountRef.current = 0;
+    setCurrentMeasure(0);
     Tone.Transport.seconds = 0;
 
     // Start playback
@@ -2448,6 +2477,7 @@ export default function App() {
     const tickIdx = Math.max(0, Math.min(currentTicks - 1, Math.floor((stepIdxInMeasure / stepsInMeasure) * currentTicks)));
     
     measureCountRef.current = measureIdx;
+    setCurrentMeasure(measureIdx % totalMeasures);
     currentStepIndexRef.current = tickIdx - 1; // -1 so the next loop cycle increments to tickIdx
     setCurrentStepIndex(tickIdx);
     maxTicksRef.current = currentTicks;
@@ -2957,80 +2987,132 @@ export default function App() {
     dlLink.click();
   };
 
+  function applyPresetState(data: any) {
+    try {
+      if (data.bpm) {
+        setBpm(Math.round(data.bpm));
+      }
+      if (data.timeSig) {
+        setTimeSig(data.timeSig);
+      }
+      if (data.letras !== undefined) {
+        setLetras(data.letras);
+      }
+      if (data.metadata) {
+        setMetadata(data.metadata);
+      }
+
+
+      let loadedTracks: TrackGroup[] = [];
+      let loadedMeasures = data.totalMeasures || 8;
+
+      const defaultBpm = Math.round(data.bpm || 90);
+      const defaultTimeSig = data.timeSig || '4/4';
+
+      const loadedBpms = data.measureBpms && Array.isArray(data.measureBpms)
+        ? data.measureBpms.map((b: number) => Math.round(b))
+        : Array(loadedMeasures).fill(defaultBpm);
+
+      const loadedTimeSigs = data.measureTimeSigs && Array.isArray(data.measureTimeSigs)
+        ? data.measureTimeSigs
+        : Array(loadedMeasures).fill(defaultTimeSig);
+
+      const loadedBpmTransitions = data.measureBpmTransitions && Array.isArray(data.measureBpmTransitions)
+        ? data.measureBpmTransitions
+        : Array(loadedMeasures).fill('immediate');
+
+      const loadedVols = data.measureVols && Array.isArray(data.measureVols)
+        ? data.measureVols.map((v: number) => Math.round(v))
+        : Array(loadedMeasures).fill(100);
+
+      const loadedVolTransitions = data.measureVolTransitions && Array.isArray(data.measureVolTransitions)
+        ? data.measureVolTransitions
+        : Array(loadedMeasures).fill('immediate');
+
+      setMeasureBpms(loadedBpms);
+      setMeasureTimeSigs(loadedTimeSigs);
+      setMeasureBpmTransitions(loadedBpmTransitions);
+      setMeasureVols(loadedVols);
+      setMeasureVolTransitions(loadedVolTransitions);
+
+      if (data.tracks) {
+        loadedTracks = data.tracks;
+        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+      } else if (data.circles) {
+        loadedTracks = migrateCirclesToTracks(data.circles, loadedMeasures);
+        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+      }
+
+      updateRadii(loadedTracks);
+      setTracks(loadedTracks);
+      setTotalMeasures(loadedMeasures);
+      if (data.songSections && Array.isArray(data.songSections)) {
+        setSongSections(data.songSections);
+      } else {
+        setSongSections([]);
+      }
+      measureCountRef.current = 0;
+      setCurrentMeasure(0);
+    } catch (err) {
+      console.error("Failed to apply preset state:", err);
+      throw err;
+    }
+  }
+
   // Master Load state from uploaded JSON
   const handleLoadState = (file: File) => {
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
         const data = JSON.parse(evt.target?.result as string);
-        if (data.bpm) {
-          setBpm(Math.round(data.bpm));
-        }
-        if (data.timeSig) {
-          setTimeSig(data.timeSig);
-        }
-        if (data.letras !== undefined) {
-          setLetras(data.letras);
-        }
-        if (data.metadata) {
-          setMetadata(data.metadata);
-        }
-
-        let loadedTracks: TrackGroup[] = [];
-        let loadedMeasures = data.totalMeasures || 8;
-
-        const defaultBpm = Math.round(data.bpm || bpm || 90);
-        const defaultTimeSig = data.timeSig || timeSig || '4/4';
-
-        const loadedBpms = data.measureBpms && Array.isArray(data.measureBpms)
-          ? data.measureBpms.map((b: number) => Math.round(b))
-          : Array(loadedMeasures).fill(defaultBpm);
-
-        const loadedTimeSigs = data.measureTimeSigs && Array.isArray(data.measureTimeSigs)
-          ? data.measureTimeSigs
-          : Array(loadedMeasures).fill(defaultTimeSig);
-
-        const loadedBpmTransitions = data.measureBpmTransitions && Array.isArray(data.measureBpmTransitions)
-          ? data.measureBpmTransitions
-          : Array(loadedMeasures).fill('immediate');
-
-        const loadedVols = data.measureVols && Array.isArray(data.measureVols)
-          ? data.measureVols.map((v: number) => Math.round(v))
-          : Array(loadedMeasures).fill(100);
-
-        const loadedVolTransitions = data.measureVolTransitions && Array.isArray(data.measureVolTransitions)
-          ? data.measureVolTransitions
-          : Array(loadedMeasures).fill('immediate');
-
-        setMeasureBpms(loadedBpms);
-        setMeasureTimeSigs(loadedTimeSigs);
-        setMeasureBpmTransitions(loadedBpmTransitions);
-        setMeasureVols(loadedVols);
-        setMeasureVolTransitions(loadedVolTransitions);
-
-        if (data.tracks) {
-          loadedTracks = data.tracks;
-          loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
-        } else if (data.circles) {
-          loadedTracks = migrateCirclesToTracks(data.circles, loadedMeasures);
-          loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
-        }
-
-        updateRadii(loadedTracks);
-        setTracks(loadedTracks);
-        setTotalMeasures(loadedMeasures);
-        if (data.songSections && Array.isArray(data.songSections)) {
-          setSongSections(data.songSections);
-        } else {
-          setSongSections([]);
-        }
-        measureCountRef.current = 0;
+        applyPresetState(data);
       } catch (err) {
         window.alert(t('invalidFile'));
       }
     };
     reader.readAsText(file);
   };
+
+  function handleShare() {
+    const dataToSave: Preset = {
+      bpm,
+      timeSig,
+      totalMeasures,
+      tracks,
+      letras,
+      metadata,
+      measureTimeSigs,
+      measureBpms,
+      measureBpmTransitions,
+      measureVols,
+      measureVolTransitions,
+      songSections
+    };
+    try {
+      const jsonStr = JSON.stringify(dataToSave);
+      const base64Str = btoa(unescape(encodeURIComponent(jsonStr)));
+      const shareUrl = window.location.origin + window.location.pathname + '#state=' + base64Str;
+      
+      const text = lang === 'pt' 
+        ? 'Descubra BaqueMix, um sequenciador de ritmos de Maracatu!' 
+        : 'Découvrez BaqueMix, un séquenceur de rythmes de Maracatu !';
+      
+      if (navigator.share) {
+        navigator.share({
+          title: 'BaqueMix',
+          text: text,
+          url: shareUrl
+        }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          window.alert(lang === 'pt' ? 'Link de compartilhamento copiado!' : 'Lien de partage copié !');
+        });
+      }
+    } catch (e) {
+      console.error("Failed to generate share link", e);
+      window.alert(lang === 'pt' ? 'Erro ao gerar o link de compartilhamento.' : 'Erreur lors de la génération du lien de partage.');
+    }
+  }
 
   const handleStepValueSelectAndToggle = (
     trackId: number,
@@ -3072,7 +3154,6 @@ export default function App() {
   tracks.forEach(t => {
     if (activePatternIdByInst[t.instrumentIdx] === undefined) {
       if (isPlaying) {
-        const currentMeasure = measureCountRef.current % totalMeasuresRef.current;
         const activePattern = t.patterns.find(p => p.measureAssignments[currentMeasure]);
         activePatternIdByInst[t.instrumentIdx] = activePattern ? activePattern.id : null;
       } else {
@@ -3087,7 +3168,6 @@ export default function App() {
       const hasSoloPattern = t.patterns.some(p => p.id === soloPatternPlayId);
       activePatternIdByTrack[t.id] = hasSoloPattern ? soloPatternPlayId : null;
     } else {
-      const currentMeasure = measureCountRef.current % totalMeasuresRef.current;
       const activePattern = t.patterns.find(p => p.measureAssignments[currentMeasure]);
       activePatternIdByTrack[t.id] = activePattern ? activePattern.id : null;
     }
@@ -3114,6 +3194,7 @@ export default function App() {
         preset={activePresetName}
         presetFiles={presetFiles}
         onPresetChange={handlePresetSelect}
+        onShare={handleShare}
         onClear={() => {
           pushUndoState();
           setTracks([]);
@@ -3242,6 +3323,7 @@ export default function App() {
                 onCopyPattern={handleCopyPattern}
                 onPastePattern={handlePastePattern}
                 canPaste={!!copiedPattern}
+
               />
             )}
 
@@ -3252,9 +3334,9 @@ export default function App() {
                 tracks={tracks}
                 isPlaying={isPlaying}
                 currentStepIndex={currentStepIndex}
-                currentMeasure={measureCountRef.current % totalMeasures}
-                maxTicks={getMaxTicks(measureTimeSigs[measureCountRef.current % totalMeasures] || timeSig)}
-                timeSig={measureTimeSigs[measureCountRef.current % totalMeasures] || timeSig}
+                currentMeasure={currentMeasure}
+                maxTicks={getMaxTicks(measureTimeSigs[currentMeasure] || timeSig)}
+                timeSig={measureTimeSigs[currentMeasure] || timeSig}
                 totalMeasures={totalMeasures}
                 onTogglePlay={handleTogglePlay}
                 onStepChange={handleStepValueSelectAndToggle}
@@ -3266,6 +3348,7 @@ export default function App() {
                 measureBpms={measureBpms}
                 measureVols={measureVols}
                 isMobile={isMobile}
+                onNavigateMeasure={(measureIdx) => handleTimelineNavigate(measureIdx, 0, 16)}
               />
             )}
           </>
@@ -3295,7 +3378,7 @@ export default function App() {
               onVoiceNoteBlur={handleVoiceNoteBlur}
               isPlaying={isPlaying}
               currentStepIndex={currentStepIndex}
-              currentMeasure={measureCountRef.current % totalMeasures}
+              currentMeasure={currentMeasure}
               maxTicks={getMaxTicks(timeSig)}
               timeSig={timeSig}
               totalMeasures={totalMeasures}
@@ -3378,6 +3461,7 @@ export default function App() {
               soloPatternPlayId={soloPatternPlayId}
               onStartSoloPattern={handleStartSoloPattern}
               onStopSoloPattern={handleStopSoloPattern}
+
             />
           </div>
         )}
@@ -3387,7 +3471,7 @@ export default function App() {
             tracks={tracks}
             isPlaying={isPlaying}
             currentStepIndex={currentStepIndex}
-            currentMeasure={measureCountRef.current % totalMeasures}
+            currentMeasure={currentMeasure}
             maxTicks={getMaxTicks(timeSig)}
             totalMeasures={totalMeasures}
             isMobile={isMobile}
@@ -3505,10 +3589,6 @@ export default function App() {
         onSwingToggle={() => setIsSwingOn(!isSwingOn)}
         masterVol={masterVol}
         onMasterVolChange={(val) => setMasterVol(val)}
-        timeSig={timeSig}
-        onTimeSigChange={handleTimeSigChange}
-        totalMeasures={totalMeasures}
-        onTotalMeasuresChange={handleTotalMeasuresChange}
         reverbType={reverbType}
         onReverbTypeChange={setReverbType}
       />

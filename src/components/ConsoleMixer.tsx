@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { TrackGroup, Language, Pattern } from '../types';
 import { VerticalTrackMixer } from './VerticalTrackMixer';
 import { InstrumentDetailEditor } from './InstrumentDetailEditor';
+import { i18n } from '../data';
 
 interface ConsoleMixerProps {
   lang: Language;
@@ -122,6 +123,8 @@ export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [editingTrackId, setEditingTrackId] = useState<number | null>(null);
 
+  const t = (key: string) => (i18n[lang] as any)[key] || key;
+
   const editingTrack = tracks.find(t => t.id === editingTrackId);
 
   useEffect(() => {
@@ -184,6 +187,7 @@ export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
             canPaste={canPaste}
           />
         ))}
+
         {tracks.length === 0 && (
           <div className="m-auto text-[var(--cordel-text)] font-cactus font-bold text-2xl">
             Ajoutez un instrument pour commencer...

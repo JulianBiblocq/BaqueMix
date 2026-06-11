@@ -27,6 +27,7 @@ interface CircleSequencerProps {
   measureBpms: number[];
   measureVols: number[];
   isMobile?: boolean;
+  onNavigateMeasure?: (measureIdx: number) => void;
 }
 
 export const CircleSequencer: React.FC<CircleSequencerProps> = ({
@@ -49,6 +50,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
   measureBpms,
   measureVols,
   isMobile,
+  onNavigateMeasure,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -692,9 +694,37 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
       }}
     >
       {/* Dynamic Measure Information Widgets around the Roda */}
-      <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-[#f4ecd8]/95 text-[#1a1a1a] cordel-border-sm p-1.5 px-2.5 md:p-2 md:px-3.5 shadow-[3px_3px_0px_#1a1a1a] md:shadow-[4px_4px_0px_#1a1a1a] flex flex-col items-start min-w-[90px] md:min-w-[120px] z-20 pointer-events-none">
-        <span className="text-[8px] md:text-[9px] uppercase opacity-65 tracking-wider font-bold">{lang === 'pt' ? 'Compasso' : 'Mesure'}</span>
-        <span className="text-sm md:text-lg font-cactus font-bold leading-tight">{currentMeasure + 1} / {totalMeasures}</span>
+      <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-[#f4ecd8]/95 text-[#1a1a1a] cordel-border-sm p-1.5 px-2 md:p-2 md:px-3 shadow-[3px_3px_0px_#1a1a1a] md:shadow-[4px_4px_0px_#1a1a1a] flex flex-col items-center min-w-[115px] md:min-w-[150px] z-20 select-none">
+        <span className="text-[8px] md:text-[9px] uppercase opacity-65 tracking-wider font-bold select-none">{lang === 'pt' ? 'Compasso' : 'Mesure'}</span>
+        <div className="flex items-center justify-between w-full mt-1.5 px-1.5 gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const prev = (currentMeasure - 1 + totalMeasures) % totalMeasures;
+              onNavigateMeasure?.(prev);
+            }}
+            className="w-6 h-6 flex items-center justify-center bg-[var(--cordel-bg)] text-[#1a1a1a] border border-[#1a1a1a] font-bold text-sm cursor-pointer hover:bg-[#1a1a1a] hover:text-[var(--cordel-bg)] transition-colors rounded-sm active:scale-95"
+            title={lang === 'pt' ? 'Compasso anterior' : 'Mesure précédente'}
+            style={{ padding: 0 }}
+          >
+            &lt;
+          </button>
+          <span className="text-sm md:text-base font-cactus font-bold leading-none select-none flex-grow text-center">
+            {currentMeasure + 1} / {totalMeasures}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const next = (currentMeasure + 1) % totalMeasures;
+              onNavigateMeasure?.(next);
+            }}
+            className="w-6 h-6 flex items-center justify-center bg-[var(--cordel-bg)] text-[#1a1a1a] border border-[#1a1a1a] font-bold text-sm cursor-pointer hover:bg-[#1a1a1a] hover:text-[var(--cordel-bg)] transition-colors rounded-sm active:scale-95"
+            title={lang === 'pt' ? 'Próximo compasso' : 'Mesure suivante'}
+            style={{ padding: 0 }}
+          >
+            &gt;
+          </button>
+        </div>
       </div>
 
       <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-[#f4ecd8]/95 text-[#1a1a1a] cordel-border-sm p-1.5 px-2.5 md:p-2 md:px-3.5 shadow-[3px_3px_0px_#1a1a1a] md:shadow-[4px_4px_0px_#1a1a1a] flex flex-col items-end min-w-[90px] md:min-w-[120px] z-20 pointer-events-none">

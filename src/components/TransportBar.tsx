@@ -19,10 +19,6 @@ interface TransportBarProps {
   onSwingToggle: () => void;
   masterVol: number;
   onMasterVolChange: (vol: number) => void;
-  timeSig: TimeSignature;
-  onTimeSigChange: (sig: TimeSignature) => void;
-  totalMeasures: number;
-  onTotalMeasuresChange: (measures: number) => void;
   reverbType: 'room' | 'studio' | 'hall';
   onReverbTypeChange: (type: 'room' | 'studio' | 'hall') => void;
   viewMode: 'roda' | 'console' | 'timeline';
@@ -44,10 +40,6 @@ export const TransportBar: React.FC<TransportBarProps> = ({
   onSwingToggle,
   masterVol,
   onMasterVolChange,
-  timeSig,
-  onTimeSigChange,
-  totalMeasures,
-  onTotalMeasuresChange,
   reverbType,
   onReverbTypeChange,
   viewMode,
@@ -100,19 +92,28 @@ export const TransportBar: React.FC<TransportBarProps> = ({
           <span className="hidden lg:inline">Swing</span>
         </button>
 
-        <div className="flex items-center gap-2 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)]">
-          <span className="font-cactus font-bold text-[var(--cordel-text)] text-sm">BPM</span>
-          <input
-            type="number"
-            value={bpm}
-            onChange={(e) => {
-              let val = Math.round(Number(e.target.value));
-              if (val < 40) val = 40;
-              if (val > 240) val = 240;
-              onBpmChange(val);
-            }}
-            className="w-12 bg-transparent text-center font-bold text-[var(--cordel-text)] outline-none"
-          />
+        <div className="flex items-center gap-1.5 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)]">
+          <span className="font-cactus font-bold text-[var(--cordel-text)] text-sm select-none">
+            {lang === 'fr' ? 'Vitesse' : lang === 'pt' ? 'Velocidade' : 'Tempo'}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onBpmChange(Math.max(40, bpm - 1))}
+              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-xs cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm active:scale-95 transition-all"
+              title={lang === 'fr' ? 'Diminuer le tempo' : lang === 'pt' ? 'Diminuir o tempo' : 'Decrease tempo'}
+              style={{ padding: 0 }}
+            >
+              -
+            </button>
+            <button
+              onClick={() => onBpmChange(Math.min(240, bpm + 1))}
+              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-xs cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm active:scale-95 transition-all"
+              title={lang === 'fr' ? 'Augmenter le tempo' : lang === 'pt' ? 'Aumentar o tempo' : 'Increase tempo'}
+              style={{ padding: 0 }}
+            >
+              +
+            </button>
+          </div>
         </div>
 
         {/* Reverb Type Dropdown */}
@@ -168,54 +169,9 @@ export const TransportBar: React.FC<TransportBarProps> = ({
         </div>
       </div>
 
-      {/* Right side: Time Sig, Measures, Volume */}
+      {/* Right side: Volume */}
       <div className="hidden md:flex items-center justify-end gap-4 flex-1">
         
-        <div className="flex items-center gap-1.5 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)] hidden md:flex">
-          <span className="font-cactus font-bold text-[var(--cordel-text)] text-xs uppercase">{t('tsLabel')}</span>
-          <select
-            value={timeSig}
-            onChange={(e) => onTimeSigChange(e.target.value as TimeSignature)}
-            className="bg-transparent text-[var(--cordel-text)] font-cactus text-xs font-bold outline-none cursor-pointer"
-          >
-            <option value="4/4">4/4</option>
-            <option value="3/4">3/4</option>
-            <option value="2/4">2/4</option>
-            <option value="6/8">6/8</option>
-            <option value="12/8">12/8</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-1.5 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)] hidden md:flex">
-          <span className="font-cactus font-bold text-[var(--cordel-text)] text-xs uppercase mr-1">
-            {lang === 'pt' ? 'Compassos' : lang === 'fr' ? 'Mesures' : 'Measures'}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => onTotalMeasuresChange(Math.max(1, totalMeasures - 1))}
-              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-[10px] cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm"
-              style={{ padding: 0 }}
-            >-</button>
-            <input
-              type="number"
-              min={1}
-              max={64}
-              value={totalMeasures}
-              onChange={(e) => {
-                const val = Math.max(1, Math.min(64, parseInt(e.target.value) || 1));
-                onTotalMeasuresChange(val);
-              }}
-              className="w-8 text-center bg-transparent text-[var(--cordel-text)] font-cactus text-xs font-bold outline-none border border-[var(--cordel-border)]/30 rounded-sm"
-              style={{ height: '20px' }}
-            />
-            <button
-              onClick={() => onTotalMeasuresChange(Math.min(64, totalMeasures + 1))}
-              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-[10px] cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm"
-              style={{ padding: 0 }}
-            >+</button>
-          </div>
-        </div>
-
         <div className="flex items-center gap-2" title="Volume Geral">
           <Volume2 className="w-4 h-4 text-[var(--cordel-text)] shrink-0" />
           <input
