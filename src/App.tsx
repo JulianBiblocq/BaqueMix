@@ -728,7 +728,13 @@ export default function App() {
         // 2. Avancer le pas
         stepIdx = (stepIdx + 1) % currentTicks;
         currentStepIndexRef.current = stepIdx;
-        setCurrentStepIndex(stepIdx);
+
+        // Optimisation smartphone : ne mettre à jour l'état React (re-render UI) que sur les double croches (toutes les 6 subdivisions)
+        const visualStep = Math.floor(stepIdx / 6);
+        const prevVisualStep = Math.floor(((stepIdx - 1 + currentTicks) % currentTicks) / 6);
+        if (visualStep !== prevVisualStep || stepIdx === 0) {
+          setCurrentStepIndex(stepIdx);
+        }
 
         // 3. Appliquer le BPM de manière fluide ou immédiate à chaque pas
         const currentMeasureIdx = measureCountRef.current % totalMeasuresRef.current;
@@ -2607,15 +2613,17 @@ export default function App() {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           deviceId: selectedAudioDeviceId ? { exact: selectedAudioDeviceId } : undefined,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
         },
       });
       vocalStreamRef.current = stream;
       updateAudioDevices();
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, {
+        audioBitsPerSecond: 96000
+      });
       vocalMediaRecorderRef.current = mediaRecorder;
       const chunks: Blob[] = [];
 
