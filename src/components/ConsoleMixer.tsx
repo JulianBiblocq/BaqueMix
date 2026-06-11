@@ -57,6 +57,10 @@ interface ConsoleMixerProps {
   onVocalModeChange?: (patternId: number, mode: 'synth' | 'micro') => void;
   onDeleteVocalRecording?: (patternId: number) => void;
   onVocalLatencyChange?: (patternId: number, latencyMs: number) => void;
+  audioDevices?: MediaDeviceInfo[];
+  selectedAudioDeviceId?: string;
+  onAudioDeviceChange?: (deviceId: string) => void;
+  onImportVocalFile?: (patternId: number, file: File) => void;
 }
 
 export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
@@ -106,6 +110,10 @@ export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
   onVocalModeChange,
   onDeleteVocalRecording,
   onVocalLatencyChange,
+  audioDevices = [],
+  selectedAudioDeviceId = '',
+  onAudioDeviceChange,
+  onImportVocalFile,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [editingTrackId, setEditingTrackId] = useState<number | null>(null);
@@ -220,6 +228,10 @@ export const ConsoleMixer: React.FC<ConsoleMixerProps> = ({
           onVocalModeChange={onVocalModeChange}
           onDeleteVocalRecording={onDeleteVocalRecording}
           onVocalLatencyChange={onVocalLatencyChange}
+          audioDevices={audioDevices}
+          selectedAudioDeviceId={selectedAudioDeviceId}
+          onAudioDeviceChange={onAudioDeviceChange}
+          onImportVocalFile={onImportVocalFile}
         />
       )}
     </div>

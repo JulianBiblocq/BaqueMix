@@ -420,6 +420,71 @@ export default function App() {
   const vocalRecordingStateRef = useRef<'inactive' | 'waiting' | 'recording'>('inactive');
   const vocalPlayersRef = useRef<{ [patternId: number]: Tone.Player }>({});
   const [recordedPatternIds, setRecordedPatternIds] = useState<number[]>([]);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string>(() => {
+    return localStorage.getItem('baquemix_vocal_device_id') || '';
+  });
+
+  const updateAudioDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(d => d.kind === 'audioinput');
+      setAudioDevices(audioInputs);
+      if (audioInputs.length > 0 && !selectedAudioDeviceId) {
+        const defaultDev = audioInputs.find(d => d.deviceId === 'default') || audioInputs[0];
+        setSelectedAudioDeviceId(defaultDev.deviceId);
+      }
+    } catch (err) {
+      console.warn("Failed to enumerate audio devices:", err);
+    }
+  };
+
+  useEffect(() => {
+    updateAudioDevices();
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+        navigator.mediaDevices.addEventListener('devicechange', updateAudioDevices);
+      }
+    } catch (_) {}
+    return () => {
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
+          navigator.mediaDevices.removeEventListener('devicechange', updateAudioDevices);
+        }
+      } catch (_) {}
+    };
+  }, []);
+
+  const handleAudioDeviceChange = (deviceId: string) => {
+    setSelectedAudioDeviceId(deviceId);
+    localStorage.setItem('baquemix_vocal_device_id', deviceId);
+  };
+
+  const handleImportVocalFile = async (patternId: number, file: File) => {
+    try {
+      await saveVocalRecording(patternId, file);
+      await loadVocalRecording(patternId);
+      
+      setTracks((prevTracks) => {
+        return prevTracks.map((t) => {
+          const hasPattern = t.patterns.some((p) => p.id === patternId);
+          if (!hasPattern) return t;
+          return {
+            ...t,
+            patterns: t.patterns.map((p) => {
+              if (p.id === patternId) {
+                return { ...p, vocalMode: 'micro' };
+              }
+              return p;
+            }),
+          };
+        });
+      });
+    } catch (err) {
+      console.error("Error importing vocal file:", err);
+      alert("Erreur lors de l'importation du fichier audio : " + err);
+    }
+  };
 
   const getSystemDefaultLatencyMs = () => {
     let latencySec = 0.08; // 80 ms default for hardware input / encoder startup
@@ -2538,12 +2603,14 @@ export default function App() {
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
+          deviceId: selectedAudioDeviceId ? { exact: selectedAudioDeviceId } : undefined,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
       });
       vocalStreamRef.current = stream;
+      updateAudioDevices();
 
       const mediaRecorder = new MediaRecorder(stream);
       vocalMediaRecorderRef.current = mediaRecorder;
@@ -3291,6 +3358,10 @@ export default function App() {
               onVocalModeChange={handleVocalModeChange}
               onDeleteVocalRecording={handleDeleteVocalRecording}
               onVocalLatencyChange={handleVocalLatencyChange}
+              audioDevices={audioDevices}
+              selectedAudioDeviceId={selectedAudioDeviceId}
+              onAudioDeviceChange={handleAudioDeviceChange}
+              onImportVocalFile={handleImportVocalFile}
               soloPatternPlayId={soloPatternPlayId}
               onStartSoloPattern={handleStartSoloPattern}
               onStopSoloPattern={handleStopSoloPattern}

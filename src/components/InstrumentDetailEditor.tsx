@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { TrackGroup, Language } from '../types';
 import { i18n, instrumentsConfig, ASSETS_BASE_URL } from '../data';
 
@@ -49,6 +49,10 @@ interface InstrumentDetailEditorProps {
   onVocalModeChange?: (patternId: number, mode: 'synth' | 'micro') => void;
   onDeleteVocalRecording?: (patternId: number) => void;
   onVocalLatencyChange?: (patternId: number, latencyMs: number) => void;
+  audioDevices?: MediaDeviceInfo[];
+  selectedAudioDeviceId?: string;
+  onAudioDeviceChange?: (deviceId: string) => void;
+  onImportVocalFile?: (patternId: number, file: File) => void;
 }
 
 /* ── Stroke legend definitions ─────────────────────────────── */
@@ -217,8 +221,13 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
   onVocalModeChange,
   onDeleteVocalRecording,
   onVocalLatencyChange,
+  audioDevices = [],
+  selectedAudioDeviceId = '',
+  onAudioDeviceChange,
+  onImportVocalFile,
 }) => {
   const inst = instrumentsConfig[track.instrumentIdx];
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const t = (key: string) => (i18n[lang] as any)[key] || key;
 
   const vocalT = (key: string) => {
@@ -581,6 +590,29 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
 
                       {ptn.vocalMode === 'micro' && (
                         <div className="flex flex-col gap-2 flex-grow w-full border-t md:border-t-0 md:border-l border-[#1a1a1a]/20 pt-3 md:pt-0 md:pl-4">
+                          
+                          {/* Microphone selection dropdown */}
+                          <div className="flex flex-col gap-1 w-full border-b border-[#1a1a1a]/10 pb-2 mb-1">
+                            <label className="text-[10px] font-bold opacity-80 flex items-center gap-1">
+                              🎙️ {lang === 'fr' ? "Carte son / Entrée micro :" : "Placa de som / Entrada de microfone :"}
+                            </label>
+                            <select
+                              value={selectedAudioDeviceId}
+                              onChange={(e) => onAudioDeviceChange && onAudioDeviceChange(e.target.value)}
+                              className="text-xs bg-[#f4ecd8] cordel-border-sm p-1 outline-none text-[#1a1a1a] w-full max-w-xs font-semibold cursor-pointer"
+                            >
+                              {audioDevices.length === 0 ? (
+                                <option value="">{lang === 'fr' ? "Périphérique par défaut" : "Dispositivo padrão"}</option>
+                              ) : (
+                                audioDevices.map((dev) => (
+                                  <option key={dev.deviceId} value={dev.deviceId}>
+                                    {dev.label || `${lang === 'fr' ? 'Micro' : 'Microfone'} (${dev.deviceId.slice(0, 5)})`}
+                                  </option>
+                                ))
+                              )}
+                            </select>
+                          </div>
+
                           <div className="flex flex-wrap items-center gap-3 w-full">
                             {isRecordingVocal && recordingVocalPatternId === ptn.id ? (
                               <button
@@ -591,12 +623,34 @@ export const InstrumentDetailEditor: React.FC<InstrumentDetailEditorProps> = ({
                                 {vocalT('recording')}
                               </button>
                             ) : (
-                              <button
-                                onClick={() => onStartVocalRecording && onStartVocalRecording(ptn.id)}
-                                className="px-4 py-2 bg-green-700 text-[#f4ecd8] font-bold text-xs cordel-border-sm cursor-pointer hover:bg-green-800 transition-colors flex items-center gap-1.5"
-                              >
-                                🎤 {recordedPatternIds.includes(ptn.id) ? vocalT('reRecord') : vocalT('recordVocal')}
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => onStartVocalRecording && onStartVocalRecording(ptn.id)}
+                                  className="px-4 py-2 bg-green-700 text-[#f4ecd8] font-bold text-xs cordel-border-sm cursor-pointer hover:bg-green-800 transition-colors flex items-center gap-1.5"
+                                >
+                                  🎤 {recordedPatternIds.includes(ptn.id) ? vocalT('reRecord') : vocalT('recordVocal')}
+                                </button>
+
+                                <button
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="px-4 py-2 bg-[#b89f74] text-[#1a1a1a] font-bold text-xs cordel-border-sm cursor-pointer hover:bg-[#a68e64] transition-colors flex items-center gap-1.5 font-semibold"
+                                  title={lang === 'fr' ? "Importer un fichier audio existant" : "Importar um arquivo de áudio existente"}
+                                >
+                                  📥 {lang === 'fr' ? 'Importer' : 'Importar'}
+                                </button>
+                                <input
+                                  type="file"
+                                  accept="audio/*"
+                                  ref={fileInputRef}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file && onImportVocalFile) {
+                                      onImportVocalFile(ptn.id, file);
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </div>
                             )}
 
                             {recordedPatternIds.includes(ptn.id) ? (
