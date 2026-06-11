@@ -3503,16 +3503,55 @@ export default function App() {
         ? 'Descubra BaqueMix, um sequenciador de ritmos de Maracatu!' 
         : 'Découvrez BaqueMix, un séquenceur de rythmes de Maracatu !';
       
-      if (navigator.share) {
+      const copyToClipboard = () => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(shareUrl).then(() => {
+            window.alert(lang === 'pt' ? 'Link de compartilhamento copiado para a área de transferência!' : 'Lien de partage copié dans le presse-papiers !');
+          }).catch((err) => {
+            fallbackCopyText(shareUrl);
+          });
+        } else {
+          fallbackCopyText(shareUrl);
+        }
+      };
+
+      const fallbackCopyText = (textToCopy: string) => {
+        try {
+          const textArea = document.createElement("textarea");
+          textArea.value = textToCopy;
+          textArea.style.position = "fixed";  // Avoid scrolling to bottom
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          if (successful) {
+            window.alert(lang === 'pt' ? 'Link de compartilhamento copiado!' : 'Lien de partage copié !');
+          } else {
+            showUrlPrompt(textToCopy);
+          }
+        } catch (err) {
+          showUrlPrompt(textToCopy);
+        }
+      };
+
+      const showUrlPrompt = (textToPrompt: string) => {
+        window.prompt(lang === 'pt' ? 'Copie o link abaixo para compartilhar:' : 'Copiez le lien ci-dessous pour partager :', textToPrompt);
+      };
+
+      const isMobileOrTablet = /Mobi|Android|iPhone|iPad|Tablet|Macintosh/i.test(navigator.userAgent) && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+      if (isMobileOrTablet && navigator.share) {
         navigator.share({
           title: 'BaqueMix',
           text: text,
           url: shareUrl
-        }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          window.alert(lang === 'pt' ? 'Link de compartilhamento copiado!' : 'Lien de partage copié !');
+        }).catch((err) => {
+          console.warn("Share sheet failed, falling back to clipboard copy", err);
+          copyToClipboard();
         });
+      } else {
+        copyToClipboard();
       }
     } catch (e) {
       console.error("Failed to generate share link", e);
