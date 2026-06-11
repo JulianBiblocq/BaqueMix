@@ -70,6 +70,12 @@ export type TimeSignature = '4/4' | '3/4' | '2/4' | '6/8' | '12/8';
 
 export type Language = 'pt' | 'fr';
 
+export interface RhythmSignal {
+  id: string;
+  name: string;
+  image: string; // base64 JPEG
+}
+
 export interface PresetMetadata {
   toada: string;
   nacao: string;
@@ -77,6 +83,7 @@ export interface PresetMetadata {
   ritmo: string;
   youtubeUrl?: string;
   partitionImage?: string; // base64 JPEG
+  rhythmSignals?: RhythmSignal[];
 }
 
 export interface Preset {
@@ -93,6 +100,7 @@ export interface Preset {
   measureVols?: number[];
   measureVolTransitions?: ('immediate' | 'ramp')[];
   songSections?: SongSection[];
+  measureSignals?: (string | null)[]; // signal id par mesure
 }
 
 export interface CatalogItem {

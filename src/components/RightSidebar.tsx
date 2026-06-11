@@ -23,6 +23,8 @@ interface RightSidebarProps {
     activePatternIdByInst: { [instIdx: number]: number | null };
   } | null;
   totalMeasures: number;
+  whistleVol?: number;
+  onWhistleVolChange?: (val: number) => void;
 }
 
 const RightSidebarComponent: React.FC<RightSidebarProps> = ({
@@ -37,18 +39,21 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
   onMetadataChange,
   currentPlayState,
   totalMeasures,
+  whistleVol,
+  onWhistleVolChange,
 }) => {
-  const [cameraActive, setCameraActive] = React.useState<boolean>(false);
-  const videoRef = React.useRef<HTMLVideoElement | null>(null);
-  const streamRef = React.useRef<MediaStream | null>(null);
-  const [zoomModalOpen, setZoomModalOpen] = React.useState<boolean>(false);
+  const [signalCameraActive, setSignalCameraActive] = React.useState<boolean>(false);
+  const signalVideoRef = React.useRef<HTMLVideoElement | null>(null);
+  const signalStreamRef = React.useRef<MediaStream | null>(null);
   const [subTab, setSubTab] = React.useState<'toada' | 'info'>('info');
+  const [pendingSignalImage, setPendingSignalImage] = React.useState<string | null>(null);
+  const [pendingSignalName, setPendingSignalName] = React.useState<string>('');
 
   // Stop camera stream on unmount
   React.useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+      if (signalStreamRef.current) {
+        signalStreamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
@@ -87,42 +92,53 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
     reader.readAsDataURL(fileOrBlob);
   };
 
-  const startCamera = async () => {
+  const handleSignalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      compressAndResizeImage(file, (base64) => {
+        setPendingSignalImage(base64);
+        if (!pendingSignalName) {
+          const nameWithoutExt = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+          setPendingSignalName(nameWithoutExt.substring(0, 30));
+        }
+      });
+    }
+    e.target.value = '';
+  };
+
+  const startSignalCamera = async () => {
     try {
-      setCameraActive(true);
-      // facingMode 'user' prioritizes the front-facing (selfie) camera
+      setSignalCameraActive(true);
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
       });
-      streamRef.current = stream;
-      
-      // Delay slightly to ensure video element is rendered
+      signalStreamRef.current = stream;
       setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(e => console.error("Video play error:", e));
+        if (signalVideoRef.current) {
+          signalVideoRef.current.srcObject = stream;
+          signalVideoRef.current.play().catch(e => console.error('Video play error:', e));
         }
       }, 100);
     } catch (err) {
-      console.error("Camera access error:", err);
-      setCameraActive(false);
+      console.error('Signal camera error:', err);
+      setSignalCameraActive(false);
       window.alert(lang === 'fr' 
-        ? "Impossible d'accéder à la caméra. Vérifiez vos permissions." 
-        : "Não foi possível acessar a câmera. Verifique as permissões.");
+        ? "Impossible d'accéder à la caméra."
+        : "Não foi possível acessar a câmera.");
     }
   };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+  const stopSignalCamera = () => {
+    if (signalStreamRef.current) {
+      signalStreamRef.current.getTracks().forEach(t => t.stop());
+      signalStreamRef.current = null;
     }
-    setCameraActive(false);
+    setSignalCameraActive(false);
   };
 
-  const capturePhoto = () => {
-    if (videoRef.current && onMetadataChange && metadata) {
-      const video = videoRef.current;
+  const captureSignalPhoto = () => {
+    if (signalVideoRef.current) {
+      const video = signalVideoRef.current;
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth || 640;
       canvas.height = video.videoHeight || 480;
@@ -131,9 +147,9 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         canvas.toBlob((blob) => {
           if (blob) {
-            compressAndResizeImage(blob, (compressedBase64) => {
-              onMetadataChange({ ...metadata, partitionImage: compressedBase64 });
-              stopCamera();
+            compressAndResizeImage(blob, (base64) => {
+              setPendingSignalImage(base64);
+              stopSignalCamera();
             });
           }
         }, 'image/jpeg', 0.5);
@@ -141,13 +157,23 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && onMetadataChange && metadata) {
-      compressAndResizeImage(file, (compressedBase64) => {
-        onMetadataChange({ ...metadata, partitionImage: compressedBase64 });
-      });
-    }
+  const handleAddSignal = () => {
+    if (!pendingSignalImage || !onMetadataChange || !metadata) return;
+    const newSignal = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name: pendingSignalName.trim() || (lang === 'fr' ? 'Signal sans nom' : 'Sinal sem nome'),
+      image: pendingSignalImage,
+    };
+    const prev = metadata.rhythmSignals || [];
+    onMetadataChange({ ...metadata, rhythmSignals: [...prev, newSignal] });
+    setPendingSignalImage(null);
+    setPendingSignalName('');
+  };
+
+  const handleDeleteSignal = (id: string) => {
+    if (!onMetadataChange || !metadata) return;
+    const updated = (metadata.rhythmSignals || []).filter(s => s.id !== id);
+    onMetadataChange({ ...metadata, rhythmSignals: updated });
   };
 
   const t = (key: string) => {
@@ -673,53 +699,72 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
                     </div>
                   )}
 
-                  {/* Partition image block */}
-                  <div className="border-t border-[var(--cordel-border)]/20 pt-2 mt-2 flex flex-col gap-1">
+                  {/* === Section Signaux du Rythme === */}
+                  <div className="border-t border-[var(--cordel-border)]/20 pt-2 mt-2 flex flex-col gap-2">
                     <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">
-                      {lang === 'fr' ? 'Partition / Signes rythmiques' : 'Partitura / Sinais do ritmo'}
+                      🥁 {lang === 'fr' ? 'Signaux du rythme' : 'Sinais do ritmo'}
                     </span>
-                    <span className="text-[8px] text-[var(--cordel-text)] opacity-60">
-                      {lang === 'fr' 
-                        ? '(Image compressée automatiquement pour l\'export)' 
-                        : '(Imagem compactada automaticamente para exportação)'}
+                    <span className="text-[8px] text-[var(--cordel-text)] opacity-60 leading-tight">
+                      {lang === 'fr'
+                        ? 'Ces images s\'affichent en transparence dans la Roda et peuvent être assignées à des mesures dans la Timeline.'
+                        : 'Estas imagens aparecem em transparência na Roda e podem ser atribuídas a compassos na Timeline.'}
                     </span>
 
-                    {metadata.partitionImage ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="relative group cordel-border-sm overflow-hidden aspect-video bg-[#eaddcf] cursor-zoom-in" onClick={() => setZoomModalOpen(true)}>
-                          <img src={metadata.partitionImage} alt="Partition" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold uppercase transition-opacity">
-                            🔍 {lang === 'fr' ? 'Agrandir' : 'Ampliar'}
-                          </div>
+                    {/* Whistle Volume Slider */}
+                    {whistleVol !== undefined && onWhistleVolChange && (
+                      <div className="flex flex-col gap-1 mt-0.5 bg-[var(--cordel-bg)] cordel-border-sm p-2">
+                        <div className="flex justify-between items-center text-[9px] font-bold text-[var(--cordel-text)] uppercase font-cactus">
+                          <span>{lang === 'fr' ? 'Volume du sifflet' : 'Volume do apito'}</span>
+                          <span>{whistleVol}%</span>
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm(lang === 'fr' ? "Supprimer cette image ?" : "Excluir esta imagem?")) {
-                              onMetadataChange({ ...metadata, partitionImage: undefined });
-                            }
-                          }}
-                          className="text-[#8b2a1a] font-bold text-[10px] text-left hover:underline cursor-pointer flex items-center gap-1"
-                        >
-                          🗑️ {lang === 'fr' ? 'Supprimer la photo' : 'Remover foto'}
-                        </button>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={whistleVol}
+                          onChange={(e) => onWhistleVolChange(parseInt(e.target.value))}
+                          className="w-full h-2 bg-[var(--cordel-text)]/20 border border-[var(--cordel-border)] rounded-none outline-none cursor-pointer mt-0.5"
+                          style={{ accentColor: 'var(--cordel-text)' }}
+                        />
                       </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {cameraActive ? (
+                    )}
+
+                    {/* Galerie des signaux existants */}
+                    {(metadata?.rhythmSignals || []).length > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        {(metadata.rhythmSignals || []).map(sig => (
+                          <div key={sig.id} className="flex items-center gap-2 bg-[var(--cordel-bg)] cordel-border-sm p-1.5">
+                            <img src={sig.image} alt={sig.name} className="w-10 h-10 object-contain flex-shrink-0 bg-black/10" />
+                            <span className="flex-grow text-[10px] font-bold text-[var(--cordel-text)] truncate">{sig.name}</span>
+                            <button
+                              onClick={() => handleDeleteSignal(sig.id)}
+                              className="text-[#8b2a1a] font-bold text-[10px] hover:underline cursor-pointer flex-shrink-0 px-1"
+                              title={lang === 'fr' ? 'Supprimer' : 'Excluir'}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Formulaire d'ajout d'un signal */}
+                    {!pendingSignalImage ? (
+                      <>
+                        {signalCameraActive ? (
                           <div className="flex flex-col gap-2">
                             <div className="aspect-video bg-black cordel-border-sm overflow-hidden relative">
-                              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+                              <video ref={signalVideoRef} className="w-full h-full object-cover" playsInline muted />
                             </div>
                             <div className="flex gap-2">
                               <button
-                                onClick={capturePhoto}
+                                onClick={captureSignalPhoto}
                                 className="flex-1 py-1 bg-emerald-600 text-white text-[10px] font-bold cordel-border-sm hover:opacity-85 cursor-pointer"
                               >
                                 📸 {lang === 'fr' ? 'Capturer' : 'Capturar'}
                               </button>
                               <button
-                                onClick={stopCamera}
+                                onClick={stopSignalCamera}
                                 className="py-1 px-3 bg-gray-300 text-black text-[10px] font-bold cordel-border-sm hover:opacity-85 cursor-pointer"
                               >
                                 {lang === 'fr' ? 'Annuler' : 'Cancelar'}
@@ -730,16 +775,43 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
                           <div className="flex gap-2">
                             <label className="flex-1 py-1 bg-[var(--cordel-bg)] text-[var(--cordel-text)] text-[10px] font-bold cordel-border-sm text-center cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors flex items-center justify-center gap-1">
                               📁 {lang === 'fr' ? 'Fichier' : 'Arquivo'}
-                              <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                              <input type="file" accept="image/*" onChange={handleSignalFileChange} className="hidden" />
                             </label>
                             <button
-                              onClick={startCamera}
+                              onClick={startSignalCamera}
                               className="flex-1 py-1 bg-[var(--cordel-bg)] text-[var(--cordel-text)] text-[10px] font-bold cordel-border-sm hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors cursor-pointer flex items-center justify-center gap-1"
                             >
                               📷 {lang === 'fr' ? 'Photo' : 'Câmera'}
                             </button>
                           </div>
                         )}
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <img src={pendingSignalImage} alt="preview" className="w-full max-h-24 object-contain bg-black/10 cordel-border-sm" />
+                        <input
+                          type="text"
+                          placeholder={lang === 'fr' ? 'Nom du signal…' : 'Nome do sinal…'}
+                          value={pendingSignalName}
+                          onChange={e => setPendingSignalName(e.target.value)}
+                          className="bg-transparent border-b border-[var(--cordel-border)] text-[var(--cordel-text)] font-bold text-xs p-1.5 focus:border-[var(--cordel-border)] outline-none w-full"
+                          onKeyDown={e => { if (e.key === 'Enter') handleAddSignal(); }}
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleAddSignal}
+                            className="flex-1 py-1 bg-[#27ae60] text-[#1a1a1a] text-[10px] font-bold cordel-border-sm hover:opacity-85 cursor-pointer"
+                          >
+                            ✓ {lang === 'fr' ? 'Ajouter' : 'Adicionar'}
+                          </button>
+                          <button
+                            onClick={() => { setPendingSignalImage(null); setPendingSignalName(''); }}
+                            className="py-1 px-3 bg-gray-300 text-black text-[10px] font-bold cordel-border-sm hover:opacity-85 cursor-pointer"
+                          >
+                            {lang === 'fr' ? 'Annuler' : 'Cancelar'}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -757,17 +829,6 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
       )}
     </div>
 
-      {/* ══════════ ZOOM IMAGE MODAL OVERLAY ══════════ */}
-      {zoomModalOpen && metadata?.partitionImage && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 p-4 cursor-zoom-out" onClick={() => setZoomModalOpen(false)}>
-          <div className="relative max-w-full max-h-full flex flex-col justify-center items-center">
-            <img src={metadata.partitionImage} alt="Partition zoom" className="max-w-[95vw] max-h-[85vh] object-contain cordel-border-sm" />
-            <span className="text-white font-cactus uppercase tracking-wider text-xs mt-3 select-none">
-              {lang === 'fr' ? 'Cliquer n\'importe où pour fermer' : 'Clique em qualquer lugar para fechar'}
-            </span>
-          </div>
-        </div>
-      )}
     </>
   );
 };

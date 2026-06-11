@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as Tone from 'tone';
-import { Circle, TrackGroup, Pattern, Language, Preset, TimeSignature, PresetMetadata, HitTrigger, SongSection } from './types';
+import { Circle, TrackGroup, Pattern, Language, Preset, TimeSignature, PresetMetadata, HitTrigger, SongSection, RhythmSignal } from './types';
 import { migrateCirclesToTracks } from './migration';
 import {
   instrumentsConfig,
@@ -29,6 +29,8 @@ import { saveVocalRecording, getVocalRecording, deleteVocalRecording } from './d
 
 // Module scope audio engines to avoid duplicate instantiations on React re-renders
 let bMetroClick: Tone.Synth | null = null;
+let whistleSynth: Tone.Synth | null = null;
+let whistleVibrato: Tone.Vibrato | null = null;
 const channels: { [id: string]: Tone.Channel } = {};
 const meters: { [id: string]: Tone.Meter } = {};
 const samplers: { [id: string]: Tone.Players } = {};
@@ -305,6 +307,9 @@ export default function App() {
   const [masterVol, setMasterVol] = useState<number>(-6);
   const [timeSig, setTimeSig] = useState<TimeSignature>('4/4');
   const [isMetroOn, setIsMetroOn] = useState<boolean>(false);
+  const [whistleVol, setWhistleVol] = useState<number>(() => {
+    return Number(localStorage.getItem('baquemix_whistle_vol') ?? '60');
+  });
   const [activePresetName, setActivePresetName] = useState<string>('');
   const [presetFiles, setPresetFiles] = useState<string[]>([]);
   const [tracks, setTracks] = useState<TrackGroup[]>([]);
@@ -339,6 +344,7 @@ export default function App() {
   const [mobileTab, setMobileTab] = useState<'roda' | 'mixer' | 'toada'>('roda');
   const [copiedPattern, setCopiedPattern] = useState<Pattern | null>(null);
   const [songSections, setSongSections] = useState<SongSection[]>([]);
+  const [measureSignals, setMeasureSignals] = useState<(string | null)[]>([]);
   const [copiedSection, setCopiedSection] = useState<{
     length: number;
     name: string;
@@ -516,6 +522,18 @@ export default function App() {
       }
       return arr;
     });
+
+    setMeasureSignals(prev => {
+      const arr = [...prev];
+      if (arr.length === totalMeasures) return prev;
+      while (arr.length < totalMeasures) {
+        arr.push(null);
+      }
+      if (arr.length > totalMeasures) {
+        arr.length = totalMeasures;
+      }
+      return arr;
+    });
   }, [totalMeasures, timeSig, bpm]);
 
   // Synchronize Reverb send levels and panning whenever tracks update
@@ -548,6 +566,18 @@ export default function App() {
     }
   }, [reverbType]);
 
+  // Synchronize Whistle volume parameter when whistleVol changes
+  useEffect(() => {
+    if (whistleSynth) {
+      if (whistleVol === 0) {
+        whistleSynth.volume.value = -Infinity;
+      } else {
+        const gain = whistleVol / 100;
+        whistleSynth.volume.value = Tone.gainToDb(gain * 0.4);
+      }
+    }
+  }, [whistleVol]);
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSwingOn, setIsSwingOn] = useState<boolean>(true);
 
@@ -563,6 +593,8 @@ export default function App() {
   const isMetroOnRef = useRef<boolean>(false);
   const isSwingOnRef = useRef<boolean>(true);
   const hitTriggersRef = useRef<HitTrigger[]>([]);
+  const measureSignalsRef = useRef<(string | null)[]>([]);
+  const lastPlayedSignalIdRef = useRef<string | null>(null);
 
   // For vocal recording
   const [isRecordingVocal, setIsRecordingVocal] = useState<boolean>(false);
@@ -719,6 +751,10 @@ export default function App() {
   }, [tracks, totalMeasures, isPlaying, timeSig, isMetroOn, isSwingOn, recordingVocalPatternId, isVocalGuideEnabled]);
 
   useEffect(() => {
+    measureSignalsRef.current = measureSignals;
+  }, [measureSignals]);
+
+  useEffect(() => {
     const voicePatternIds: number[] = [];
     tracks.forEach((t) => {
       const inst = instrumentsConfig[t.instrumentIdx];
@@ -785,6 +821,22 @@ export default function App() {
         envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.01 },
         volume: 4,
       }).connect(masterVolumeNode);
+
+      if (!whistleSynth) {
+        whistleVibrato = new Tone.Vibrato({
+          maxDelay: 0.002,
+          frequency: 22,
+          depth: 0.8,
+        }).connect(masterVolumeNode);
+
+        const initVol = whistleVol === 0 ? -Infinity : Tone.gainToDb((whistleVol / 100) * 0.4);
+
+        whistleSynth = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.02, decay: 0.1, sustain: 0.6, release: 0.15 },
+          volume: initVol,
+        }).connect(whistleVibrato);
+      }
 
       if (!reverbNode) {
         reverbNode = new Tone.Reverb({ decay: 1.4, preDelay: 0.0 }).connect(masterVolumeNode);
@@ -910,6 +962,18 @@ export default function App() {
         // 2. Avancer le pas
         stepIdx = (stepIdx + 1) % currentTicks;
         currentStepIndexRef.current = stepIdx;
+
+        if (stepIdx === 0) {
+          const currentMeasureIdx = measureCountRef.current % totalMeasuresRef.current;
+          const sigId = measureSignalsRef.current[currentMeasureIdx] || null;
+          if (sigId && sigId !== lastPlayedSignalIdRef.current) {
+            if (whistleSynth) {
+              whistleSynth.triggerAttackRelease("A6", "16n", time);
+              whistleSynth.triggerAttackRelease("A6", "8n", time + 0.12);
+            }
+          }
+          lastPlayedSignalIdRef.current = sigId;
+        }
 
         // Mise à jour visuelle React via requestAnimationFrame pour ne jamais bloquer le thread audio.
         // Le callback Tone.Loop doit rester le plus léger possible — on délègue les setState au
@@ -1501,6 +1565,7 @@ export default function App() {
       setSoloPatternPlayId(null);
     }
     if (!isPlaying) {
+      lastPlayedSignalIdRef.current = null;
       // Ensure Transport is running
       if (Tone.Transport.state !== 'started') {
         Tone.Transport.start();
@@ -1551,6 +1616,7 @@ export default function App() {
     measureCountRef.current = 0;
     setCurrentMeasure(0);
     Tone.Transport.seconds = 0;
+    lastPlayedSignalIdRef.current = null;
   };
 
   const handlePresetSelect = (value: string) => {
@@ -2440,6 +2506,7 @@ export default function App() {
     measureCountRef.current = 0;
     setCurrentMeasure(0);
     Tone.Transport.seconds = 0;
+    lastPlayedSignalIdRef.current = null;
 
     // Start playback
     if (Tone.Transport.state !== 'started') {
@@ -2863,6 +2930,7 @@ export default function App() {
         measureCountRef.current = measureIdx;
         currentStepIndexRef.current = -1;
         Tone.Transport.seconds = 0;
+        lastPlayedSignalIdRef.current = null;
         if (Tone.Transport.state !== 'started') {
           Tone.Transport.start();
         }
@@ -3101,7 +3169,8 @@ export default function App() {
       measureBpmTransitions,
       measureVols,
       measureVolTransitions,
-      songSections
+      songSections,
+      measureSignals
     };
     const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
     const dlLink = document.createElement('a');
@@ -3189,6 +3258,12 @@ export default function App() {
         setSongSections([]);
       }
 
+      if (data.measureSignals && Array.isArray(data.measureSignals)) {
+        setMeasureSignals(data.measureSignals);
+      } else {
+        setMeasureSignals(Array(loadedMeasures).fill(null));
+      }
+
       // Sync refs immediately to avoid audio scheduling lag
       tracksRef.current = loadedTracks;
       totalMeasuresRef.current = loadedMeasures;
@@ -3233,7 +3308,8 @@ export default function App() {
       measureBpmTransitions,
       measureVols,
       measureVolTransitions,
-      songSections
+      songSections,
+      measureSignals
     };
     try {
       const jsonStr = JSON.stringify(dataToSave);
@@ -3504,6 +3580,12 @@ export default function App() {
                 measureVols={measureVols}
                 isMobile={isMobile}
                 onNavigateMeasure={(measureIdx) => handleTimelineNavigate(measureIdx, 0, 16)}
+                activeSignal={(() => {
+                  const sigId = measureSignals[currentMeasure];
+                  if (!sigId) return null;
+                  const sig = (metadata?.rhythmSignals || []).find(s => s.id === sigId);
+                  return sig || null;
+                })()}
               />
             )}
           </>
@@ -3663,6 +3745,16 @@ export default function App() {
             onMeasureWidthChange={setMeasureWidth}
             onDeleteMeasure={handleDeleteMeasure}
             onInsertMeasure={handleInsertMeasure}
+            measureSignals={measureSignals}
+            onMeasureSignalChange={(mIdx, sigId) => {
+              setMeasureSignals(prev => {
+                const arr = [...prev];
+                while (arr.length <= mIdx) arr.push(null);
+                arr[mIdx] = sigId;
+                return arr;
+              });
+            }}
+            rhythmSignals={metadata?.rhythmSignals || []}
           />
         )}
 
@@ -3682,7 +3774,14 @@ export default function App() {
             letras={letras}
             onLetrasChange={setLetras}
             metadata={metadata}
-            onMetadataChange={setMetadata}
+            onMetadataChange={(newMeta) => {
+              setMetadata(newMeta);
+              // Si les signaux changent, nettoyer les assignations orphelines
+              if (newMeta.rhythmSignals !== metadata?.rhythmSignals) {
+                const validIds = new Set((newMeta.rhythmSignals || []).map((s: RhythmSignal) => s.id));
+                setMeasureSignals(prev => prev.map(id => (id && validIds.has(id)) ? id : null));
+              }
+            }}
             onExtractLyrics={handleExtractLyrics}
             currentPlayState={isPlaying ? {
               stepIndex: currentStepIndex,
@@ -3690,6 +3789,11 @@ export default function App() {
               activePatternIdByInst,
             } : null}
             totalMeasures={totalMeasures}
+            whistleVol={whistleVol}
+            onWhistleVolChange={(val) => {
+              setWhistleVol(val);
+              localStorage.setItem('baquemix_whistle_vol', String(val));
+            }}
           />
         )}
       </div>

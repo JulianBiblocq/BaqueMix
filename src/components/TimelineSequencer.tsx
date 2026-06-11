@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { TrackGroup, Language, TimeSignature, SongSection, PresetMetadata } from '../types';
+import { TrackGroup, Language, TimeSignature, SongSection, PresetMetadata, RhythmSignal } from '../types';
 import { ASSETS_BASE_URL, instrumentsConfig, getMaxTicks, getMarkers } from '../data';
 
 interface TimelineSequencerProps {
@@ -49,6 +49,9 @@ interface TimelineSequencerProps {
   onMeasureWidthChange: (width: number) => void;
   onDeleteMeasure?: (measureIdx: number) => void;
   onInsertMeasure?: (measureIdx: number) => void;
+  measureSignals?: (string | null)[];
+  onMeasureSignalChange?: (measureIdx: number, signalId: string | null) => void;
+  rhythmSignals?: RhythmSignal[];
 }
 
 const HEADER_W = 180;
@@ -100,6 +103,9 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
   onMeasureWidthChange,
   onDeleteMeasure,
   onInsertMeasure,
+  measureSignals = [],
+  onMeasureSignalChange,
+  rhythmSignals = [],
 }) => {
   const MEASURE_W = measureWidth;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -113,6 +119,7 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
   const [sectionFormEnd, setSectionFormEnd] = React.useState<number>(4);
   const [sectionFormColor, setSectionFormColor] = React.useState<string>('#f19066');
   const [hoveredPasteMeasure, setHoveredPasteMeasure] = React.useState<number | null>(null);
+  const [signalDropdownOpen, setSignalDropdownOpen] = React.useState<number | null>(null);
 
   // Tablature state
   const [tablatureModalOpen, setTablatureModalOpen] = React.useState<boolean>(false);
@@ -860,6 +867,107 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
               </button>
             </div>
           </div>
+
+          {/* ══════════ SIGNAUX DU RYTHME ROW ══════════ */}
+          {rhythmSignals.length > 0 && (
+            <div
+              className="flex border-b border-[var(--cordel-border)]/20 h-14"
+              style={{ width: `${HEADER_W + totalContentW + 150}px` }}
+            >
+              {/* Sticky header */}
+              <div
+                className="sticky left-0 z-35 bg-[var(--cordel-bg)] border-r-2 border-[var(--cordel-border)] flex items-center px-3 py-1 gap-2"
+                style={{ width: HEADER_W, minWidth: HEADER_W }}
+              >
+                <span className="text-base">🥁</span>
+                <span className="font-cactus text-xs font-bold uppercase tracking-wider text-[var(--cordel-text)]">
+                  {lang === 'fr' ? 'Signaux' : 'Sinais'}
+                </span>
+              </div>
+
+              {/* Measure signal cells */}
+              {Array.from({ length: totalMeasures }).map((_, mIdx) => {
+                const sigId = measureSignals[mIdx] ?? null;
+                const activeSig = rhythmSignals.find(s => s.id === sigId) || null;
+                const isCurrentMeasure = mIdx === currentMeasure;
+
+                return (
+                  <div
+                    key={mIdx}
+                    className={`relative border-r border-[var(--cordel-border)]/20 flex items-center justify-center ${
+                      isCurrentMeasure ? 'bg-[var(--cordel-border)]/10' : ''
+                    }`}
+                    style={{ width: MEASURE_W, minWidth: MEASURE_W }}
+                  >
+                    {activeSig ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSignalDropdownOpen(signalDropdownOpen === mIdx ? null : mIdx);
+                        }}
+                        className="flex items-center gap-1 px-1.5 py-0.5 bg-[var(--cordel-border)]/20 hover:bg-[var(--cordel-border)]/40 transition-colors rounded text-[9px] font-bold text-[var(--cordel-text)] max-w-full"
+                        title={activeSig.name}
+                      >
+                        <img src={activeSig.image} alt={activeSig.name} className="w-6 h-6 object-contain flex-shrink-0" />
+                        <span className="truncate max-w-[70px]">{activeSig.name}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSignalDropdownOpen(signalDropdownOpen === mIdx ? null : mIdx);
+                        }}
+                        className="w-6 h-6 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)]/40 border border-dashed border-[var(--cordel-border)]/30 rounded text-[10px] font-bold hover:bg-[var(--cordel-border)]/20 hover:text-[var(--cordel-text)] transition-colors cursor-pointer"
+                        title={lang === 'fr' ? 'Assigner un signal' : 'Atribuir um sinal'}
+                      >
+                        +
+                      </button>
+                    )}
+
+                    {/* Dropdown de sélection */}
+                    {signalDropdownOpen === mIdx && (
+                      <div
+                        className="absolute top-full left-0 z-50 bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] shadow-lg min-w-[140px] flex flex-col py-1"
+                        style={{ marginTop: 2 }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {/* Aucun signal */}
+                        <button
+                          onClick={() => {
+                            onMeasureSignalChange?.(mIdx, null);
+                            setSignalDropdownOpen(null);
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold text-[var(--cordel-text)] hover:bg-[var(--cordel-border)]/20 cursor-pointer text-left"
+                        >
+                          <span className="text-xs opacity-50">✕</span>
+                          <span className="opacity-70">{lang === 'fr' ? 'Aucun' : 'Nenhum'}</span>
+                        </button>
+                        <div className="border-t border-[var(--cordel-border)]/20 my-0.5" />
+                        {rhythmSignals.map(sig => (
+                          <button
+                            key={sig.id}
+                            onClick={() => {
+                              onMeasureSignalChange?.(mIdx, sig.id);
+                              setSignalDropdownOpen(null);
+                            }}
+                            className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold text-[var(--cordel-text)] hover:bg-[var(--cordel-border)]/20 cursor-pointer text-left ${
+                              sigId === sig.id ? 'bg-[var(--cordel-border)]/30' : ''
+                            }`}
+                          >
+                            <img src={sig.image} alt={sig.name} className="w-6 h-6 object-contain flex-shrink-0" />
+                            <span className="truncate">{sig.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Spacer */}
+              <div style={{ width: 150, minWidth: 150 }} />
+            </div>
+          )}
 
           {/* ══════════ TRACK ROWS ══════════ */}
           {tracks.map((track) => {

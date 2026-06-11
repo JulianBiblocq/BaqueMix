@@ -28,6 +28,7 @@ interface CircleSequencerProps {
   measureVols: number[];
   isMobile?: boolean;
   onNavigateMeasure?: (measureIdx: number) => void;
+  activeSignal?: { id: string; name: string; image: string } | null;
 }
 
 export const CircleSequencer: React.FC<CircleSequencerProps> = ({
@@ -51,6 +52,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
   measureVols,
   isMobile,
   onNavigateMeasure,
+  activeSignal,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -741,6 +743,28 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
           onClick={handleCanvasClick}
           className="max-w-full max-h-full aspect-square cursor-pointer block select-none"
         />
+        {/* Signal du rythme — overlay centré en transparence */}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10"
+          style={{
+            opacity: activeSignal ? 0.7 : 0,
+            transition: 'opacity 0.6s ease',
+          }}
+        >
+          {activeSignal && (
+            <>
+              <img
+                src={activeSignal.image}
+                alt={activeSignal.name}
+                className="w-[28%] aspect-square object-cover rounded-full border-4 border-[#f4ecd8] shadow-2xl select-none"
+                style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' }}
+              />
+              <span className="mt-2 text-[#f4ecd8] font-cactus font-bold text-sm uppercase tracking-widest select-none" style={{ textShadow: '0 2px 6px #000' }}>
+                {activeSignal.name}
+              </span>
+            </>
+          )}
+        </div>
       </div>
       <div className="absolute top-2 right-3 text-[10px] text-[#eaddcf]/40 pointer-events-none select-none font-medium tracking-wide hidden md:block">
         Créé par Julian Biblocq | Art: Toni Braga

@@ -219,6 +219,8 @@ body {
 }
 
 .vertical-fader {
+  -webkit-appearance: none;
+  appearance: none;
   writing-mode: vertical-lr;
   direction: rtl;
   width: 28px;
@@ -244,6 +246,15 @@ body {
   cursor: pointer;
   border-radius: 0;
 }
+.vertical-fader::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+}
+.vertical-fader::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
 
 .slider-transparent-track {
   -webkit-appearance: none;
