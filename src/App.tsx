@@ -122,7 +122,7 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const latestVersion = Number(data.version);
-          const CURRENT_VERSION = 19; // Matches version.json
+          const CURRENT_VERSION = 20; // Matches version.json
           
           if (latestVersion > CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
