@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BaqueMix - Sandbox Tarol Round-Robin</title>
+  <!-- Outfit Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0b0f19, #020617);
+      --card-bg: rgba(30, 41, 59, 0.4);
+      --card-border: rgba(255, 255, 255, 0.07);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      
+      /* Stroke Accent Colors */
+      --color-fort-D: #3b82f6;
+      --color-fort-E: #2563eb;
+      --color-faible-d: #60a5fa;
+      --color-faible-e: #93c5fd;
+      --color-click: #eff6ff;
+      --color-fla: #dbeafe;
+      --color-tremer: #10b981;
+      --color-cerclage: #3a506b;
+      
+      --glow-active: 0 0 15px rgba(59, 130, 246, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      max-width: 600px;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #3b82f6, #60a5fa, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .sandbox-container {
+      width: 100%;
+      max-width: 800px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Setup / Audio Activation Banner */
+    .setup-banner {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      padding: 1rem;
+      border-radius: 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-primary {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    /* Loading Progress */
+    .loader-container {
+      display: none;
+      width: 100%;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(to right, #3b82f6, #10b981);
+      transition: width 0.1s linear;
+    }
+
+    .loader-status {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* Controls Grid */
+    .grid-container {
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+
+    .stroke-btn {
+      font-family: 'Outfit', sans-serif;
+      position: relative;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 1.25rem 0.75rem;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stroke-btn:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-3px);
+      background: rgba(30, 41, 59, 0.6);
+    }
+
+    .stroke-btn.active {
+      transform: scale(0.95) translateY(1px);
+    }
+
+    .stroke-btn .key-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .stroke-btn .label {
+      font-weight: 500;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .stroke-btn .sub-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Stroke Button Color Accents */
+    .stroke-btn[data-stroke="fort_D"] { border-bottom: 4px solid var(--color-fort-D); }
+    .stroke-btn[data-stroke="fort_E"] { border-bottom: 4px solid var(--color-fort-E); }
+    .stroke-btn[data-stroke="faible_d"] { border-bottom: 4px solid var(--color-faible-d); }
+    .stroke-btn[data-stroke="faible_e"] { border-bottom: 4px solid var(--color-faible-e); }
+    .stroke-btn[data-stroke="click"] { border-bottom: 4px solid var(--color-click); }
+    .stroke-btn[data-stroke="fla"] { border-bottom: 4px solid var(--color-fla); }
+    .stroke-btn[data-stroke="tremer"] { border-bottom: 4px solid var(--color-tremer); }
+    .stroke-btn[data-stroke="cerclage"] { border-bottom: 4px solid var(--color-cerclage); }
+
+    .stroke-btn[data-stroke="fort_D"].active { box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.1); }
+    .stroke-btn[data-stroke="fort_E"].active { box-shadow: 0 0 15px rgba(37, 99, 235, 0.4); background: rgba(37, 99, 235, 0.1); }
+    .stroke-btn[data-stroke="faible_d"].active { box-shadow: 0 0 15px rgba(96, 165, 250, 0.4); background: rgba(96, 165, 250, 0.1); }
+    .stroke-btn[data-stroke="faible_e"].active { box-shadow: 0 0 15px rgba(147, 197, 253, 0.4); background: rgba(147, 197, 253, 0.1); }
+    .stroke-btn[data-stroke="click"].active { box-shadow: 0 0 15px rgba(239, 246, 255, 0.4); background: rgba(239, 246, 255, 0.1); }
+    .stroke-btn[data-stroke="fla"].active { box-shadow: 0 0 15px rgba(219, 234, 254, 0.4); background: rgba(219, 234, 254, 0.1); }
+    .stroke-btn[data-stroke="tremer"].active { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); }
+    .stroke-btn[data-stroke="cerclage"].active { box-shadow: 0 0 15px rgba(58, 80, 107, 0.4); background: rgba(58, 80, 107, 0.1); }
+
+    /* Visualizer & Logs Row */
+    .dashboard-row {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .dashboard-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Waveform Canvas */
+    canvas {
+      width: 100%;
+      height: 180px;
+      background: #090d16;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    /* Console Logs */
+    .console-logs {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      height: 180px;
+      overflow-y: auto;
+      background: #090d16;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      scroll-behavior: smooth;
+    }
+
+    .log-item {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .log-item .time {
+      color: #475569;
+    }
+
+    .log-item .stroke {
+      font-weight: 500;
+    }
+
+    .log-item .filename {
+      color: #10b981;
+    }
+
+    .log-item .details {
+      color: var(--text-muted);
+    }
+
+    .log-item.active-choice {
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 2px solid #3b82f6;
+      padding-left: 4px;
+    }
+
+    .log-item.system {
+      color: #3b82f6;
+    }
+
+    /* Instructions & Footnotes */
+    .info-footer {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 1.25rem;
+    }
+
+    .info-footer h3 {
+      font-size: 0.95rem;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+
+    .info-footer ul {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .info-footer ul li::before {
+      content: "•";
+      color: #3b82f6;
+      font-weight: bold;
+      display: inline-block;
+      width: 1em;
+      margin-left: 0.25em;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Sandbox Tarol Round-Robin</h1>
+    <p>Prototype du système de "Round-Robin Aléatoire Intelligent" à mémoire partagée et anti-répétition consécutive pour BaqueMix.</p>
+  </header>
+
+  <main class="sandbox-container">
+    
+    <!-- Setup Banner -->
+    <div id="setupBanner" class="setup-banner">
+      <p>Pour activer l'AudioContext et tester le son, clique sur le bouton ci-dessous.</p>
+      <button id="btnStart" class="btn-primary">Activer l'Audio du Test</button>
+    </div>
+
+    <!-- Loading Bar -->
+    <div id="loader" class="loader-container">
+      <div class="loader-status">
+        <span id="loaderMessage">Initialisation du chargement...</span>
+        <span id="loaderPercent">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="progressBarFill" class="progress-bar-fill"></div>
+      </div>
+    </div>
+
+    <!-- Grid of Trigger Buttons -->
+    <div id="controlsGrid" class="grid-container">
+      <button class="stroke-btn" data-stroke="fort_D">
+        <span class="key-badge">D</span>
+        <span class="label">Fort (D)</span>
+        <span class="sub-label">Main Droite</span>
+      </button>
+      <button class="stroke-btn" data-stroke="fort_E">
+        <span class="key-badge">E</span>
+        <span class="label">Fort (E)</span>
+        <span class="sub-label">Main Gauche</span>
+      </button>
+      <button class="stroke-btn" data-stroke="faible_d">
+        <span class="key-badge">d</span>
+        <span class="label">Faible (d)</span>
+        <span class="sub-label">Main Droite</span>
+      </button>
+      <button class="stroke-btn" data-stroke="faible_e">
+        <span class="key-badge">e</span>
+        <span class="label">Faible (e)</span>
+        <span class="sub-label">Main Gauche</span>
+      </button>
+      <button class="stroke-btn" data-stroke="click">
+        <span class="key-badge">C</span>
+        <span class="label">Click (C)</span>
+        <span class="sub-label">Nuance Clics</span>
+      </button>
+      <button class="stroke-btn" data-stroke="fla">
+        <span class="key-badge">F</span>
+        <span class="label">Fla (F)</span>
+        <span class="sub-label">Nuance Flas</span>
+      </button>
+      <button class="stroke-btn" data-stroke="cerclage">
+        <span class="key-badge">X</span>
+        <span class="label">Cerclage (X)</span>
+        <span class="sub-label">Toque no Aro</span>
+      </button>
+    </div>
+
+    <!-- Visualizer & History Console -->
+    <div id="dashboard" class="dashboard-row">
+      <div class="panel">
+        <div class="panel-title">Oscilloscope Réel</div>
+        <canvas id="visualizerCanvas"></canvas>
+      </div>
+      <div class="panel">
+        <div class="panel-title">
+          <span>Logs de Séquence</span>
+          <span style="font-size: 0.75rem; text-transform: none; color: #64748b; font-weight: normal; cursor: pointer;" id="btnClearLogs">Effacer</span>
+        </div>
+        <div id="consoleLogs" class="console-logs"></div>
+      </div>
+    </div>
+
+    <!-- Explanations footer -->
+    <div class="info-footer">
+      <h3>Fonctionnement du Round-Robin Aléatoire Intelligent :</h3>
+      <ul>
+        <li>Les coups <strong>Fort (D)</strong> et <strong>Fort (E)</strong> piochent dans le même groupe de 4 samples (D1 à D4) et <strong>partagent le même index de mémoire</strong> pour éviter les répétitions en roulements alternés rapides.</li>
+        <li>Les coups <strong>Faible (d)</strong> et <strong>Faible (e)</strong> font de même avec le groupe d1 à d4 (partage de mémoire d'index).</li>
+        <li>Les <strong>Clicks</strong> (c1 à c2) et <strong>Flas</strong> (fla1 à fla2) alternent avec leur propre logique anti-répétition à 2 samples.</li>
+        <li>Les touches de raccourci clavier associées permettent de tester des rythmes à la volée.</li>
+      </ul>
+    </div>
+
+  </main>
+
+  <script>
+    // Configuration des fichiers audio
+    const SOUNDS_DIR = "./sons-maracatu/Tarol/";
+    
+    // Nomenclature exacte des fichiers
+    const audioFilesConfig = {
+      // Groupe Fort (D et E partagent ces samples)
+      fort: [
+        "Tarol fort D1.wav",
+        "Tarol fort D2.wav",
+        "Tarol fort D3.wav",
+        "Tarol fort D4.wav"
+      ],
+      // Groupe Faible (d et e partagent ces samples)
+      faible: [
+        "Tarol faible d1.wav",
+        "Tarol faible d2.wav",
+        "Tarol faible d3.wav",
+        "Tarol faible d4.wav"
+      ],
+      // Autres nuances techniques
+      click: [
+        "Tarol click c1.wav",
+        "Tarol click c2.wav"
+      ],
+      fla: [
+        "Tarol fla1.wav",
+        "Tarol fla2.wav"
+      ],
+      tremer: [
+        "Tarol tremer.wav"
+      ],
+      cerclage: [
+        "Tarol cerclage x.wav"
+      ]
+    };
+
+    // State global de la Web Audio API
+    let audioCtx = null;
+    let analyserNode = null;
+    let masterGain = null;
+    let activeTremerSource = null;
+
+    // Banque d'AudioBuffers décodés
+    const audioBuffersBank = {
+      fort: [],      // 4 buffers
+      faible: [],    // 4 buffers
+      click: [],     // 2 buffers
+      fla: [],       // 2 buffers
+      tremer: [],    // 1 buffer
+      cerclage: []   // 1 buffer
+    };
+
+    // Mémoire de Round-Robin : Derniers indices joués pour chaque groupe
+    const roundRobinHistory = {
+      fort: -1,
+      faible: -1,
+      click: -1,
+      fla: -1,
+      tremer: -1,
+      cerclage: -1
+    };
+
+    // DOM Elements
+    const setupBanner = document.getElementById('setupBanner');
+    const btnStart = document.getElementById('btnStart');
+    const loader = document.getElementById('loader');
+    const loaderMessage = document.getElementById('loaderMessage');
+    const loaderPercent = document.getElementById('loaderPercent');
+    const progressBarFill = document.getElementById('progressBarFill');
+    const controlsGrid = document.getElementById('controlsGrid');
+    const dashboard = document.getElementById('dashboard');
+    const canvas = document.getElementById('visualizerCanvas');
+    const canvasCtx = canvas.getContext('2d');
+    const consoleLogs = document.getElementById('consoleLogs');
+    const btnClearLogs = document.getElementById('btnClearLogs');
+
+    // Démarrage de l'AudioContext
+    btnStart.addEventListener('click', async () => {
+      setupBanner.style.display = 'none';
+      loader.style.display = 'flex';
+      
+      try {
+        // Initialisation AudioContext compatible tous navigateurs
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+        
+        // Setup noeuds d'effet
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 512;
+        
+        masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.85, audioCtx.currentTime);
+        
+        // Connexion
+        masterGain.connect(analyserNode);
+        analyserNode.connect(audioCtx.destination);
+        
+        // Lancement du chargement
+        await preloadAllSamples();
+      } catch (err) {
+        console.error("Impossible d'initialiser l'AudioContext :", err);
+        alert("Erreur lors de l'activation Web Audio : " + err.message);
+      }
+    });
+
+    // Chargement asynchrone des samples
+    async function preloadAllSamples() {
+      // Établir la liste de tous les fichiers uniques à charger (14 fichiers)
+      const fetchList = [];
+      
+      // Construire une liste de tâches de fetch en conservant l'association clé/index
+      // pour remplir proprement notre structure sans duplications.
+      Object.keys(audioFilesConfig).forEach(groupKey => {
+        audioFilesConfig[groupKey].forEach((filename, idx) => {
+          fetchList.push({
+            groupKey,
+            idx,
+            url: SOUNDS_DIR + encodeURIComponent(filename),
+            filename
+          });
+        });
+      });
+
+      const totalFiles = fetchList.length;
+      let loadedFilesCount = 0;
+
+      updateLoadingProgress(0, totalFiles, "Début du chargement...");
+
+      try {
+        // Chargement parallèle
+        await Promise.all(fetchList.map(async (item) => {
+          try {
+            updateLoadingProgress(loadedFilesCount, totalFiles, `Chargement de ${item.filename}...`);
+            
+            const response = await fetch(item.url);
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+            }
+            
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            
+            // Stockage dans notre banque optimisée
+            audioBuffersBank[item.groupKey][item.idx] = audioBuffer;
+            
+            loadedFilesCount++;
+            updateLoadingProgress(loadedFilesCount, totalFiles, `Décodé : ${item.filename}`);
+          } catch (fileErr) {
+            console.error(`Erreur sur le fichier ${item.filename} :`, fileErr);
+            throw fileErr; // Remonter pour stopper la promesse globale
+          }
+        }));
+
+        // Transition d'interface
+        loader.style.display = 'none';
+        controlsGrid.style.display = 'grid';
+        dashboard.style.display = 'grid';
+        
+        // Lancer le dessin du Canvas
+        drawVisualizer();
+        
+        logToConsole("Système", "Initialisé", "AudioContext démarré et 14 samples chargés avec succès !", "system");
+        
+        // Redimensionner le Canvas pour correspondre à sa taille physique
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+      } catch (loadErr) {
+        loaderMessage.innerHTML = `<span style="color: #ef4444;">Erreur de chargement des échantillons. Vérifie les fichiers.</span>`;
+        console.error("Échec du chargement global :", loadErr);
+      }
+    }
+
+    // Mise à jour de la barre de progression
+    function updateLoadingProgress(current, total, message) {
+      const pct = Math.round((current / total) * 100);
+      progressBarFill.style.width = `${pct}%`;
+      loaderPercent.textContent = `${pct}%`;
+      loaderMessage.textContent = message;
+    }
+
+    // Redimensionnement du Canvas
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+    }
+
+    // Algorithme de "Round-Robin Aléatoire Intelligent"
+    function selectRoundRobinIndex(groupKey, numSamples) {
+      if (numSamples <= 1) return 0;
+      
+      const lastIndex = roundRobinHistory[groupKey];
+      
+      // Génère les choix possibles hors index précédent
+      const availableIndices = [];
+      for (let i = 0; i < numSamples; i++) {
+        if (i !== lastIndex) {
+          availableIndices.push(i);
+        }
+      }
+      
+      // Sélection aléatoire parmi les candidats restants
+      const randomIndexInCandidat = Math.floor(Math.random() * availableIndices.length);
+      const chosenIndex = availableIndices[randomIndexInCandidat];
+      
+      // Mise à jour de la mémoire
+      roundRobinHistory[groupKey] = chosenIndex;
+      
+      return chosenIndex;
+    }
+
+    // Fonction principale playTarol(typeCoup)
+    function playTarol(typeCoup) {
+      if (!audioCtx) return;
+      
+      // Assurer que le contexte tourne (au cas où le navigateur l'ait mis en veille)
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      let groupKey = '';
+      let strokeLabel = '';
+      let groupColor = '';
+
+      // Mappage du type de coup vers les groupes de samples et informations de logs
+      switch (typeCoup) {
+        case 'fort_D':
+          groupKey = 'fort';
+          strokeLabel = 'Fort Main Droite (D)';
+          groupColor = 'var(--color-fort-D)';
+          break;
+        case 'fort_E':
+          groupKey = 'fort';
+          strokeLabel = 'Fort Main Gauche (E)';
+          groupColor = 'var(--color-fort-E)';
+          break;
+        case 'faible_d':
+          groupKey = 'faible';
+          strokeLabel = 'Faible Main Droite (d)';
+          groupColor = 'var(--color-faible-d)';
+          break;
+        case 'faible_e':
+          groupKey = 'faible';
+          strokeLabel = 'Faible Main Gauche (e)';
+          groupColor = 'var(--color-faible-e)';
+          break;
+        case 'click':
+          groupKey = 'click';
+          strokeLabel = 'Click (c/C)';
+          groupColor = 'var(--color-click)';
+          break;
+        case 'fla':
+          groupKey = 'fla';
+          strokeLabel = 'Fla (f/F)';
+          groupColor = 'var(--color-fla)';
+          break;
+        case 'tremer':
+          groupKey = 'tremer';
+          strokeLabel = 'Trêmulo (t/T)';
+          groupColor = 'var(--color-tremer)';
+          break;
+        case 'cerclage':
+          groupKey = 'cerclage';
+          strokeLabel = 'Cerclage (x/X)';
+          groupColor = 'var(--color-cerclage)';
+          break;
+        default:
+          console.warn("Type de coup inconnu :", typeCoup);
+          return;
+      }
+
+      const buffers = audioBuffersBank[groupKey];
+      if (!buffers || buffers.length === 0) {
+        console.error(`Buffers non chargés pour le groupe ${groupKey}`);
+        return;
+      }
+
+      // Sélection de l'index via notre algorithme anti-répétition
+      const chosenIdx = selectRoundRobinIndex(groupKey, buffers.length);
+      const audioBuffer = buffers[chosenIdx];
+      const filename = audioFilesConfig[groupKey][chosenIdx];
+
+      // Choke trêmulo: stop any active trêmulo sound when another sound starts
+      if (activeTremerSource) {
+        try {
+          activeTremerSource.stop();
+        } catch (_) {}
+        activeTremerSource = null;
+      }
+
+      // Lecture Web Audio API pure
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      
+      // Légère modulation de volume pour le réalisme (Humanisation)
+      const humanizationGain = audioCtx.createGain();
+      // +/- 4% max de volume
+      const randomVolMod = 0.96 + (Math.random() * 0.08); 
+      humanizationGain.gain.setValueAtTime(randomVolMod, audioCtx.currentTime);
+
+      // Connexion au Master et lecture
+      source.connect(humanizationGain);
+      humanizationGain.connect(masterGain);
+      
+      source.start(audioCtx.currentTime);
+
+      if (groupKey === 'tremer') {
+        activeTremerSource = source;
+        source.onended = () => {
+          if (activeTremerSource === source) {
+            activeTremerSource = null;
+          }
+        };
+      }
+
+      // Animation du bouton correspondant
+      triggerButtonVisualActive(typeCoup);
+
+      // Logguer l'action dans notre console
+      logToConsole(strokeLabel, filename, `index: ${chosenIdx + 1}/${buffers.length} (précédent: ${roundRobinHistory[groupKey] === chosenIdx ? 'RÉPÉTITION (ERREUR)' : 'différent ✅'})`, groupColor);
+    }
+
+    // Déclencher le feedback visuel du bouton
+    function triggerButtonVisualActive(strokeKey) {
+      const btn = document.querySelector(`.stroke-btn[data-stroke="${strokeKey}"]`);
+      if (btn) {
+        btn.classList.add('active');
+        // Un chouia de micro-timing pour simuler le relâchement du pad
+        setTimeout(() => {
+          btn.classList.remove('active');
+        }, 80);
+      }
+    }
+
+    // Gestion de la console de logs
+    function logToConsole(stroke, filename, details, labelColor) {
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${(now.getMilliseconds() / 10).toFixed(0).padStart(2, '0')}`;
+      
+      const logItem = document.createElement('div');
+      logItem.className = 'log-item active-choice';
+      
+      if (labelColor === 'system') {
+        logItem.classList.add('system');
+        logItem.innerHTML = `
+          <span class="time">[${timeStr}]</span>
+          <span class="stroke">[${stroke}]</span>
+          <span class="details">${details}</span>
+        `;
+      } else {
+        logItem.innerHTML = `
+          <span class="time">[${timeStr}]</span>
+          <span class="stroke" style="color: ${labelColor};">${stroke}</span>
+          <span>&rarr;</span>
+          <span class="filename">${filename}</span>
+          <span class="details">(${details})</span>
+        `;
+      }
+      
+      consoleLogs.appendChild(logItem);
+      
+      // Auto-scroll en bas
+      consoleLogs.scrollTop = consoleLogs.scrollHeight;
+      
+      // Limiter le nombre de lignes à 50
+      while (consoleLogs.childNodes.length > 50) {
+        consoleLogs.removeChild(consoleLogs.firstChild);
+      }
+    }
+
+    // Nettoyage console
+    btnClearLogs.addEventListener('click', () => {
+      consoleLogs.innerHTML = '';
+    });
+
+    // Écouteurs d'évènements sur le Grid de boutons
+    document.querySelectorAll('.stroke-btn').forEach(btn => {
+      btn.addEventListener('mousedown', () => {
+        const stroke = btn.getAttribute('data-stroke');
+        playTarol(stroke);
+      });
+    });
+
+    // Mappage des raccourcis clavier
+    window.addEventListener('keydown', (e) => {
+      // Ignorer si l'utilisateur est dans un champ texte (non applicable ici mais bonne pratique)
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      const key = e.key;
+      switch (key) {
+        case 'D':
+          playTarol('fort_D');
+          break;
+        case 'E':
+          playTarol('fort_E');
+          break;
+        case 'd':
+          playTarol('faible_d');
+          break;
+        case 'e':
+          playTarol('faible_e');
+          break;
+        case 'c':
+        case 'C':
+          playTarol('click');
+          break;
+        case 'f':
+        case 'F':
+          playTarol('fla');
+          break;
+        case 't':
+        case 'T':
+          playTarol('tremer');
+          break;
+        case 'x':
+        case 'X':
+          playTarol('cerclage');
+          break;
+      }
+    });
+
+    // Dessin de l'oscilloscope sur le Canvas (Neon Waveform)
+    function drawVisualizer() {
+      requestAnimationFrame(drawVisualizer);
+      
+      if (!analyserNode) return;
+      
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyserNode.getByteTimeDomainData(dataArray);
+      
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      // Effacement transparent pour traînée lumineuse
+      canvasCtx.fillStyle = 'rgba(9, 13, 22, 0.25)';
+      canvasCtx.fillRect(0, 0, width, height);
+      
+      // Tracé de la ligne centrale
+      canvasCtx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+      canvasCtx.lineWidth = 1;
+      canvasCtx.beginPath();
+      canvasCtx.moveTo(0, height / 2);
+      canvasCtx.lineTo(width, height / 2);
+      canvasCtx.stroke();
+      
+      // Configuration ligne d'oscilloscope
+      canvasCtx.lineWidth = 3 * window.devicePixelRatio;
+      canvasCtx.strokeStyle = '#3b82f6';
+      canvasCtx.shadowBlur = 10;
+      canvasCtx.shadowColor = '#3b82f6';
+      
+      canvasCtx.beginPath();
+      
+      const sliceWidth = width / bufferLength;
+      let x = 0;
+      
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * height) / 2;
+        
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+        
+        x += sliceWidth;
+      }
+      
+      canvasCtx.lineTo(width, height / 2);
+      canvasCtx.stroke();
+      
+      // Reset ombres
+      canvasCtx.shadowBlur = 0;
+    }
+  </script>
+</body>
+</html>
