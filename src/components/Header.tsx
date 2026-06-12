@@ -93,6 +93,9 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   const projectDropRef = useRef<HTMLDivElement>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Use a ref to always have the latest onLoad callback, bypassing React.memo stale closure issue
+  const onLoadRef = useRef(onLoad);
+  onLoadRef.current = onLoad;
 
   const t = (key: string) => {
     const section = i18n[lang];
@@ -120,6 +123,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
 
   if (isMobile) {
     return (
+      <>
       <div
         id="top-bar"
         className="w-full h-[56px] bg-[var(--cordel-bg)] border-b-2 border-[var(--cordel-border)] flex items-center justify-between px-4 z-50 relative select-none shrink-0"
@@ -154,7 +158,6 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                     📂 {t('loadFile').split(' ')[0]}
                   </button>
                 </div>
-                <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onLoad(f); e.target.value = ''; }} />
               </div>
 
               {/* Preset Selector */}
@@ -386,6 +389,9 @@ const HeaderComponent: React.FC<HeaderProps> = ({
         </div>
 
       </div>
+      {/* File input always in DOM so fileInputRef.current is never null */}
+      <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onLoadRef.current(f); e.target.value = ''; }} />
+      </>
     );
   }
 
@@ -434,8 +440,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
               <button onClick={() => { fileInputRef.current?.click(); setProjectDropOpen(false); }} className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full transition-colors border-b-2 border-[var(--cordel-border)] text-[var(--cordel-text)] cursor-pointer">
                 <FolderOpen className="w-4 h-4" /> {t('loadFile')}
               </button>
-              
-              <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onLoad(f); e.target.value = ''; }} />
+
 
               {localPresets.length > 0 && (
                 <>
@@ -463,6 +468,8 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
+        {/* File input always in DOM so fileInputRef.current is never null */}
+        <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onLoadRef.current(f); e.target.value = ''; }} />
 
         <div className="relative ml-2" ref={addDropRef}>
           <button

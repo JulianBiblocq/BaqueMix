@@ -30,6 +30,7 @@ export interface Pattern {
   vocalLatency?: number;
   vocalBaseBpm?: number;
   vocalBpmSync?: boolean;
+  vocalAudioData?: string;
 }
 
 export interface HitTrigger {

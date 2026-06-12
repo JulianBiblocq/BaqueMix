@@ -271,6 +271,44 @@ function writeString(view: DataView, offset: number, string: string) {
   }
 }
 
+// Helpers for base64 vocal recording conversion
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+const base64ToBlob = (base64Data: string): Blob => {
+  const parts = base64Data.split(';base64,');
+  let contentType = '';
+  let rawBase64 = base64Data;
+  if (parts.length === 2) {
+    contentType = parts[0].replace('data:', '');
+    rawBase64 = parts[1];
+  }
+  const sliceSize = 512;
+  const byteCharacters = atob(rawBase64);
+  const byteArrays = [];
+
+  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    const slice = byteCharacters.slice(offset, offset + sliceSize);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+
+  return new Blob(byteArrays, { type: contentType || 'audio/webm' });
+};
+
 export default function App() {
   // PWA Auto-Update Check
   useEffect(() => {
@@ -1367,14 +1405,14 @@ export default function App() {
         const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
         const jsonStr = await new Response(stream).text();
         const stateData = JSON.parse(jsonStr);
-        applyPresetState(stateData);
+        await applyPreset(stateData);
         return true;
       } catch (_) {}
       // Fallback: try old uncompressed base64 format
       try {
         const jsonStr = decodeURIComponent(escape(atob(encoded)));
         const stateData = JSON.parse(jsonStr);
-        applyPresetState(stateData);
+        await applyPreset(stateData);
         return true;
       } catch (err) {
         console.error('Failed to load shared state from URL hash:', err);
@@ -1409,7 +1447,7 @@ export default function App() {
           if (!file.name.endsWith('.json')) return;
           const text = await file.text();
           const data = JSON.parse(text);
-          applyPresetState(data);
+          await applyPreset(data);
         } catch (err) {
           console.error('Failed to load file from launchQueue:', err);
         }
@@ -1513,72 +1551,139 @@ export default function App() {
     }
   };
 
-  const applyPreset = (p: any) => {
-    setTracksHistory([]);
-    setSongStructureHistory([]);
-    setTracks([]);
-    setLetras(p.letras || '');
-    setMetadata(p.metadata || { toada: '', nacao: '', compositor: '', ritmo: '' });
-    
-    let loadedTracks: TrackGroup[] = [];
-    let loadedMeasures = p.totalMeasures || 8;
+  const applyPreset = async (p: any) => {
+    console.log("[BaqueMix] applyPreset started", p);
+    try {
+      setTracksHistory([]);
+      setSongStructureHistory([]);
+      setLetras(p.letras || '');
+      const loadedMetadata = p.metadata || { toada: '', nacao: '', compositor: '', ritmo: '' };
+      console.log("[BaqueMix] rhythmSignals in JSON:", loadedMetadata.rhythmSignals?.length ?? 0, "signals,", 
+        (loadedMetadata.rhythmSignals || []).map((s: any) => `${s.name}: image=${s.image ? s.image.substring(0,30)+'...' : 'EMPTY'}`));
+      setMetadata(loadedMetadata);
+      
+      let loadedTracks: TrackGroup[] = [];
+      let loadedMeasures = p.totalMeasures || 8;
 
-    if (p.tracks) {
-      loadedTracks = JSON.parse(JSON.stringify(p.tracks));
-      loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
-    } else if (p.circles) {
-      // Migrate old format
-      const oldCircles: Circle[] = JSON.parse(JSON.stringify(p.circles));
-      loadedTracks = migrateCirclesToTracks(oldCircles, loadedMeasures);
-      loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+      if (p.tracks) {
+        loadedTracks = JSON.parse(JSON.stringify(p.tracks));
+        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+      } else if (p.circles) {
+        // Migrate old format
+        const oldCircles: Circle[] = JSON.parse(JSON.stringify(p.circles));
+        loadedTracks = migrateCirclesToTracks(oldCircles, loadedMeasures);
+        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+      }
+      
+      // Process vocal audio data if present
+      const promises: Promise<void>[] = [];
+      loadedTracks.forEach(t => {
+        const inst = instrumentsConfig[t.instrumentIdx];
+        if (inst && inst.type === 'voice') {
+          t.patterns.forEach(ptn => {
+            if (ptn.vocalAudioData) {
+              const patternId = ptn.id;
+              const b64 = ptn.vocalAudioData;
+              // Clean it from the pattern to save React state memory
+              delete ptn.vocalAudioData;
+              promises.push(
+                (async () => {
+                  try {
+                    const blob = base64ToBlob(b64);
+                    await saveVocalRecording(patternId, blob);
+                  } catch (err) {
+                    console.error(`Failed to save vocal recording for pattern ${patternId}:`, err);
+                  }
+                })()
+              );
+            }
+          });
+        }
+      });
+
+      if (promises.length > 0) {
+        try {
+          await Promise.all(promises);
+        } catch (err) {
+          console.error("Error restoring vocal recordings from base64:", err);
+        }
+      }
+
+      updateRadii(loadedTracks);
+
+      setTracks(loadedTracks);
+      setTotalMeasures(loadedMeasures);
+      setBpm(Math.round(p.bpm || 90));
+      setTimeSig(p.timeSig || '4/4');
+
+      const defaultBpm = Math.round(p.bpm || 90);
+      const defaultTimeSig = p.timeSig || '4/4';
+
+      const loadedBpms = p.measureBpms && Array.isArray(p.measureBpms)
+        ? p.measureBpms.map((b: number) => Math.round(b))
+        : Array(loadedMeasures).fill(defaultBpm);
+
+      const loadedTimeSigs = p.measureTimeSigs && Array.isArray(p.measureTimeSigs)
+        ? p.measureTimeSigs
+        : Array(loadedMeasures).fill(defaultTimeSig);
+
+      const loadedBpmTransitions = p.measureBpmTransitions && Array.isArray(p.measureBpmTransitions)
+        ? p.measureBpmTransitions
+        : Array(loadedMeasures).fill('immediate');
+
+      const loadedVols = p.measureVols && Array.isArray(p.measureVols)
+        ? p.measureVols.map((v: number) => Math.round(v))
+        : Array(loadedMeasures).fill(100);
+
+      const loadedVolTransitions = p.measureVolTransitions && Array.isArray(p.measureVolTransitions)
+        ? p.measureVolTransitions
+        : Array(loadedMeasures).fill('immediate');
+
+      setMeasureBpms(loadedBpms);
+      setMeasureTimeSigs(loadedTimeSigs);
+      setMeasureBpmTransitions(loadedBpmTransitions);
+      setMeasureVols(loadedVols);
+      setMeasureVolTransitions(loadedVolTransitions);
+
+      if (p.songSections && Array.isArray(p.songSections)) {
+        setSongSections(p.songSections);
+      } else {
+        setSongSections([]);
+      }
+
+      if (p.measureSignals && Array.isArray(p.measureSignals)) {
+        setMeasureSignals(p.measureSignals);
+      } else {
+        setMeasureSignals(Array(loadedMeasures).fill(null));
+      }
+
+      if (p.masterEQ) {
+        setMasterEQ(p.masterEQ);
+      } else {
+        setMasterEQ({ low: 0, mid: 0, high: 0 });
+      }
+
+      if (p.masterCompressor) {
+        setMasterCompressor(p.masterCompressor);
+      } else {
+        setMasterCompressor({ threshold: -20, ratio: 4 });
+      }
+
+      // Sync refs immediately to avoid audio scheduling lag
+      tracksRef.current = loadedTracks;
+      totalMeasuresRef.current = loadedMeasures;
+      measureBpmsRef.current = loadedBpms;
+      measureTimeSigsRef.current = loadedTimeSigs;
+      measureBpmTransitionsRef.current = loadedBpmTransitions;
+      measureVolsRef.current = loadedVols;
+      measureVolTransitionsRef.current = loadedVolTransitions;
+
+      measureCountRef.current = 0;
+      setCurrentMeasure(0);
+    } catch (err) {
+      console.error("Failed to apply preset:", err);
+      throw err;
     }
-    
-    updateRadii(loadedTracks);
-
-    setTracks(loadedTracks);
-    setTotalMeasures(loadedMeasures);
-    setBpm(Math.round(p.bpm || 90));
-    setTimeSig(p.timeSig || '4/4');
-
-    const defaultBpm = Math.round(p.bpm || 90);
-    const defaultTimeSig = p.timeSig || '4/4';
-
-    const loadedBpms = p.measureBpms && Array.isArray(p.measureBpms)
-      ? p.measureBpms.map((b: number) => Math.round(b))
-      : Array(loadedMeasures).fill(defaultBpm);
-
-    const loadedTimeSigs = p.measureTimeSigs && Array.isArray(p.measureTimeSigs)
-      ? p.measureTimeSigs
-      : Array(loadedMeasures).fill(defaultTimeSig);
-
-    const loadedBpmTransitions = p.measureBpmTransitions && Array.isArray(p.measureBpmTransitions)
-      ? p.measureBpmTransitions
-      : Array(loadedMeasures).fill('immediate');
-
-    const loadedVols = p.measureVols && Array.isArray(p.measureVols)
-      ? p.measureVols.map((v: number) => Math.round(v))
-      : Array(loadedMeasures).fill(100);
-
-    const loadedVolTransitions = p.measureVolTransitions && Array.isArray(p.measureVolTransitions)
-      ? p.measureVolTransitions
-      : Array(loadedMeasures).fill('immediate');
-
-    setMeasureBpms(loadedBpms);
-    setMeasureTimeSigs(loadedTimeSigs);
-    setMeasureBpmTransitions(loadedBpmTransitions);
-    setMeasureVols(loadedVols);
-    setMeasureVolTransitions(loadedVolTransitions);
-
-    // Sync refs immediately to avoid audio scheduling lag
-    tracksRef.current = loadedTracks;
-    totalMeasuresRef.current = loadedMeasures;
-    measureBpmsRef.current = loadedBpms;
-    measureTimeSigsRef.current = loadedTimeSigs;
-    measureBpmTransitionsRef.current = loadedBpmTransitions;
-    measureVolsRef.current = loadedVols;
-    measureVolTransitionsRef.current = loadedVolTransitions;
-
-    measureCountRef.current = 0;
   };
 
   const loadFallbackPreset = async (name: string) => {
@@ -1596,7 +1701,7 @@ export default function App() {
     } else {
       p = name === 'baque-de-imale' ? baqueDeImalePreset : vouVadiarPreset;
     }
-    applyPreset(p);
+    await applyPreset(p);
   };
 
   const normalizePatternData = (p: Pattern, instIdx: number) => {
@@ -1766,17 +1871,27 @@ export default function App() {
       timeSig,
       totalMeasures,
       tracks,
-      letras
+      letras,
+      metadata,
+      measureBpms,
+      measureTimeSigs,
+      measureBpmTransitions,
+      measureVols,
+      measureVolTransitions,
+      songSections,
+      measureSignals,
+      masterEQ,
+      masterCompressor
     };
     savePresetToLibrary(name.trim(), presetToSave);
     setLocalPresets(Object.keys(getLocalLibrary()));
   };
 
-  const handleLoadLocalPreset = (name: string) => {
+  const handleLoadLocalPreset = async (name: string) => {
     const lib = getLocalLibrary();
     const preset = lib[name];
     if (preset) {
-      applyPreset(preset);
+      await applyPreset(preset);
       setActivePresetName(name);
     }
   };
@@ -2410,7 +2525,7 @@ export default function App() {
   const handleTotalMeasuresChange = (val: number) => {
     pushUndoState();
     setTotalMeasures(val);
-    setTracks(tracks.map(t => ({
+    setTracks(prev => prev.map(t => ({
       ...t,
       patterns: t.patterns.map(p => ({
         ...p,
@@ -2429,15 +2544,14 @@ export default function App() {
     const newTotal = totalMeasures - 1;
 
     // 1. Update tracks patterns measureAssignments
-    const updatedTracks = tracks.map(t => ({
+    setTracks(prev => prev.map(t => ({
       ...t,
       patterns: t.patterns.map(p => {
         const assign = [...p.measureAssignments];
         assign.splice(measureIdx, 1);
         return { ...p, measureAssignments: assign };
       })
-    }));
-    setTracks(updatedTracks);
+    })));
 
     // 2. Update measure-specific arrays
     setMeasureTimeSigs(prev => {
@@ -2519,15 +2633,14 @@ export default function App() {
     const newTotal = totalMeasures + 1;
 
     // 1. Update tracks patterns measureAssignments
-    const updatedTracks = tracks.map(t => ({
+    setTracks(prev => prev.map(t => ({
       ...t,
       patterns: t.patterns.map(p => {
         const assign = [...p.measureAssignments];
         assign.splice(measureIdx, 0, false);
         return { ...p, measureAssignments: assign };
       })
-    }));
-    setTracks(updatedTracks);
+    })));
 
     // 2. Update measure-specific arrays with values from neighbor measure or defaults
     setMeasureTimeSigs(prev => {
@@ -3364,12 +3477,30 @@ export default function App() {
   };
 
   // Master Save Preset state down to local downloadable JSON
-  const handleSaveState = () => {
+  const handleSaveState = async () => {
+    const tracksCopy = JSON.parse(JSON.stringify(tracks));
+    for (const t of tracksCopy) {
+      const inst = instrumentsConfig[t.instrumentIdx];
+      if (inst && inst.type === 'voice') {
+        for (const p of t.patterns) {
+          try {
+            const blob = await getVocalRecording(p.id);
+            if (blob) {
+              const b64 = await blobToBase64(blob);
+              p.vocalAudioData = b64;
+            }
+          } catch (err) {
+            console.error(`Failed to get vocal recording for pattern ${p.id}:`, err);
+          }
+        }
+      }
+    }
+
     const dataToSave: Preset = {
       bpm,
       timeSig,
       totalMeasures,
-      tracks,
+      tracks: tracksCopy,
       letras,
       metadata,
       measureTimeSigs,
@@ -3403,121 +3534,39 @@ export default function App() {
     dlLink.click();
   };
 
-  function applyPresetState(data: any) {
-    try {
-      if (data.bpm) {
-        setBpm(Math.round(data.bpm));
-      }
-      if (data.timeSig) {
-        setTimeSig(data.timeSig);
-      }
-      if (data.letras !== undefined) {
-        setLetras(data.letras);
-      }
-      if (data.metadata) {
-        setMetadata(data.metadata);
-      }
-
-
-      let loadedTracks: TrackGroup[] = [];
-      let loadedMeasures = data.totalMeasures || 8;
-
-      const defaultBpm = Math.round(data.bpm || 90);
-      const defaultTimeSig = data.timeSig || '4/4';
-
-      const loadedBpms = data.measureBpms && Array.isArray(data.measureBpms)
-        ? data.measureBpms.map((b: number) => Math.round(b))
-        : Array(loadedMeasures).fill(defaultBpm);
-
-      const loadedTimeSigs = data.measureTimeSigs && Array.isArray(data.measureTimeSigs)
-        ? data.measureTimeSigs
-        : Array(loadedMeasures).fill(defaultTimeSig);
-
-      const loadedBpmTransitions = data.measureBpmTransitions && Array.isArray(data.measureBpmTransitions)
-        ? data.measureBpmTransitions
-        : Array(loadedMeasures).fill('immediate');
-
-      const loadedVols = data.measureVols && Array.isArray(data.measureVols)
-        ? data.measureVols.map((v: number) => Math.round(v))
-        : Array(loadedMeasures).fill(100);
-
-      const loadedVolTransitions = data.measureVolTransitions && Array.isArray(data.measureVolTransitions)
-        ? data.measureVolTransitions
-        : Array(loadedMeasures).fill('immediate');
-
-      setMeasureBpms(loadedBpms);
-      setMeasureTimeSigs(loadedTimeSigs);
-      setMeasureBpmTransitions(loadedBpmTransitions);
-      setMeasureVols(loadedVols);
-      setMeasureVolTransitions(loadedVolTransitions);
-
-      if (data.tracks) {
-        loadedTracks = data.tracks;
-        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
-      } else if (data.circles) {
-        loadedTracks = migrateCirclesToTracks(data.circles, loadedMeasures);
-        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
-      }
-
-      updateRadii(loadedTracks);
-      setTracks(loadedTracks);
-      setTotalMeasures(loadedMeasures);
-      if (data.songSections && Array.isArray(data.songSections)) {
-        setSongSections(data.songSections);
-      } else {
-        setSongSections([]);
-      }
-
-      if (data.measureSignals && Array.isArray(data.measureSignals)) {
-        setMeasureSignals(data.measureSignals);
-      } else {
-        setMeasureSignals(Array(loadedMeasures).fill(null));
-      }
-
-      if (data.masterEQ) {
-        setMasterEQ(data.masterEQ);
-      } else {
-        setMasterEQ({ low: 0, mid: 0, high: 0 });
-      }
-
-      if (data.masterCompressor) {
-        setMasterCompressor(data.masterCompressor);
-      } else {
-        setMasterCompressor({ threshold: -20, ratio: 4 });
-      }
-
-      // Sync refs immediately to avoid audio scheduling lag
-      tracksRef.current = loadedTracks;
-      totalMeasuresRef.current = loadedMeasures;
-      measureBpmsRef.current = loadedBpms;
-      measureTimeSigsRef.current = loadedTimeSigs;
-      measureBpmTransitionsRef.current = loadedBpmTransitions;
-      measureVolsRef.current = loadedVols;
-      measureVolTransitionsRef.current = loadedVolTransitions;
-
-      measureCountRef.current = 0;
-      setCurrentMeasure(0);
-    } catch (err) {
-      console.error("Failed to apply preset state:", err);
-      throw err;
-    }
-  }
-
   // Master Load state from uploaded JSON
   const handleLoadState = (file: File) => {
+    console.log("[BaqueMix] handleLoadState started for file:", file.name);
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
-        const data = JSON.parse(evt.target?.result as string);
-        applyPresetState(data);
-      } catch (err) {
-        window.alert(t('invalidFile'));
+        const resultText = evt.target?.result as string;
+        console.log("[BaqueMix] File read successfully, parsing JSON...");
+        const data = JSON.parse(resultText);
+        console.log("[BaqueMix] JSON parsed successfully, applying preset...");
+        await applyPreset(data);
+        console.log("[BaqueMix] Preset applied successfully!");
+      } catch (err: any) {
+        console.error("[BaqueMix] Error loading preset file:", err);
+        window.alert(`${t('invalidFile')}\n\nError details: ${err?.message || err}`);
       }
+    };
+    reader.onerror = () => {
+      console.error("[BaqueMix] FileReader error:", reader.error);
+      window.alert(`FileReader error: ${reader.error?.message || 'Unknown error'}`);
     };
     reader.readAsText(file);
   };
 
   async function handleShare() {
+    // Note: vocal audio recordings are NOT included in the shared file —
+    // they are device-local (stored in IndexedDB) and would make the file
+    // several MB large, causing navigator.share() to fail. The recipient
+    // can record their own voice in BaqueMix.
+    const tracksCopy = JSON.parse(JSON.stringify(tracks));
+    // Strip any vocalAudioData that may be in memory (shouldn't be, but safety)
+    tracksCopy.forEach((t: any) => t.patterns?.forEach((p: any) => { delete p.vocalAudioData; }));
+
     const cleanMetadata = metadata ? {
       ...metadata,
       partitionImage: undefined,
@@ -3542,7 +3591,7 @@ export default function App() {
       bpm,
       timeSig,
       totalMeasures,
-      tracks,
+      tracks: tracksCopy,
       letras,
       metadata: cleanMetadata,
       ...(allBpmsSame ? {} : { measureBpms }),
@@ -3715,7 +3764,8 @@ export default function App() {
           pushUndoState();
           setTracks([]);
           setLetras('');
-          setMetadata({ toada: '', nacao: '', compositor: '', ritmo: '', youtubeUrl: '', partitionImage: undefined });
+          setMeasureSignals([]);
+          setMetadata({ toada: '', nacao: '', compositor: '', ritmo: '', youtubeUrl: '', partitionImage: undefined, rhythmSignals: [] });
         }}
         onSave={handleSaveState}
         onSaveToLocal={handleSaveToLocal}
