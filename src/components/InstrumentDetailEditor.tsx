@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useRef } from 'react';
 import { TrackGroup, Language } from '../types';
-import { i18n, instrumentsConfig, ASSETS_BASE_URL } from '../data';
+import { i18n, instrumentsConfig, ASSETS_BASE_URL, isDarkText } from '../data';
 
 interface InstrumentDetailEditorProps {
   lang: Language;
@@ -16,6 +16,7 @@ interface InstrumentDetailEditorProps {
   onAddPattern: () => void;
   onDeletePattern: (patternId: number) => void;
   onSelectPattern: (patternId: number) => void;
+  onReorderPatterns?: (patternId: number, direction: 'up' | 'down') => void;
   onPatternAssign: (patternId: number, measureIdx: number, val: boolean) => void;
   onVolumeChange: (val: number) => void;
   onMuteToggle: () => void;
@@ -72,8 +73,10 @@ function getStrokesForInstrument(instId: string, instType: string, lang: string)
   const isFr = lang === 'fr';
   if (instId === 'caixa') {
     return [
-      { symbol: 'D/d', label: isFr ? 'Main Droite' : 'Mão Direita', shortcut: 'D / d', colorKey: 'D' },
-      { symbol: 'E/e', label: isFr ? 'Main Gauche' : 'Mão Esquerda', shortcut: 'E / e', colorKey: 'E' },
+      { symbol: 'D', label: isFr ? 'Main Droite Forte' : 'Mão Direita Forte', shortcut: 'D', colorKey: 'D' },
+      { symbol: 'd', label: isFr ? 'Main Droite Faible' : 'Mão Direita Fraca', shortcut: 'd', colorKey: 'd' },
+      { symbol: 'E', label: isFr ? 'Main Gauche Forte' : 'Mão Esquerda Forte', shortcut: 'E', colorKey: 'E' },
+      { symbol: 'e', label: isFr ? 'Main Gauche Faible' : 'Mão Esquerda Fraca', shortcut: 'e', colorKey: 'e' },
       { symbol: 'rd', label: isFr ? 'Roulement court D' : 'Rufada Direita', shortcut: 'R → rd', colorKey: 'rd' },
       { symbol: 're', label: isFr ? 'Roulement court G' : 'Rufada Esquerda', shortcut: 'Z → re', colorKey: 're' },
       { symbol: 'x', label: isFr ? 'Cerclage' : 'Toque no aro', shortcut: 'X → x', colorKey: 'x' },
@@ -83,32 +86,52 @@ function getStrokesForInstrument(instId: string, instType: string, lang: string)
   }
   if (instId === 'marcante' || instId === 'meiao' || instId === 'repique') {
     return [
-      { symbol: 'D/d', label: isFr ? 'Main Droite' : 'Mão Direita', shortcut: 'D / d', colorKey: 'D' },
-      { symbol: 'E/e', label: isFr ? 'Main Gauche' : 'Mão Esquerda', shortcut: 'E / e', colorKey: 'E' },
+      { symbol: 'D', label: isFr ? 'Main Droite Forte' : 'Mão Direita Forte', shortcut: 'D', colorKey: 'D' },
+      { symbol: 'd', label: isFr ? 'Main Droite Faible' : 'Mão Direita Fraca', shortcut: 'd', colorKey: 'd' },
+      { symbol: 'E', label: isFr ? 'Main Gauche Forte' : 'Mão Esquerda Forte', shortcut: 'E', colorKey: 'E' },
+      { symbol: 'e', label: isFr ? 'Main Gauche Faible' : 'Mão Esquerda Fraca', shortcut: 'e', colorKey: 'e' },
       { symbol: 'x', label: isFr ? 'Cerclage' : 'Toque no aro', shortcut: 'X → x', colorKey: 'x' },
-      { symbol: 'i', label: 'Iguarassu', shortcut: 'I → i', colorKey: 'i' },
+      { symbol: 'i', label: isFr ? 'Bacalhau (Iguarassu)' : 'Bacalhau (Iguarassu)', shortcut: 'I → i', colorKey: 'i' },
+      { symbol: 'c', label: isFr ? 'Click' : 'Click', shortcut: 'C → c', colorKey: 'c' },
       { symbol: 't', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 't', colorKey: 't' },
     ];
   }
   if (instType === 'gongue') {
     return [
-      { symbol: 'G/g', label: 'Grave', shortcut: 'G / g', colorKey: 'GRV' },
-      { symbol: 'A/a', label: isFr ? 'Aigu' : 'Agudo', shortcut: 'A / a', colorKey: 'AIG' },
+      { symbol: 'G', label: isFr ? 'Grave Forte' : 'Grave Forte', shortcut: 'G', colorKey: 'GRV' },
+      { symbol: 'g', label: isFr ? 'Grave Faible' : 'Grave Fraco', shortcut: 'g', colorKey: 'grv' },
+      { symbol: 'A', label: isFr ? 'Aigu Forte' : 'Agudo Forte', shortcut: 'A', colorKey: 'AIG' },
+      { symbol: 'a', label: isFr ? 'Aigu Faible' : 'Agudo Fraco', shortcut: 'a', colorKey: 'aig' },
       { symbol: 't', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 't', colorKey: 't' },
+    ];
+  }
+  if (instId === 'tarol') {
+    return [
+      { symbol: 'D', label: isFr ? 'Main Droite Forte' : 'Mão Direita Forte', shortcut: 'D', colorKey: 'D' },
+      { symbol: 'd', label: isFr ? 'Main Droite Faible' : 'Mão Direita Fraca', shortcut: 'd', colorKey: 'd' },
+      { symbol: 'E', label: isFr ? 'Main Gauche Forte' : 'Mão Esquerda Forte', shortcut: 'E', colorKey: 'E' },
+      { symbol: 'e', label: isFr ? 'Main Gauche Faible' : 'Mão Esquerda Fraca', shortcut: 'e', colorKey: 'e' },
+      { symbol: 'x', label: isFr ? 'Cerclage' : 'Toque no aro', shortcut: 'X → x', colorKey: 'x' },
+      { symbol: 'f', label: 'Fla', shortcut: 'F → f', colorKey: 'f' },
+      { symbol: 'c', label: isFr ? 'Click' : 'Click', shortcut: 'C → c', colorKey: 'c' },
     ];
   }
   if (instId === 'agbe') {
     return [
-      { symbol: 'E/e', label: isFr ? 'Gauche' : 'Esquerda', shortcut: 'E / e', colorKey: 'E' },
-      { symbol: 'D/d', label: isFr ? 'Droite' : 'Direita', shortcut: 'D / d', colorKey: 'D' },
-      { symbol: 's', label: isFr ? 'Saut' : 'Salto', shortcut: 'S → s', colorKey: 's' },
+      { symbol: 'E', label: isFr ? 'Gauche Forte' : 'Esquerda Forte', shortcut: 'E', colorKey: 'E' },
+      { symbol: 'e', label: isFr ? 'Gauche Faible' : 'Esquerda Fraca', shortcut: 'e', colorKey: 'e' },
+      { symbol: 'D', label: isFr ? 'Droite Forte' : 'Direita Forte', shortcut: 'D', colorKey: 'D' },
+      { symbol: 'd', label: isFr ? 'Droite Faible' : 'Direita Fraca', shortcut: 'd', colorKey: 'd' },
+      { symbol: 's', label: isFr ? 'Salto' : 'Salto', shortcut: 'S → s', colorKey: 's' },
       { symbol: 't', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 't', colorKey: 't' },
     ];
   }
   if (instId === 'mineiro') {
     return [
-      { symbol: 'P/p', label: isFr ? 'Haut' : 'Push (Cima)', shortcut: 'P / p', colorKey: 'P' },
-      { symbol: 'T/t', label: isFr ? 'Bas' : 'Pull (Baixo)', shortcut: 'T / t', colorKey: 'T' },
+      { symbol: 'P', label: isFr ? 'Haut Forte' : 'Push Forte (Cima)', shortcut: 'P', colorKey: 'P' },
+      { symbol: 'p', label: isFr ? 'Haut Faible' : 'Push Fraco (Cima)', shortcut: 'p', colorKey: 'p' },
+      { symbol: 'T', label: isFr ? 'Bas Forte' : 'Pull Forte (Baixo)', shortcut: 'T', colorKey: 'T' },
+      { symbol: 't', label: isFr ? 'Bas Faible' : 'Pull Fraco (Baixo)', shortcut: 't', colorKey: 't' },
     ];
   }
   if (instType === 'voice') {
@@ -119,6 +142,8 @@ function getStrokesForInstrument(instId: string, instType: string, lang: string)
   }
   return [];
 }
+
+
 
 /* ── Step options ───────────────────────────────────────────── */
 const STEP_OPTIONS = [4, 8, 12, 16, 24, 32];
@@ -166,6 +191,17 @@ export function getNextStepValue(instId: string, instType: string, currentVal: s
     if (norm === 't' || norm === 'b') return 0;
     return 0;
   }
+  if (instId === 'tarol') {
+    if (norm === 0 || norm === '0' || !norm) return 'd';
+    if (norm === 'd') return 'D';
+    if (norm === 'D') return 'e';
+    if (norm === 'e') return 'E';
+    if (norm === 'E') return 'x';
+    if (norm === 'x') return 'f';
+    if (norm === 'f') return 'c';
+    if (norm === 'c') return 0;
+    return 0;
+  }
   if (instId === 'marcante' || instId === 'meiao' || instId === 'repique') {
     if (norm === 0 || norm === '0' || !norm) return 'd';
     if (norm === 'd') return 'D';
@@ -173,7 +209,8 @@ export function getNextStepValue(instId: string, instType: string, currentVal: s
     if (norm === 'e' || norm === 'g') return 'E';
     if (norm === 'E' || norm === 'G') return 'x';
     if (norm === 'x') return 'i';
-    if (norm === 'i') return 't';
+    if (norm === 'i') return 'c';
+    if (norm === 'c') return 't';
     if (norm === 't' || norm === 'b') return 0;
     return 0;
   }
@@ -201,6 +238,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
   onAddPattern,
   onDeletePattern,
   onSelectPattern,
+  onReorderPatterns,
   onPatternAssign,
   onVolumeChange,
   onMuteToggle,
@@ -587,6 +625,36 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                       </button>
                     </div>
 
+                    {/* Reorder buttons */}
+                    {onReorderPatterns && (
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => onReorderPatterns(ptn.id, 'up')}
+                          disabled={ptnIdx === 0 || track.patterns.length <= 1}
+                          className={`px-1.5 py-0.5 text-[10px] font-bold cordel-border-sm ${
+                            (ptnIdx === 0 || track.patterns.length <= 1)
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
+                              : 'bg-[#eaddcf] text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-[#f4ecd8] cursor-pointer'
+                          }`}
+                          title={lang === 'fr' ? 'Monter le motif' : 'Subir padrão'}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          onClick={() => onReorderPatterns(ptn.id, 'down')}
+                          disabled={ptnIdx === track.patterns.length - 1 || track.patterns.length <= 1}
+                          className={`px-1.5 py-0.5 text-[10px] font-bold cordel-border-sm ${
+                            (ptnIdx === track.patterns.length - 1 || track.patterns.length <= 1)
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
+                              : 'bg-[#eaddcf] text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-[#f4ecd8] cursor-pointer'
+                          }`}
+                          title={lang === 'fr' ? 'Descendre le motif' : 'Descer padrão'}
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    )}
+
                     {/* Steps selector */}
                     <div className="flex items-center gap-1.5 ml-auto">
                       <span className="text-[11px] font-bold uppercase">{t('stepsNum')}</span>
@@ -961,8 +1029,8 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                               if (isActive) {
                                 const bgColor = inst.colors[val as string] || '#111';
                                 let txtColor = inst.colors.text || '#f4ecd8';
-                                if (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) {
-                                  txtColor = '#000';
+                                if (isDarkText(inst.id, val as string)) {
+                                  txtColor = '#1a1a1a';
                                 }
                                 colorStyle = {
                                   backgroundColor: bgColor,
@@ -1073,12 +1141,12 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                                       if (e.key === 'Tab' || e.key === 'Enter') e.preventDefault();
                                       
                                       const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-                                      if ((isCtrlOrMeta && e.key.toLowerCase() === 'c') || e.key.toLowerCase() === 'c') {
+                                      if (isCtrlOrMeta && e.key.toLowerCase() === 'c') {
                                         e.preventDefault();
                                         onCopyPattern && onCopyPattern(ptn);
                                         return;
                                       }
-                                      if ((isCtrlOrMeta && e.key.toLowerCase() === 'v') || e.key.toLowerCase() === 'v') {
+                                      if (isCtrlOrMeta && e.key.toLowerCase() === 'v') {
                                         e.preventDefault();
                                         if (canPaste) {
                                           onPastePattern && onPastePattern(ptn.id);
@@ -1358,11 +1426,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
               {strokes.map((stroke, sIdx) => {
                 const bgColor = inst.colors[stroke.colorKey] || '#666';
                 let txtColor = inst.colors.text || '#f4ecd8';
-                if (
-                  (inst.id === 'gongue' && (stroke.colorKey === 'AIG' || stroke.colorKey === 'aig')) ||
-                  (inst.id === 'agbe' && (stroke.colorKey === 's' || stroke.colorKey === 'd' || stroke.colorKey === 'D')) ||
-                  (inst.id === 'caixa' && (stroke.colorKey === 'rg' || stroke.colorKey === 'Re' || stroke.colorKey === 're'))
-                ) {
+                if (isDarkText(inst.id, stroke.colorKey)) {
                   txtColor = '#1a1a1a';
                 }
 

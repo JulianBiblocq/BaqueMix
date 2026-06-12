@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { instrumentsConfig } from '../data';
+import { instrumentsConfig, isDarkText } from '../data';
 import { Language } from '../types';
 import { getNextStepValue } from './InstrumentDetailEditor';
 
@@ -95,6 +95,19 @@ const getStrokeDescription = (instId: string, instType: string, stroke: string, 
       case 'T':
       case 't': return isPt ? 'Trêmulo' : 'Trémolo';
       case 's': return isPt ? 'Salto / Lançamento' : 'Saut / Lancer';
+      default: return stroke;
+    }
+  }
+
+  if (instId === 'tarol') {
+    switch (stroke) {
+      case 'D': return isPt ? 'Mão Direita (Forte)' : 'Main Droite (Fort)';
+      case 'd': return isPt ? 'Mão Direita (Fraca)' : 'Main Droite (Faible)';
+      case 'E': return isPt ? 'Mão Esquerda (Forte)' : 'Main Gauche (Fort)';
+      case 'e': return isPt ? 'Mão Esquerda (Fraca)' : 'Main Gauche (Faible)';
+      case 'x': return isPt ? 'Toque no aro' : 'Coup sur le cerclage';
+      case 'f': return isPt ? 'Fla' : 'Fla';
+      case 'c': return isPt ? 'Click' : 'Click';
       default: return stroke;
     }
   }
@@ -265,11 +278,7 @@ export const TouchStrokeSelector: React.FC<TouchStrokeSelectorProps> = ({
 
             let bgColor = isSilence ? '#7f8c8d' : (inst.colors[stroke] || '#111');
             let textColor = isSilence ? '#fff' : (inst.colors.text || '#fff');
-            if (
-              (inst.id === 'gongue' && (stroke === 'AIG' || stroke === 'aig')) ||
-              (inst.id === 'agbe' && (stroke === 's' || stroke === 'd' || stroke === 'D')) ||
-              (inst.id === 'caixa' && (stroke === 'rg' || stroke === 'Re' || stroke === 're'))
-            ) {
+            if (isDarkText(inst.id, stroke)) {
               textColor = '#1a1a1a';
             }
 

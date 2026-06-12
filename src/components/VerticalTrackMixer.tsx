@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TrackGroup, Language } from '../types';
-import { i18n, instrumentsConfig, ASSETS_BASE_URL } from '../data';
+import { i18n, instrumentsConfig, ASSETS_BASE_URL, isDarkText } from '../data';
 import { PanKnob } from './PanKnob';
 import { getNextStepValue } from './InstrumentDetailEditor';
 
@@ -49,6 +49,7 @@ interface VerticalTrackMixerProps {
   onPastePattern?: (trackId: number, patternId: number) => void;
   canPaste?: boolean;
   onPatternNameChange?: (patternId: number, name: string) => void;
+  onReorderPatterns?: (patternId: number, direction: 'up' | 'down') => void;
 }
 
 const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
@@ -89,6 +90,7 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
   onPastePattern,
   canPaste,
   onPatternNameChange,
+  onReorderPatterns,
 }) => {
   const [instDropdownOpen, setInstDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -309,15 +311,53 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
                           setEditingPatternId(ptn.id);
                           setEditName(ptn.name || '');
                         }}
-                        className="text-xs opacity-60 hover:opacity-100 p-1 cursor-pointer flex items-center justify-center"
+                        className="text-xs opacity-60 hover:opacity-100 p-1 cursor-pointer flex items-center justify-center flex-shrink-0"
                         title={lang === 'fr' ? 'Renommer' : 'Renomear'}
                       >
                         ✏️
                       </button>
                     )}
 
-                    {track.patterns.length > 1 && !isEditing && (
-                      <button onClick={() => onDeletePattern(ptn.id)} className="text-[#8b2a1a] ml-auto text-xs px-1 font-bold hover:underline">✕</button>
+                    {!isEditing && (
+                      <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                        {onReorderPatterns && track.patterns.length > 1 && (
+                          <div className="flex gap-0.5">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onReorderPatterns(ptn.id, 'up'); }}
+                              disabled={idx === 0}
+                              className={`px-1 py-px text-[8px] font-bold border border-[var(--cordel-border)]/20 rounded-sm leading-none flex items-center justify-center h-4.5 w-4.5 ${
+                                idx === 0
+                                  ? 'opacity-30 cursor-not-allowed'
+                                  : 'text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] cursor-pointer'
+                              }`}
+                              title={lang === 'fr' ? 'Monter' : 'Subir'}
+                            >
+                              ▲
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onReorderPatterns(ptn.id, 'down'); }}
+                              disabled={idx === track.patterns.length - 1}
+                              className={`px-1 py-px text-[8px] font-bold border border-[var(--cordel-border)]/20 rounded-sm leading-none flex items-center justify-center h-4.5 w-4.5 ${
+                                idx === track.patterns.length - 1
+                                  ? 'opacity-30 cursor-not-allowed'
+                                  : 'text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] cursor-pointer'
+                              }`}
+                              title={lang === 'fr' ? 'Descendre' : 'Descer'}
+                            >
+                              ▼
+                            </button>
+                          </div>
+                        )}
+                        {track.patterns.length > 1 && (
+                          <button 
+                            onClick={() => onDeletePattern(ptn.id)} 
+                            className="text-[#8b2a1a] text-xs px-1 font-bold hover:underline cursor-pointer"
+                            title={lang === 'fr' ? 'Supprimer' : 'Excluir'}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                   <span className="text-[10px] text-[var(--cordel-text)]/70 pl-6 leading-tight">
@@ -374,12 +414,7 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
                   const isActive = val !== 0;
                   const stepColor = isActive ? (inst.colors[val as any] || 'var(--cordel-text)') : 'transparent';
                   let textColor = isActive ? (inst.colors.text || 'var(--cordel-bg)') : 'var(--cordel-text)';
-                  if (
-                    isActive &&
-                    ((inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) ||
-                     (inst.id === 'agbe' && (val === 's' || val === 'd' || val === 'D')) ||
-                     (inst.id === 'caixa' && (val === 'rg' || val === 'Re' || val === 're')))
-                  ) {
+                  if (isActive && isDarkText(inst.id, String(val))) {
                     textColor = '#1a1a1a';
                   }
 
@@ -419,12 +454,12 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
                       onChange={(e) => onStepValueChange(activePattern.id, i, e.target.value)}
                       onKeyDown={(e) => {
                         const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-                        if ((isCtrlOrMeta && e.key.toLowerCase() === 'c') || e.key.toLowerCase() === 'c') {
+                        if (isCtrlOrMeta && e.key.toLowerCase() === 'c') {
                           e.preventDefault();
                           onCopyPattern && onCopyPattern(activePattern);
                           return;
                         }
-                        if ((isCtrlOrMeta && e.key.toLowerCase() === 'v') || e.key.toLowerCase() === 'v') {
+                        if (isCtrlOrMeta && e.key.toLowerCase() === 'v') {
                           e.preventDefault();
                           if (canPaste) {
                             onPastePattern && onPastePattern(track.id, activePattern.id);

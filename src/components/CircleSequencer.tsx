@@ -5,7 +5,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { TrackGroup, Language, HitTrigger, TimeSignature } from '../types';
-import { instrumentsConfig, getMarkers, ASSETS_BASE_URL } from '../data';
+import { instrumentsConfig, getMarkers, ASSETS_BASE_URL, isDarkText } from '../data';
 
 interface CircleSequencerProps {
   lang: Language;
@@ -589,6 +589,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
               } else if (inst.id === 'agbe') {
                 if (stateStr.toLowerCase() === 'g' || stateStr.toLowerCase() === 'e') textSymbol = '←';
                 else if (stateStr.toLowerCase() === 'd') textSymbol = '→';
+                else if (stateStr.toLowerCase() === 's') textSymbol = '↑';
               }
             }
           }
@@ -622,6 +623,9 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
           // Render letter/direction marker on top of step
           if (state !== 0) {
             let txtColor = inst.type === 'voice' ? '#1a1a1a' : '#f4ecd8';
+            if (isDarkText(inst.id, String(state))) {
+              txtColor = '#1a1a1a';
+            }
             ctx.fillStyle = txtColor;
             const fontSize = Math.max(10, Math.floor((textSymbol.length > 1 ? 15 : 20) * dynamicScale * 0.9));
             ctx.font = `900 ${fontSize}px "Outfit", "Inter", sans-serif`;

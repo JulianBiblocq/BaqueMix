@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { TrackGroup, Language, Pattern } from '../types';
-import { i18n, instrumentsConfig, ASSETS_BASE_URL } from '../data';
+import { i18n, instrumentsConfig, ASSETS_BASE_URL, isDarkText } from '../data';
 import { PanKnob } from './PanKnob';
 import { getNextStepValue } from './InstrumentDetailEditor';
 
@@ -35,6 +35,7 @@ interface TrackMixerProps {
   onPatternAssign: (patternId: number, measureIdx: number, val: boolean) => void;
   onAddPattern: () => void;
   onDeletePattern: (patternId: number) => void;
+  onReorderPatterns?: (patternId: number, direction: 'up' | 'down') => void;
   onStepTouchStart?: (
     e: React.MouseEvent | React.TouchEvent,
     patternId: number,
@@ -78,6 +79,7 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
   onPatternAssign,
   onAddPattern,
   onDeletePattern,
+  onReorderPatterns,
   onStepTouchStart,
   onCopyPattern,
   onPastePattern,
@@ -301,21 +303,52 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
           <span className="font-cactus font-bold uppercase">{t('patterns')}:</span>
         </div>
         {/* Patterns Summary (No checkboxes) */}
-        <div className="grid grid-cols-2 gap-1 w-full max-h-[80px] overflow-y-auto custom-scrollbar">
+        <div className="flex flex-col gap-1 w-full max-h-[90px] overflow-y-auto custom-scrollbar">
           {track.patterns.map((ptn, idx) => (
-            <div key={ptn.id} className="flex items-center gap-2 border-b border-[#1a1a1a]/30 pb-1 last:border-0 last:pb-0 h-6">
-              <input
-                type="radio"
-                checked={track.selectedPatternId === ptn.id}
-                onChange={() => onSelectPattern(ptn.id)}
-                className="w-3 h-3 accent-[#1a1a1a]"
-              />
-              <span 
-                className={`text-[10px] font-cactus font-bold cursor-pointer ${track.selectedPatternId === ptn.id ? 'text-[#1a1a1a]' : 'text-[#666]'}`}
-                onClick={() => onSelectPattern(ptn.id)}
-              >
-                {ptn.name ? ptn.name : `${t('patterns').slice(0,-1)} ${idx + 1}`}
-              </span>
+            <div key={ptn.id} className="flex items-center justify-between border-b border-[#1a1a1a]/20 pb-1 last:border-0 last:pb-0 min-h-6 h-auto py-0.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <input
+                  type="radio"
+                  checked={track.selectedPatternId === ptn.id}
+                  onChange={() => onSelectPattern(ptn.id)}
+                  className="w-3 h-3 accent-[#1a1a1a] flex-shrink-0 cursor-pointer"
+                />
+                <span 
+                  className={`text-[10px] font-cactus font-bold cursor-pointer truncate ${track.selectedPatternId === ptn.id ? 'text-[#1a1a1a]' : 'text-[#666]'}`}
+                  onClick={() => onSelectPattern(ptn.id)}
+                >
+                  {ptn.name ? ptn.name : `${t('patterns').slice(0,-1)} ${idx + 1}`}
+                </span>
+              </div>
+              
+              {onReorderPatterns && track.patterns.length > 1 && (
+                <div className="flex gap-0.5 flex-shrink-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onReorderPatterns(ptn.id, 'up'); }}
+                    disabled={idx === 0}
+                    className={`px-1 py-px text-[8px] font-bold border border-[#1a1a1a]/20 rounded-sm leading-none flex items-center justify-center h-4 w-4 ${
+                      idx === 0
+                        ? 'text-gray-400 cursor-not-allowed opacity-50 border-gray-200'
+                        : 'text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-[#f4ecd8] cursor-pointer'
+                    }`}
+                    title={lang === 'fr' ? 'Monter' : 'Subir'}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onReorderPatterns(ptn.id, 'down'); }}
+                    disabled={idx === track.patterns.length - 1}
+                    className={`px-1 py-px text-[8px] font-bold border border-[#1a1a1a]/20 rounded-sm leading-none flex items-center justify-center h-4 w-4 ${
+                      idx === track.patterns.length - 1
+                        ? 'text-gray-400 cursor-not-allowed opacity-50 border-gray-200'
+                        : 'text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-[#f4ecd8] cursor-pointer'
+                    }`}
+                    title={lang === 'fr' ? 'Descendre' : 'Descer'}
+                  >
+                    ▼
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -406,11 +439,7 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
                 if (val !== 0 && val !== '') {
                   const bgColor = inst.colors[val] || '#111';
                   let txtColor = inst.colors.text || '#fff';
-                  if (
-                    (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) ||
-                    (inst.id === 'agbe' && (val === 's' || val === 'd' || val === 'D')) ||
-                    (inst.id === 'caixa' && (val === 'rg' || val === 'Re' || val === 're'))
-                  ) {
+                  if (isDarkText(inst.id, String(val))) {
                     txtColor = '#1a1a1a';
                   }
                   colorStyle = {
@@ -459,12 +488,12 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
                         if (e.key === 'Tab' || e.key === 'Enter') e.preventDefault();
                         
                         const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-                        if ((isCtrlOrMeta && e.key.toLowerCase() === 'c') || e.key.toLowerCase() === 'c') {
+                        if (isCtrlOrMeta && e.key.toLowerCase() === 'c') {
                           e.preventDefault();
                           onCopyPattern && onCopyPattern(activePattern);
                           return;
                         }
-                        if ((isCtrlOrMeta && e.key.toLowerCase() === 'v') || e.key.toLowerCase() === 'v') {
+                        if (isCtrlOrMeta && e.key.toLowerCase() === 'v') {
                           e.preventDefault();
                           if (canPaste) {
                             onPastePattern && onPastePattern(track.id, activePattern.id);
@@ -597,11 +626,7 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
                 if (val !== 0 && val !== '') {
                   const bgColor = inst.colors[val] || '#111';
                   let txtColor = inst.colors.text || '#fff';
-                  if (
-                    (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) ||
-                    (inst.id === 'agbe' && (val === 's' || val === 'd' || val === 'D')) ||
-                    (inst.id === 'caixa' && (val === 'rg' || val === 'Re' || val === 're'))
-                  ) {
+                  if (isDarkText(inst.id, String(val))) {
                     txtColor = '#1a1a1a';
                   }
                   colorStyle = {
@@ -650,12 +675,12 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
                         if (e.key === 'Tab' || e.key === 'Enter') e.preventDefault();
                         
                         const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-                        if ((isCtrlOrMeta && e.key.toLowerCase() === 'c') || e.key.toLowerCase() === 'c') {
+                        if (isCtrlOrMeta && e.key.toLowerCase() === 'c') {
                           e.preventDefault();
                           onCopyPattern && onCopyPattern(activePattern);
                           return;
                         }
-                        if ((isCtrlOrMeta && e.key.toLowerCase() === 'v') || e.key.toLowerCase() === 'v') {
+                        if (isCtrlOrMeta && e.key.toLowerCase() === 'v') {
                           e.preventDefault();
                           if (canPaste) {
                             onPastePattern && onPastePattern(track.id, activePattern.id);

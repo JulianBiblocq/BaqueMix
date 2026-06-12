@@ -163,6 +163,15 @@ function buildTickSchedule(
           else if (state === 'b' || state === 'T' || state === 't') { targetKey = 'barulho'; isStrong = true; }
           else if (state === 'x') { targetKey = 'cerclage'; isStrong = true; }
           else if (state === 'i') { targetKey = 'iguarassu'; isStrong = true; }
+          else if (state === 'c' || state === 'C') { targetKey = 'click'; isStrong = true; }
+        } else if (inst.id === 'tarol') {
+          if (state === 'd') { targetKey = 'faible-d'; }
+          else if (state === 'e') { targetKey = 'faible-e'; }
+          else if (state === 'D') { targetKey = 'fort-D'; isStrong = true; }
+          else if (state === 'E') { targetKey = 'fort-E'; isStrong = true; }
+          else if (state === 'x' || state === 'X') { targetKey = 'cerclage'; isStrong = true; }
+          else if (state === 'c' || state === 'C') { targetKey = 'click'; isStrong = true; }
+          else if (state === 'f' || state === 'F') { targetKey = 'fla'; isStrong = true; }
         } else if (inst.id === 'agbe') {
           if (state === 'G' || state === 'D' || state === 'E') { targetKey = 'fort'; isStrong = true; }
           else if (state === 'g' || state === 'd' || state === 'e') { targetKey = 'faible'; }
@@ -310,6 +319,8 @@ const base64ToBlob = (base64Data: string): Blob => {
 };
 
 export default function App() {
+  const CURRENT_VERSION = 31; // Matches version.json
+
   // PWA Auto-Update Check
   useEffect(() => {
     const checkVersion = async () => {
@@ -320,7 +331,6 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const latestVersion = Number(data.version);
-          const CURRENT_VERSION = 26; // Matches version.json
           
           if (latestVersion > CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
@@ -996,6 +1006,7 @@ export default function App() {
               barulho: 'barulho.wav',
               cerclage: 'cerclage.wav',
               iguarassu: 'iguarassu.wav',
+              click: 'click.wav',
             };
           } else if (inst.id === 'agbe') {
             urls = {
@@ -1003,6 +1014,16 @@ export default function App() {
               fort: 'fort.wav',
               barulho: 'barulho.wav',
               saut: 'saut.wav',
+            };
+          } else if (inst.id === 'tarol') {
+            urls = {
+              'faible-d': 'faible-d.wav',
+              'faible-e': 'faible-e.wav',
+              'fort-D': 'fort-D.wav',
+              'fort-E': 'fort-E.wav',
+              cerclage: 'cerclage.wav',
+              click: 'click.wav',
+              fla: 'fla.wav',
             };
           } else {
             urls = { faible: 'faible.wav', fort: 'fort.wav' };
@@ -1560,13 +1581,28 @@ export default function App() {
       
       let loadedTracks: TrackGroup[] = [];
       let loadedMeasures = p.totalMeasures || 8;
+      const version = p.version || 1;
 
       if (p.tracks) {
         loadedTracks = JSON.parse(JSON.stringify(p.tracks));
+        if (version < 2) {
+          loadedTracks.forEach(t => {
+            if (t.instrumentIdx >= 4) {
+              t.instrumentIdx += 1;
+            }
+          });
+        }
         loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
       } else if (p.circles) {
         // Migrate old format
         const oldCircles: Circle[] = JSON.parse(JSON.stringify(p.circles));
+        if (version < 2) {
+          oldCircles.forEach(c => {
+            if (c.instrumentIdx >= 4) {
+              c.instrumentIdx += 1;
+            }
+          });
+        }
         loadedTracks = migrateCirclesToTracks(oldCircles, loadedMeasures);
         loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
       }
@@ -3003,7 +3039,12 @@ export default function App() {
                   parsed = lowerChar;
                 } else if (cleanChar === 't') {
                   parsed = 't';
-                } else if (['d', 'e'].includes(lowerChar)) {
+                } else if (['d', 'e', 'c'].includes(lowerChar)) {
+                  parsed = cleanChar;
+                }
+              } else if (inst.id === 'tarol') {
+                const lowerChar = cleanChar.toLowerCase();
+                if (['x', 'c', 'f', 'd', 'e'].includes(lowerChar)) {
                   parsed = cleanChar;
                 }
               } else if (inst.id === 'agbe') {
@@ -3057,7 +3098,7 @@ export default function App() {
       prevEl.focus();
       prevEl.select();
     } else if (
-      ['d', 'D', 'p', 'P', 't', 'T', 'g', 'G', 'a', 'A', 'r', 'R', 'e', 'E', 'x', 'X', 'f', 'F', 'i', 'I', 's', 'S'].includes(key) &&
+      ['d', 'D', 'p', 'P', 't', 'T', 'g', 'G', 'a', 'A', 'r', 'R', 'e', 'E', 'x', 'X', 'f', 'F', 'i', 'I', 's', 'S', 'c', 'C'].includes(key) &&
       indexInGrid < inputs.length - 1
     ) {
       // Focus advance on character entry
@@ -3291,6 +3332,31 @@ export default function App() {
     });
   };
 
+  const handleReorderPatterns = (trackId: number, patternId: number, direction: 'up' | 'down') => {
+    pushUndoState();
+    setTracks((prevTracks) => {
+      return prevTracks.map((t) => {
+        if (t.id !== trackId) return t;
+        const index = t.patterns.findIndex((p) => p.id === patternId);
+        if (index === -1) return t;
+        const newPatterns = [...t.patterns];
+        if (direction === 'up' && index > 0) {
+          const temp = newPatterns[index];
+          newPatterns[index] = newPatterns[index - 1];
+          newPatterns[index - 1] = temp;
+        } else if (direction === 'down' && index < newPatterns.length - 1) {
+          const temp = newPatterns[index];
+          newPatterns[index] = newPatterns[index + 1];
+          newPatterns[index + 1] = temp;
+        }
+        return {
+          ...t,
+          patterns: newPatterns
+        };
+      });
+    });
+  };
+
   const handleVocalLatencyChange = (patternId: number, latencyMs: number) => {
     pushUndoState();
     setTracks((prevTracks) => {
@@ -3504,6 +3570,7 @@ export default function App() {
     const dataToSave: Preset = {
       bpm,
       timeSig,
+      version: 2,
       totalMeasures,
       tracks: tracksCopy,
       letras,
@@ -3593,6 +3660,7 @@ export default function App() {
     const dataToSave: Preset = {
       bpm,
       timeSig,
+      version: 2,
       totalMeasures,
       tracks: tracksCopy,
       letras,
@@ -3815,6 +3883,7 @@ export default function App() {
         onTotalMeasuresChange={handleTotalMeasuresChange}
         reverbType={reverbType}
         onReverbTypeChange={setReverbType}
+        version={CURRENT_VERSION}
       />
 
       {/* Main Workspace workspace containing expanding grids layouts */}
@@ -3903,7 +3972,7 @@ export default function App() {
                 onCopyPattern={handleCopyPattern}
                 onPastePattern={handlePastePattern}
                 canPaste={!!copiedPattern}
-
+                onReorderPatterns={handleReorderPatterns}
               />
             )}
 
@@ -3984,6 +4053,7 @@ export default function App() {
                 setTracks(prev => prev.map(t => t.id === trackId ? { ...t, selectedPatternId: patternId } : t));
               }}
               onPatternNameChange={handlePatternNameChange}
+              onReorderPatterns={handleReorderPatterns}
               onPatternAssign={(trackId, patternId, measureIdx, val) => {
                 pushUndoState();
                 setTracks(prev => prev.map(t => {

@@ -49,6 +49,7 @@ interface MixerProps {
   onCopyPattern: (pattern: any) => void;
   onPastePattern: (trackId: number, patternId: number) => void;
   canPaste: boolean;
+  onReorderPatterns?: (trackId: number, patternId: number, direction: 'up' | 'down') => void;
 }
 
 const MixerComponent: React.FC<MixerProps> = ({
@@ -85,6 +86,7 @@ const MixerComponent: React.FC<MixerProps> = ({
   onCopyPattern,
   onPastePattern,
   canPaste,
+  onReorderPatterns,
 }) => {
   const t = (key: string) => (i18n[lang] as any)[key] || key;
 
@@ -146,6 +148,7 @@ const MixerComponent: React.FC<MixerProps> = ({
               onCopyPattern={onCopyPattern}
               onPastePattern={onPastePattern}
               canPaste={canPaste}
+              onReorderPatterns={(patternId, direction) => onReorderPatterns && onReorderPatterns(track.id, patternId, direction)}
             />
           ))}
         </div>

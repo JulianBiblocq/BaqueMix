@@ -48,6 +48,7 @@ interface HeaderProps {
   reverbType: 'room' | 'studio' | 'hall';
   onReverbTypeChange: (type: 'room' | 'studio' | 'hall') => void;
   onShare?: () => void;
+  version?: number;
 }
 
 const HeaderComponent: React.FC<HeaderProps> = ({
@@ -85,6 +86,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   reverbType,
   onReverbTypeChange,
   onShare,
+  version,
 }) => {
   const [addDropOpen, setAddDropOpen] = useState(false);
   const addDropRef = useRef<HTMLDivElement>(null);
@@ -309,7 +311,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
 
         {/* Center: App Title */}
         <span className="font-cactus text-[var(--cordel-text)] text-2xl font-medium tracking-widest uppercase select-none cursor-default">
-          BaqueMix
+          BaqueMix {version && <span className="text-[10px] lowercase opacity-50 ml-1 font-sans">v{version}</span>}
         </span>
 
         {/* Right: Quick actions (View Switcher and Add Instrument) */}
@@ -362,7 +364,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
               ➕
             </button>
             {addDropOpen && (
-              <div className="absolute top-10 right-0 bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] shadow-[4px_4px_0_var(--cordel-border)] min-w-[185px] max-h-[250px] overflow-y-auto z-[999]">
+              <div className="absolute top-10 right-0 bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] shadow-[4px_4px_0_var(--cordel-border)] min-w-[185px] max-h-none z-[999]">
                 {instrumentsConfig.map((inst, idx) => (
                   <div
                     key={idx}
@@ -415,7 +417,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           id="header-title-text"
           className="font-cactus text-[var(--cordel-text)] text-3xl font-medium tracking-widest uppercase select-none cursor-default drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
         >
-          BaqueMix
+          BaqueMix {version && <span className="text-xs lowercase opacity-50 ml-1 font-sans">v{version}</span>}
         </span>
         
         <div className="relative ml-2" ref={projectDropRef}>
@@ -480,7 +482,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           </button>
           
           {addDropOpen && (
-            <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] shadow-[4px_4px_0_var(--cordel-border)] min-w-[200px] max-h-[300px] overflow-y-auto z-[100]">
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] shadow-[4px_4px_0_var(--cordel-border)] min-w-[200px] max-h-none z-[100]">
               {instrumentsConfig.map((inst, idx) => (
                 <div
                   key={idx}

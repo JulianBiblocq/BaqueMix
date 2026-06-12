@@ -15,7 +15,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#3a1010',
     path: 'Alfaia/Marcante',
-    colors: { 'd': '#632b2b', 'D': '#8a2b2b', 'e': '#b55a5a', 'E': '#c74c4c', 't': '#4c1c1c', 'x': '#8c7b7b', 'i': '#ff8da1', text: '#f4ecd8' }
+    colors: { 'd': '#632b2b', 'D': '#8a2b2b', 'e': '#b55a5a', 'E': '#c74c4c', 't': '#4c1c1c', 'x': '#8c7b7b', 'i': '#ff8da1', 'c': '#a89f91', 'C': '#a89f91', text: '#f4ecd8' }
   },
   {
     id: 'meiao',
@@ -24,7 +24,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#3a2010',
     path: 'Alfaia/Meiao',
-    colors: { 'd': '#8c502b', 'D': '#ab5318', 'e': '#c79c3e', 'E': '#c98124', 't': '#4c2c16', 'x': '#9c8476', 'i': '#ffb74d', text: '#f4ecd8' }
+    colors: { 'd': '#8c502b', 'D': '#ab5318', 'e': '#c79c3e', 'E': '#c98124', 't': '#4c2c16', 'x': '#9c8476', 'i': '#ffb74d', 'c': '#a89f91', 'C': '#a89f91', text: '#f4ecd8' }
   },
   {
     id: 'repique',
@@ -33,7 +33,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#3a3010',
     path: 'Alfaia/Repique',
-    colors: { 'd': '#947f2b', 'D': '#c9a724', 'e': '#d4cca1', 'E': '#d4c492', 't': '#4d441c', 'x': '#9c9984', 'i': '#fff59d', text: '#1a1a1a' }
+    colors: { 'd': '#947f2b', 'D': '#c9a724', 'e': '#d4cca1', 'E': '#d4c492', 't': '#4d441c', 'x': '#9c9984', 'i': '#fff59d', 'c': '#a89f91', 'C': '#a89f91', text: '#1a1a1a' }
   },
   {
     id: 'caixa',
@@ -43,6 +43,15 @@ export const instrumentsConfig: InstrumentConfig[] = [
     mixerBg: '#2a103a',
     path: 'Caixa',
     colors: { 'd': '#3f255e', 'D': '#4c267a', 'e': '#925c9c', 'E': '#7a3187', 'rd': '#a855f7', 're': '#d8b4fe', 'x': '#7e7b8c', 'f': '#d946ef', 't': '#4a044e', text: '#f4ecd8' }
+  },
+  {
+    id: 'tarol',
+    iconImg: 'icones/caixa.svg',
+    name: 'Tarol',
+    type: 'hands',
+    mixerBg: '#102a3a',
+    path: 'Tarol',
+    colors: { 'd': '#3b82f6', 'D': '#1e3a8a', 'e': '#93c5fd', 'E': '#2563eb', 'x': '#3a506b', 'X': '#1c2541', 'f': '#dbeafe', 'F': '#60a5fa', 'c': '#eff6ff', 'C': '#bfdbfe', text: '#f4ecd8' }
   },
   {
     id: 'gongue',
@@ -242,6 +251,7 @@ export const i18n = {
 export const vouVadiarPreset: Preset = {
   bpm: 83,
   timeSig: "4/4",
+  version: 2,
   circles: [
     {
       id: 1,
@@ -274,7 +284,7 @@ export const vouVadiarPreset: Preset = {
       steps: 16,
       repeats: 1,
       activeSteps: [0, "GRV", 0, 0, "GRV", 0, "GRV", 0, 0, "GRV", 0, 0, "GRV", 0, "GRV", 0],
-      instrumentIdx: 4,
+      instrumentIdx: 5,
       lyrics: [],
       notes: [],
       isMute: false,
@@ -287,7 +297,7 @@ export const vouVadiarPreset: Preset = {
       steps: 16,
       repeats: 1,
       activeSteps: ["E", 0, "d", "e", "D", 0, "e", "d", "E", 0, "d", "e", "D", 0, "e", "d"],
-      instrumentIdx: 5,
+      instrumentIdx: 6,
       lyrics: [],
       notes: [],
       isMute: false,
@@ -300,7 +310,7 @@ export const vouVadiarPreset: Preset = {
       steps: 16,
       repeats: 1,
       activeSteps: ["P", 0, "P", 0, "P", 0, "P", 0, 0, "C", 0, "C", "C", 0, 0, 0],
-      instrumentIdx: 7,
+      instrumentIdx: 8,
       lyrics: ["Vou", "", "va-", "", "di-", "", "ar", "", "Car-", "Car-", "na-", "na-", "val", "", "!", ""],
       notes: ["C4", "", "C4", "", "D4", "", "D4", "", "", "E4", "", "E4", "F4", "","", ""],
       isMute: false,
@@ -313,7 +323,7 @@ export const vouVadiarPreset: Preset = {
       steps: 16,
       repeats: 1,
       activeSteps: ["P", 0, "P", 0, "P", 0, "P", 0, 0, "C", 0, "C", "C", 0, "C", 0],
-      instrumentIdx: 7,
+      instrumentIdx: 8,
       lyrics: ["Vou", "", "Pra", "", "Ba-", "", "hi-", "", "", "a", "", "Brin-", "car", "", "Eu", ""],
       notes: ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
       isMute: false,
@@ -327,6 +337,7 @@ export const vouVadiarPreset: Preset = {
 export const baqueDeImalePreset: Preset = {
   bpm: 77,
   timeSig: "4/4",
+  version: 2,
   circles: [
     {
       id: 1,
@@ -372,7 +383,7 @@ export const baqueDeImalePreset: Preset = {
       steps: 16,
       repeats: 1,
       activeSteps: ["GRV", 0, "AIG", 0, "GRV", 0, "AIG", 0, "GRV", "AIG", 0, "aig", "GRV", 0, "AIG", 0],
-      instrumentIdx: 4,
+      instrumentIdx: 5,
       lyrics: [],
       notes: [],
       isMute: false,
@@ -385,7 +396,7 @@ export const baqueDeImalePreset: Preset = {
       steps: 16,
       repeats: 1,
       activeSteps: ["E", 0, "d", "e", "D", 0, "e", "d", "E", 0, "d", "e", "D", 0, "e", "d"],
-      instrumentIdx: 5,
+      instrumentIdx: 6,
       lyrics: [],
       notes: [],
       isMute: false,
@@ -412,4 +423,15 @@ export function getMaxTicks(timeSignature: TimeSignature): number {
   if (timeSignature === '6/8') return 72;
   if (timeSignature === '12/8') return 144;
   return 96;
+}
+
+export function isDarkText(instId: string, strokeVal: string): boolean {
+  if (!strokeVal) return false;
+  if (instId === 'gongue' && (strokeVal === 'AIG' || strokeVal === 'aig')) return true;
+  if (instId === 'agbe' && ['s', 'S', 'd', 'D', 'e', 'E'].includes(strokeVal)) return true;
+  if (instId === 'caixa' && ['rg', 'Re', 're'].includes(strokeVal)) return true;
+  if (instId === 'mineiro' && strokeVal === 't') return true;
+  if (instId === 'tarol' && ['c', 'C', 'e', 'f', 'F'].includes(strokeVal)) return true;
+  if (['marcante', 'meiao', 'repique'].includes(instId) && ['c', 'C'].includes(strokeVal)) return true;
+  return false;
 }

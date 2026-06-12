@@ -33,6 +33,7 @@ interface ConsoleMixerProps {
   onPatternAssign: (trackId: number, patternId: number, measureIdx: number, val: boolean) => void;
   onAddPattern: (trackId: number) => void;
   onDeletePattern: (trackId: number, patternId: number) => void;
+  onReorderPatterns?: (trackId: number, patternId: number, direction: 'up' | 'down') => void;
   onReverbChange: (trackId: number, val: number) => void;
   onStepVolumeChange: (trackId: number, patternId: number, stepIdx: number | number[], val: number) => void;
   onStepDecayChange: (trackId: number, patternId: number, stepIdx: number | number[], val: number) => void;
@@ -104,6 +105,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
   onPatternAssign,
   onAddPattern,
   onDeletePattern,
+  onReorderPatterns,
   onReverbChange,
   onStepVolumeChange,
   onStepDecayChange,
@@ -202,6 +204,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
             onPastePattern={onPastePattern}
             canPaste={canPaste}
             onPatternNameChange={(pid, name) => onPatternNameChange && onPatternNameChange(track.id, pid, name)}
+            onReorderPatterns={(pid, direction) => onReorderPatterns && onReorderPatterns(track.id, pid, direction)}
           />
         ))}
 
@@ -383,6 +386,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
           onVoiceNoteBlur={(pid, sIdx, val) => onVoiceNoteBlur(editingTrack.id, pid, sIdx, val)}
           onAddPattern={() => onAddPattern(editingTrack.id)}
           onDeletePattern={(pid) => onDeletePattern(editingTrack.id, pid)}
+          onReorderPatterns={(pid, direction) => onReorderPatterns && onReorderPatterns(editingTrack.id, pid, direction)}
           onSelectPattern={(pid) => onTrackSelectPattern(editingTrack.id, pid)}
           onPatternAssign={(pid, mIdx, val) => onPatternAssign(editingTrack.id, pid, mIdx, val)}
           onVolumeChange={(val) => onVolumeChange(editingTrack.id, val)}
