@@ -383,7 +383,7 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
                   <span>{t('legendTarolClick')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#10b981] text-[#f4ecd8]">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#0284c7] text-[#f4ecd8]">
                     T
                   </span>
                   <span>{t('legendTarolTremer')}</span>

@@ -114,6 +114,7 @@ function getStrokesForInstrument(instId: string, instType: string, lang: string)
       { symbol: 'X', label: isFr ? 'Cerclage' : 'Toque no aro', shortcut: 'X', colorKey: 'X' },
       { symbol: 'F', label: 'Fla', shortcut: 'F', colorKey: 'F' },
       { symbol: 'C', label: isFr ? 'Click' : 'Click', shortcut: 'C', colorKey: 'C' },
+      { symbol: 'T', label: isFr ? 'Trémulo' : 'Trêmulo', shortcut: 'T', colorKey: 'T' },
     ];
   }
   if (instId === 'agbe') {
@@ -199,7 +200,8 @@ export function getNextStepValue(instId: string, instType: string, currentVal: s
     if (norm === 'E') return 'X';
     if (norm === 'X') return 'F';
     if (norm === 'F') return 'C';
-    if (norm === 'C') return 0;
+    if (norm === 'C') return 'T';
+    if (norm === 'T') return 0;
     return 0;
   }
   if (instId === 'marcante' || instId === 'meiao' || instId === 'repique') {

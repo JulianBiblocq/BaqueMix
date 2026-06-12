@@ -48,7 +48,7 @@ interface HeaderProps {
   reverbType: 'room' | 'studio' | 'hall';
   onReverbTypeChange: (type: 'room' | 'studio' | 'hall') => void;
   onShare?: () => void;
-  version?: number;
+  version?: string | number;
 }
 
 const HeaderComponent: React.FC<HeaderProps> = ({

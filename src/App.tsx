@@ -322,7 +322,7 @@ const base64ToBlob = (base64Data: string): Blob => {
 };
 
 export default function App() {
-  const CURRENT_VERSION = 34; // Matches version.json
+  const CURRENT_VERSION = "2.0"; // Matches version.json
 
   // PWA Auto-Update Check
   useEffect(() => {
@@ -333,9 +333,9 @@ export default function App() {
         );
         if (response.ok) {
           const data = await response.json();
-          const latestVersion = Number(data.version);
+          const latestVersion = String(data.version);
           
-          if (latestVersion > CURRENT_VERSION) {
+          if (latestVersion !== CURRENT_VERSION) {
             console.log(`New version detected: ${latestVersion}. Clearing Service Worker and reloading...`);
             if ('serviceWorker' in navigator) {
               const registrations = await navigator.serviceWorker.getRegistrations();
