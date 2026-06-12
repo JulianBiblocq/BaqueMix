@@ -183,7 +183,7 @@
         "AIG",
         0
       ],
-      "instrumentIdx": 4,
+      "instrumentIdx": 5,
       "lyrics": [],
       "notes": [],
       "isMute": false,
@@ -214,7 +214,7 @@
         "g",
         "d"
       ],
-      "instrumentIdx": 5,
+      "instrumentIdx": 6,
       "lyrics": [],
       "notes": [],
       "isMute": false,
@@ -223,5 +223,6 @@
       "volumeVal": 80,
       "radius": 495
     }
-  ]
+  ],
+  "version": 2
 }

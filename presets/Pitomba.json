@@ -350,7 +350,7 @@
         "GRV",
         0
       ],
-      "instrumentIdx": 4,
+      "instrumentIdx": 5,
       "lyrics": [
         "",
         "",
@@ -415,7 +415,7 @@
         "P",
         "T"
       ],
-      "instrumentIdx": 6,
+      "instrumentIdx": 7,
       "lyrics": [
         "",
         "",
@@ -458,5 +458,6 @@
       "volumeVal": 76,
       "radius": 495
     }
-  ]
+  ],
+  "version": 2
 }

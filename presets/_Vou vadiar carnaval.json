@@ -1141,7 +1141,7 @@
     },
     {
       "id": 1780661031424,
-      "instrumentIdx": 4,
+      "instrumentIdx": 5,
       "patterns": [
         {
           "id": 5,
@@ -1709,7 +1709,7 @@
     },
     {
       "id": 1780661028245,
-      "instrumentIdx": 5,
+      "instrumentIdx": 6,
       "patterns": [
         {
           "id": 6,
@@ -2277,7 +2277,7 @@
     },
     {
       "id": 1780661028309,
-      "instrumentIdx": 7,
+      "instrumentIdx": 8,
       "patterns": [
         {
           "id": 1779,
@@ -2763,5 +2763,6 @@
     "immediate",
     "immediate"
   ],
-  "songSections": []
+  "songSections": [],
+  "version": 2
 }
