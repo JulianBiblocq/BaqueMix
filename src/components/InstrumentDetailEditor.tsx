@@ -111,9 +111,9 @@ function getStrokesForInstrument(instId: string, instType: string, lang: string)
       { symbol: 'd', label: isFr ? 'Main Droite Faible' : 'Mão Direita Fraca', shortcut: 'd', colorKey: 'd' },
       { symbol: 'E', label: isFr ? 'Main Gauche Forte' : 'Mão Esquerda Forte', shortcut: 'E', colorKey: 'E' },
       { symbol: 'e', label: isFr ? 'Main Gauche Faible' : 'Mão Esquerda Fraca', shortcut: 'e', colorKey: 'e' },
-      { symbol: 'x', label: isFr ? 'Cerclage' : 'Toque no aro', shortcut: 'X → x', colorKey: 'x' },
-      { symbol: 'f', label: 'Fla', shortcut: 'F → f', colorKey: 'f' },
-      { symbol: 'c', label: isFr ? 'Click' : 'Click', shortcut: 'C → c', colorKey: 'c' },
+      { symbol: 'X', label: isFr ? 'Cerclage' : 'Toque no aro', shortcut: 'X', colorKey: 'X' },
+      { symbol: 'F', label: 'Fla', shortcut: 'F', colorKey: 'F' },
+      { symbol: 'C', label: isFr ? 'Click' : 'Click', shortcut: 'C', colorKey: 'C' },
     ];
   }
   if (instId === 'agbe') {
@@ -196,10 +196,10 @@ export function getNextStepValue(instId: string, instType: string, currentVal: s
     if (norm === 'd') return 'D';
     if (norm === 'D') return 'e';
     if (norm === 'e') return 'E';
-    if (norm === 'E') return 'x';
-    if (norm === 'x') return 'f';
-    if (norm === 'f') return 'c';
-    if (norm === 'c') return 0;
+    if (norm === 'E') return 'X';
+    if (norm === 'X') return 'F';
+    if (norm === 'F') return 'C';
+    if (norm === 'C') return 0;
     return 0;
   }
   if (instId === 'marcante' || instId === 'meiao' || instId === 'repique') {

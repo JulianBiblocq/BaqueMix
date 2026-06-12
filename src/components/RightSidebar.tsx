@@ -358,6 +358,39 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
               </div>
             </div>
 
+            {/* Tarol Specific Strokes */}
+            <div className="relative flex flex-col gap-1 bg-[var(--cordel-bg)] cordel-border-sm p-2">
+              <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">
+                🥁 Tarol (Extras)
+              </span>
+              <div className="flex flex-col gap-1 text-[11px] text-[var(--cordel-text)]">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#3a506b] text-[#f4ecd8]">
+                    X / x
+                  </span>
+                  <span>{t('legendTarolCerclage')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#60a5fa] text-[#1a1a1a]">
+                    F / f
+                  </span>
+                  <span>{t('legendTarolFla')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#bfdbfe] text-[#1a1a1a]">
+                    C / c
+                  </span>
+                  <span>{t('legendTarolClick')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#10b981] text-[#f4ecd8]">
+                    T / t
+                  </span>
+                  <span>{t('legendTarolTremer')}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Gongue */}
             <div className="relative flex flex-col gap-1 bg-[var(--cordel-bg)] cordel-border-sm p-2">
               <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">

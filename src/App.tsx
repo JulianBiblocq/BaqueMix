@@ -26,6 +26,7 @@ import { RightSidebar } from './components/RightSidebar';
 import { TimelineSequencer } from './components/TimelineSequencer';
 import { TouchStrokeSelector, TouchSelectorState } from './components/TouchStrokeSelector';
 import { saveVocalRecording, getVocalRecording, deleteVocalRecording } from './db';
+import { TarolSampler } from './TarolSampler';
 
 // Module scope audio engines to avoid duplicate instantiations on React re-renders
 let bMetroClick: Tone.Synth | null = null;
@@ -34,6 +35,7 @@ let whistleVibrato: Tone.Vibrato | null = null;
 const channels: { [id: string]: Tone.Channel } = {};
 const meters: { [id: string]: Tone.Meter } = {};
 const samplers: { [id: string]: Tone.Players } = {};
+const tarolSampler = new TarolSampler();
 const voiceSynths: { [id: string]: any } = {};
 let loadedCount = 0;
 let mainLoop: Tone.Loop | null = null;
@@ -172,6 +174,7 @@ function buildTickSchedule(
           else if (state === 'x' || state === 'X') { targetKey = 'cerclage'; isStrong = true; }
           else if (state === 'c' || state === 'C') { targetKey = 'click'; isStrong = true; }
           else if (state === 'f' || state === 'F') { targetKey = 'fla'; isStrong = true; }
+          else if (state === 't' || state === 'T') { targetKey = 'tremer'; isStrong = true; }
         } else if (inst.id === 'agbe') {
           if (state === 'G' || state === 'D' || state === 'E') { targetKey = 'fort'; isStrong = true; }
           else if (state === 'g' || state === 'd' || state === 'e') { targetKey = 'faible'; }
@@ -319,7 +322,7 @@ const base64ToBlob = (base64Data: string): Blob => {
 };
 
 export default function App() {
-  const CURRENT_VERSION = 32; // Matches version.json
+  const CURRENT_VERSION = 33; // Matches version.json
 
   // PWA Auto-Update Check
   useEffect(() => {
@@ -979,6 +982,19 @@ export default function App() {
             envelope: { attack: 0.05, decay: 0.2 },
             volume: -10,
           }).connect(channels[inst.id]);
+        } else if (inst.id === 'tarol') {
+          tarolSampler.connect(channels[inst.id]);
+          const baseUrl = `${ASSETS_BASE_URL}sons-maracatu/${inst.path}/`;
+          tarolSampler.load(baseUrl)
+            .then(() => {
+              loadedCount++;
+              if (loadedCount >= totalAudioCount) {
+                setIsLoading(false);
+              }
+            })
+            .catch((err) => {
+              console.error("Failed to load Tarol Round-Robin sampler:", err);
+            });
         } else {
           let urls;
           if (inst.id === 'caixa') {
@@ -1014,16 +1030,6 @@ export default function App() {
               fort: 'fort.wav',
               barulho: 'barulho.wav',
               saut: 'saut.wav',
-            };
-          } else if (inst.id === 'tarol') {
-            urls = {
-              'faible-d': 'faible-d.wav',
-              'faible-e': 'faible-e.wav',
-              'fort-D': 'fort-D.wav',
-              'fort-E': 'fort-E.wav',
-              cerclage: 'cerclage.wav',
-              click: 'click.wav',
-              fla: 'fla.wav',
             };
           } else {
             urls = { faible: 'faible.wav', fort: 'fort.wav' };
@@ -1208,6 +1214,26 @@ export default function App() {
         if (scheduledNotes) {
           for (const note of scheduledNotes) {
             try {
+              if (note.instId === 'tarol') {
+                // Velocity humanization (random — can't be pre-computed)
+                let vel = 1.0;
+                if (isSwingOnRef.current) {
+                  vel = note.isStrong
+                    ? 0.8 + (nextRandom() * 0.2 - 0.1)
+                    : 0.4 + (nextRandom() * 0.24 - 0.12);
+                }
+                vel *= note.stepVolMultiplier;
+
+                // Micro-timing offset
+                const stepDurSec = tick96nSec * (currentTicks / note.stepsPerMeasure);
+                const microOffset = (note.microtimingPct / 100) * stepDurSec * 0.5;
+                const triggerTime = swingTime + microOffset;
+
+                tarolSampler.play(note.playerKey, triggerTime, note.baseGain * vel, note.stepDecayMultiplier);
+                hitTriggersRef.current.push({ trackId: note.trackId, stepIndex: note.circleStepIdx, state: note.state });
+                continue;
+              }
+
               const playerGroup = samplers[note.instId];
               if (!playerGroup?.has(note.playerKey)) continue;
               const player = playerGroup.player(note.playerKey);
@@ -1860,7 +1886,11 @@ export default function App() {
       }
       // Stop ongoing voice synthesizers decay
       instrumentsConfig.forEach((inst) => {
-        if (samplers[inst.id]) samplers[inst.id].stopAll();
+        if (inst.id === 'tarol') {
+          tarolSampler.stopAll();
+        } else if (samplers[inst.id]) {
+          samplers[inst.id].stopAll();
+        }
         if (voiceSynths[inst.id]) voiceSynths[inst.id].triggerRelease();
       });
       (Object.values(vocalPlayersRef.current) as any[]).forEach((player) => {
@@ -1882,7 +1912,11 @@ export default function App() {
       stopVocalRecording();
     }
     instrumentsConfig.forEach((inst) => {
-      if (samplers[inst.id]) samplers[inst.id].stopAll();
+      if (inst.id === 'tarol') {
+        tarolSampler.stopAll();
+      } else if (samplers[inst.id]) {
+        samplers[inst.id].stopAll();
+      }
       if (voiceSynths[inst.id]) voiceSynths[inst.id].triggerRelease();
     });
     (Object.values(vocalPlayersRef.current) as any[]).forEach((player) => {
@@ -2779,7 +2813,11 @@ export default function App() {
     Tone.Transport.stop();
     
     instrumentsConfig.forEach((inst) => {
-      if (samplers[inst.id]) samplers[inst.id].stopAll();
+      if (inst.id === 'tarol') {
+        tarolSampler.stopAll();
+      } else if (samplers[inst.id]) {
+        samplers[inst.id].stopAll();
+      }
       if (voiceSynths[inst.id]) voiceSynths[inst.id].triggerRelease();
     });
     (Object.values(vocalPlayersRef.current) as any[]).forEach((player) => {
@@ -3044,8 +3082,14 @@ export default function App() {
                 }
               } else if (inst.id === 'tarol') {
                 const lowerChar = cleanChar.toLowerCase();
-                if (['x', 'c', 'f', 'd', 'e'].includes(lowerChar)) {
+                if (['d', 'D', 'e', 'E'].includes(cleanChar)) {
                   parsed = cleanChar;
+                } else if (lowerChar === 'x') {
+                  parsed = 'X';
+                } else if (lowerChar === 'f') {
+                  parsed = 'F';
+                } else if (lowerChar === 'c') {
+                  parsed = 'C';
                 }
               } else if (inst.id === 'agbe') {
                 const lowerChar = cleanChar.toLowerCase();

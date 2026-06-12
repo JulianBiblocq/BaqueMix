@@ -105,9 +105,9 @@ const getStrokeDescription = (instId: string, instType: string, stroke: string, 
       case 'd': return isPt ? 'Mão Direita (Fraca)' : 'Main Droite (Faible)';
       case 'E': return isPt ? 'Mão Esquerda (Forte)' : 'Main Gauche (Fort)';
       case 'e': return isPt ? 'Mão Esquerda (Fraca)' : 'Main Gauche (Faible)';
-      case 'x': return isPt ? 'Toque no aro' : 'Coup sur le cerclage';
-      case 'f': return isPt ? 'Fla' : 'Fla';
-      case 'c': return isPt ? 'Click' : 'Click';
+      case 'X': return isPt ? 'Toque no aro' : 'Coup sur le cerclage';
+      case 'F': return isPt ? 'Fla' : 'Fla';
+      case 'C': return isPt ? 'Click' : 'Click';
       default: return stroke;
     }
   }

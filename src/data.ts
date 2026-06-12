@@ -51,7 +51,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#102a3a',
     path: 'Tarol',
-    colors: { 'd': '#3b82f6', 'D': '#1e3a8a', 'e': '#93c5fd', 'E': '#2563eb', 'x': '#3a506b', 'X': '#1c2541', 'f': '#dbeafe', 'F': '#60a5fa', 'c': '#eff6ff', 'C': '#bfdbfe', text: '#f4ecd8' }
+    colors: { 'd': '#3b82f6', 'D': '#1e3a8a', 'e': '#93c5fd', 'E': '#2563eb', 'X': '#3a506b', 'F': '#60a5fa', 'C': '#bfdbfe', text: '#f4ecd8' }
   },
   {
     id: 'gongue',
@@ -113,6 +113,10 @@ export const i18n = {
     legendCaixaCerclage: "Toque no aro",
     legendCaixaFla: "Fla",
     legendCaixaBarulho: "Tremor",
+    legendTarolCerclage: "Toque no aro",
+    legendTarolFla: "Fla",
+    legendTarolClick: "Click",
+    legendTarolTremer: "Trêmulo",
     legendAlfaiaBarulho: "Tremor",
     legendAlfaiaCerclage: "Toque no aro (cerclage)",
     legendAlfaiaIguarassu: "Bacalhau (iguarassu)",
@@ -190,6 +194,10 @@ export const i18n = {
     legendCaixaCerclage: "Coup sur le cerclage",
     legendCaixaFla: "Fla",
     legendCaixaBarulho: "Tremblement",
+    legendTarolCerclage: "Coup sur le cerclage",
+    legendTarolFla: "Fla",
+    legendTarolClick: "Click",
+    legendTarolTremer: "Trémolo",
     legendAlfaiaBarulho: "Tremblement",
     legendAlfaiaCerclage: "Coup sur le cerclage",
     legendAlfaiaIguarassu: "Bacalhau (iguarassu)",
@@ -431,7 +439,7 @@ export function isDarkText(instId: string, strokeVal: string): boolean {
   if (instId === 'agbe' && ['s', 'S', 'd', 'D', 'e', 'E'].includes(strokeVal)) return true;
   if (instId === 'caixa' && ['rg', 'Re', 're'].includes(strokeVal)) return true;
   if (instId === 'mineiro' && strokeVal === 't') return true;
-  if (instId === 'tarol' && ['c', 'C', 'e', 'f', 'F'].includes(strokeVal)) return true;
+  if (instId === 'tarol' && ['C', 'e', 'F'].includes(strokeVal)) return true;
   if (['marcante', 'meiao', 'repique'].includes(instId) && ['c', 'C'].includes(strokeVal)) return true;
   return false;
 }
