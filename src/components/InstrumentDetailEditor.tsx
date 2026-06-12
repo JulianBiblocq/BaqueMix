@@ -75,34 +75,34 @@ function getStrokesForInstrument(instId: string, instType: string, lang: string)
       { symbol: 'D/d', label: isFr ? 'Main Droite' : 'Mão Direita', shortcut: 'D / d', colorKey: 'D' },
       { symbol: 'E/e', label: isFr ? 'Main Gauche' : 'Mão Esquerda', shortcut: 'E / e', colorKey: 'E' },
       { symbol: 'rd', label: isFr ? 'Roulement court D' : 'Rufada Direita', shortcut: 'R → rd', colorKey: 'rd' },
-      { symbol: 'Re', label: isFr ? 'Roulement court G' : 'Rufada Esquerda', shortcut: 'Z / z', colorKey: 'Re' },
+      { symbol: 're', label: isFr ? 'Roulement court G' : 'Rufada Esquerda', shortcut: 'Z → re', colorKey: 're' },
       { symbol: 'x', label: isFr ? 'Cerclage' : 'Toque no aro', shortcut: 'X → x', colorKey: 'x' },
       { symbol: 'f', label: 'Fla', shortcut: 'F → f', colorKey: 'f' },
-      { symbol: 'T/t', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 'T / t', colorKey: 'T' },
+      { symbol: 't', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 't', colorKey: 't' },
     ];
   }
   if (instId === 'marcante' || instId === 'meiao' || instId === 'repique') {
     return [
       { symbol: 'D/d', label: isFr ? 'Main Droite' : 'Mão Direita', shortcut: 'D / d', colorKey: 'D' },
       { symbol: 'E/e', label: isFr ? 'Main Gauche' : 'Mão Esquerda', shortcut: 'E / e', colorKey: 'E' },
-      { symbol: 'T/t', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 'T / t', colorKey: 'T' },
       { symbol: 'x', label: isFr ? 'Cerclage' : 'Toque no aro', shortcut: 'X → x', colorKey: 'x' },
       { symbol: 'i', label: 'Iguarassu', shortcut: 'I → i', colorKey: 'i' },
+      { symbol: 't', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 't', colorKey: 't' },
     ];
   }
   if (instType === 'gongue') {
     return [
       { symbol: 'G/g', label: 'Grave', shortcut: 'G / g', colorKey: 'GRV' },
       { symbol: 'A/a', label: isFr ? 'Aigu' : 'Agudo', shortcut: 'A / a', colorKey: 'AIG' },
-      { symbol: 'T/t', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 'T / t', colorKey: 'T' },
+      { symbol: 't', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 't', colorKey: 't' },
     ];
   }
   if (instId === 'agbe') {
     return [
       { symbol: 'E/e', label: isFr ? 'Gauche' : 'Esquerda', shortcut: 'E / e', colorKey: 'E' },
       { symbol: 'D/d', label: isFr ? 'Droite' : 'Direita', shortcut: 'D / d', colorKey: 'D' },
-      { symbol: 'T/t', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 'T / t', colorKey: 'T' },
       { symbol: 's', label: isFr ? 'Saut' : 'Salto', shortcut: 'S → s', colorKey: 's' },
+      { symbol: 't', label: isFr ? 'Tremblement' : 'Tremor', shortcut: 't', colorKey: 't' },
     ];
   }
   if (instId === 'mineiro') {
@@ -136,11 +136,12 @@ export function getNextStepValue(instId: string, instType: string, currentVal: s
   }
   if (instId === 'agbe') {
     if (norm === 0 || norm === '0' || !norm) return 'e';
-    if (norm === 'g' || norm === 'e') return 'E';
-    if (norm === 'G' || norm === 'E') return 'd';
+    if (norm === 'e' || norm === 'g') return 'E';
+    if (norm === 'E' || norm === 'G') return 'd';
     if (norm === 'd') return 'D';
-    if (norm === 'D') return 't';
-    if (norm === 'b' || norm === 't') return 's';
+    if (norm === 'D') return 's';
+    if (norm === 's') return 't';
+    if (norm === 't' || norm === 'b') return 0;
     return 0;
   }
   if (instType === 'gongue') {
@@ -149,30 +150,31 @@ export function getNextStepValue(instId: string, instType: string, currentVal: s
     if (norm === 'GRV') return 'aig';
     if (norm === 'aig') return 'AIG';
     if (norm === 'AIG') return 't';
-    if (norm === 'b' || norm === 't') return 0;
+    if (norm === 't' || norm === 'b') return 0;
     return 0;
   }
   if (instId === 'caixa') {
     if (norm === 0 || norm === '0' || !norm) return 'd';
     if (norm === 'd') return 'D';
     if (norm === 'D') return 'e';
-    if (norm === 'g' || norm === 'e') return 'E';
-    if (norm === 'G' || norm === 'E') return 'rd';
-    if (norm === 'rd') return 'Re';
-    if (norm === 'rg' || norm === 'Re' || norm === 're') return 'x';
+    if (norm === 'e' || norm === 'g') return 'E';
+    if (norm === 'E' || norm === 'G') return 'rd';
+    if (norm === 'rd') return 're';
+    if (norm === 're' || norm === 'Re' || norm === 'rg') return 'x';
     if (norm === 'x') return 'f';
     if (norm === 'f') return 't';
-    if (norm === 'b' || norm === 't') return 0;
+    if (norm === 't' || norm === 'b') return 0;
     return 0;
   }
   if (instId === 'marcante' || instId === 'meiao' || instId === 'repique') {
     if (norm === 0 || norm === '0' || !norm) return 'd';
     if (norm === 'd') return 'D';
     if (norm === 'D') return 'e';
-    if (norm === 'g' || norm === 'e') return 'E';
-    if (norm === 'G' || norm === 'E') return 't';
-    if (norm === 'b' || norm === 't') return 'x';
+    if (norm === 'e' || norm === 'g') return 'E';
+    if (norm === 'E' || norm === 'G') return 'x';
     if (norm === 'x') return 'i';
+    if (norm === 'i') return 't';
+    if (norm === 't' || norm === 'b') return 0;
     return 0;
   }
   // default
@@ -1355,7 +1357,14 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
             <div className="flex flex-col gap-2">
               {strokes.map((stroke, sIdx) => {
                 const bgColor = inst.colors[stroke.colorKey] || '#666';
-                const txtColor = inst.colors.text || '#f4ecd8';
+                let txtColor = inst.colors.text || '#f4ecd8';
+                if (
+                  (inst.id === 'gongue' && (stroke.colorKey === 'AIG' || stroke.colorKey === 'aig')) ||
+                  (inst.id === 'agbe' && (stroke.colorKey === 's' || stroke.colorKey === 'd' || stroke.colorKey === 'D')) ||
+                  (inst.id === 'caixa' && (stroke.colorKey === 'rg' || stroke.colorKey === 'Re' || stroke.colorKey === 're'))
+                ) {
+                  txtColor = '#1a1a1a';
+                }
 
                 return (
                   <div key={sIdx} className="flex items-center gap-2.5">

@@ -627,15 +627,4 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   );
 };
 
-export const Header = React.memo(HeaderComponent, (prevProps, nextProps) => {
-  const keys = Object.keys(prevProps) as Array<keyof HeaderProps>;
-  for (const key of keys) {
-    if (typeof prevProps[key] === 'function') {
-      continue;
-    }
-    if (prevProps[key] !== nextProps[key]) {
-      return false;
-    }
-  }
-  return true;
-});
+export const Header = HeaderComponent;

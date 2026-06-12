@@ -406,8 +406,12 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
                 if (val !== 0 && val !== '') {
                   const bgColor = inst.colors[val] || '#111';
                   let txtColor = inst.colors.text || '#fff';
-                  if (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) {
-                    txtColor = '#000';
+                  if (
+                    (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) ||
+                    (inst.id === 'agbe' && (val === 's' || val === 'd' || val === 'D')) ||
+                    (inst.id === 'caixa' && (val === 'rg' || val === 'Re' || val === 're'))
+                  ) {
+                    txtColor = '#1a1a1a';
                   }
                   colorStyle = {
                     backgroundColor: bgColor,
@@ -593,8 +597,12 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
                 if (val !== 0 && val !== '') {
                   const bgColor = inst.colors[val] || '#111';
                   let txtColor = inst.colors.text || '#fff';
-                  if (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) {
-                    txtColor = '#000';
+                  if (
+                    (inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) ||
+                    (inst.id === 'agbe' && (val === 's' || val === 'd' || val === 'D')) ||
+                    (inst.id === 'caixa' && (val === 'rg' || val === 'Re' || val === 're'))
+                  ) {
+                    txtColor = '#1a1a1a';
                   }
                   colorStyle = {
                     backgroundColor: bgColor,

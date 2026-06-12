@@ -299,12 +299,6 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
               </span>
               <div className="flex flex-col gap-1 text-[11px] text-[var(--cordel-text)]">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#4c1c1c] text-[#f4ecd8] mr-1">
-                    T / t
-                  </span>
-                  <span>{t('legendAlfaiaBarulho')}</span>
-                </div>
-                <div className="flex items-center gap-2">
                   <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#8c7b7b] text-[#f4ecd8]">
                     X / x
                   </span>
@@ -315,6 +309,12 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
                     I / i
                   </span>
                   <span>{t('legendAlfaiaIguarassu')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#4c1c1c] text-[#f4ecd8]">
+                    t
+                  </span>
+                  <span>{t('legendAlfaiaBarulho')}</span>
                 </div>
               </div>
             </div>
@@ -351,7 +351,7 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#4a044e] text-[#f4ecd8]">
-                    T / t
+                    t
                   </span>
                   <span>{t('legendCaixaBarulho')}</span>
                 </div>
@@ -378,7 +378,7 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#6d4c41] text-[#f4ecd8]">
-                    T / t
+                    t
                   </span>
                   <span>{t('gongueBarulho')}</span>
                 </div>
@@ -404,16 +404,16 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
                   <span>{t('agbeD')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#133816] text-[#f4ecd8]">
-                    T / t
-                  </span>
-                  <span>{t('legendAgbeBarulho')}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#86efac] text-[#1a1a1a]">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#dcfce7] text-[#1a1a1a]">
                     S / s
                   </span>
                   <span>{t('legendAgbeSaut')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-11 h-[18px] text-[9px] font-bold bg-[#052e16] text-[#f4ecd8]">
+                    t
+                  </span>
+                  <span>{t('legendAgbeBarulho')}</span>
                 </div>
               </div>
             </div>

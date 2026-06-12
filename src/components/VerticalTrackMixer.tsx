@@ -373,7 +373,15 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
 
                   const isActive = val !== 0;
                   const stepColor = isActive ? (inst.colors[val as any] || 'var(--cordel-text)') : 'transparent';
-                  const textColor = isActive ? (inst.colors.text || 'var(--cordel-bg)') : 'var(--cordel-text)';
+                  let textColor = isActive ? (inst.colors.text || 'var(--cordel-bg)') : 'var(--cordel-text)';
+                  if (
+                    isActive &&
+                    ((inst.id === 'gongue' && (val === 'AIG' || val === 'aig')) ||
+                     (inst.id === 'agbe' && (val === 's' || val === 'd' || val === 'D')) ||
+                     (inst.id === 'caixa' && (val === 'rg' || val === 'Re' || val === 're')))
+                  ) {
+                    textColor = '#1a1a1a';
+                  }
 
                   acc.push(
                     <input

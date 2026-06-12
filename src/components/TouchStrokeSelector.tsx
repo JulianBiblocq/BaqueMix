@@ -265,8 +265,12 @@ export const TouchStrokeSelector: React.FC<TouchStrokeSelectorProps> = ({
 
             let bgColor = isSilence ? '#7f8c8d' : (inst.colors[stroke] || '#111');
             let textColor = isSilence ? '#fff' : (inst.colors.text || '#fff');
-            if (inst.id === 'gongue' && (stroke === 'AIG' || stroke === 'aig')) {
-              textColor = '#000';
+            if (
+              (inst.id === 'gongue' && (stroke === 'AIG' || stroke === 'aig')) ||
+              (inst.id === 'agbe' && (stroke === 's' || stroke === 'd' || stroke === 'D')) ||
+              (inst.id === 'caixa' && (stroke === 'rg' || stroke === 'Re' || stroke === 're'))
+            ) {
+              textColor = '#1a1a1a';
             }
 
             // Display label formatting

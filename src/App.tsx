@@ -65,7 +65,7 @@ const markersCache = new Map<string, number[]>();
 function getCachedMarkers(timeSig: string, ticks: number): number[] {
   const key = `${timeSig}_${ticks}`;
   if (!markersCache.has(key)) {
-    markersCache.set(key, getMarkers(timeSig, ticks));
+    markersCache.set(key, getMarkers(timeSig as any, ticks));
   }
   return markersCache.get(key)!;
 }
@@ -1720,10 +1720,20 @@ export default function App() {
     if (inst && inst.type !== 'voice') {
       for (let i = 0; i < p.steps; i++) {
         const val = p.activeSteps[i];
-        if (val === 'G') p.activeSteps[i] = 'E';
-        else if (val === 'g') p.activeSteps[i] = 'e';
-        else if (val === 'rg' || val === 'rf') p.activeSteps[i] = 'Re';
-        else if (val === 'b') p.activeSteps[i] = 't';
+        if (inst.id === 'caixa' || inst.id === 'marcante' || inst.id === 'meiao' || inst.id === 'repique' || inst.id === 'agbe') {
+          if (val === 'G') p.activeSteps[i] = 'E';
+          else if (val === 'g') p.activeSteps[i] = 'e';
+        }
+        if (inst.id === 'caixa') {
+          if (val === 'rg' || val === 'rf' || val === 'Re') {
+            p.activeSteps[i] = 're';
+          }
+        }
+        if (['caixa', 'marcante', 'meiao', 'repique', 'gongue', 'agbe'].includes(inst.id)) {
+          if (val === 'b' || val === 'T') {
+            p.activeSteps[i] = 't';
+          }
+        }
       }
     }
 
@@ -2969,21 +2979,20 @@ export default function App() {
                 else if (cleanChar === 'g') parsed = 'grv';
                 else if (cleanChar === 'A') parsed = 'AIG';
                 else if (cleanChar === 'a') parsed = 'aig';
-                else if (['T', 't'].includes(cleanChar)) parsed = cleanChar;
+                else if (cleanChar === 't') parsed = 't';
               } else if (inst.id === 'mineiro') {
                 if (['P', 'T', 'p', 't'].includes(cleanChar)) parsed = cleanChar;
               } else if (inst.id === 'caixa') {
                 const normVal = val.trim().toLowerCase();
                 if (normVal === 'rd') parsed = 'rd';
-                else if (normVal === 're') parsed = 'Re';
-                else if (normVal === 'rg') parsed = 'Re';
+                else if (normVal === 're') parsed = 're';
                 else {
                   const lowerChar = cleanChar.toLowerCase();
                   if (lowerChar === 'r') parsed = 'rd';
-                  else if (lowerChar === 'z') parsed = 'Re';
+                  else if (lowerChar === 'z') parsed = 're';
                   else if (lowerChar === 'x') parsed = 'x';
                   else if (lowerChar === 'f') parsed = 'f';
-                  else if (lowerChar === 't') parsed = cleanChar;
+                  else if (lowerChar === 't') parsed = 't';
                   else if (['d', 'e'].includes(lowerChar)) {
                     parsed = cleanChar;
                   }
@@ -2992,8 +3001,8 @@ export default function App() {
                 const lowerChar = cleanChar.toLowerCase();
                 if (['x', 'i'].includes(lowerChar)) {
                   parsed = lowerChar;
-                } else if (['t'].includes(lowerChar)) {
-                  parsed = cleanChar;
+                } else if (cleanChar === 't') {
+                  parsed = 't';
                 } else if (['d', 'e'].includes(lowerChar)) {
                   parsed = cleanChar;
                 }
@@ -3001,8 +3010,8 @@ export default function App() {
                 const lowerChar = cleanChar.toLowerCase();
                 if (['s'].includes(lowerChar)) {
                   parsed = cleanChar;
-                } else if (['t'].includes(lowerChar)) {
-                  parsed = cleanChar;
+                } else if (cleanChar === 't') {
+                  parsed = 't';
                 } else if (['d', 'e'].includes(lowerChar)) {
                   parsed = cleanChar;
                 }
@@ -3048,7 +3057,7 @@ export default function App() {
       prevEl.focus();
       prevEl.select();
     } else if (
-      ['d', 'D', 'g', 'G', 'p', 'P', 't', 'T', 'a', 'A', 'r', 'R', 'e', 'E', 'x', 'X', 'f', 'F', 'b', 'B', 'i', 'I', 's', 'S'].includes(key) &&
+      ['d', 'D', 'p', 'P', 't', 'T', 'g', 'G', 'a', 'A', 'r', 'R', 'e', 'E', 'x', 'X', 'f', 'F', 'i', 'I', 's', 'S'].includes(key) &&
       indexInGrid < inputs.length - 1
     ) {
       // Focus advance on character entry

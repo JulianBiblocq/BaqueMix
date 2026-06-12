@@ -15,7 +15,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#3a1010',
     path: 'Alfaia/Marcante',
-    colors: { 'd': '#632b2b', 'D': '#8a2b2b', 'g': '#b55a5a', 'G': '#c74c4c', 'e': '#b55a5a', 'E': '#c74c4c', 'b': '#4c1c1c', 't': '#4c1c1c', 'T': '#4c1c1c', 'x': '#8c7b7b', 'i': '#ff8da1', text: '#f4ecd8' }
+    colors: { 'd': '#632b2b', 'D': '#8a2b2b', 'e': '#b55a5a', 'E': '#c74c4c', 't': '#4c1c1c', 'x': '#8c7b7b', 'i': '#ff8da1', text: '#f4ecd8' }
   },
   {
     id: 'meiao',
@@ -24,7 +24,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#3a2010',
     path: 'Alfaia/Meiao',
-    colors: { 'd': '#8c502b', 'D': '#ab5318', 'g': '#c79c3e', 'G': '#c98124', 'e': '#c79c3e', 'E': '#c98124', 'b': '#4c2c16', 't': '#4c2c16', 'T': '#4c2c16', 'x': '#9c8476', 'i': '#ffb74d', text: '#f4ecd8' }
+    colors: { 'd': '#8c502b', 'D': '#ab5318', 'e': '#c79c3e', 'E': '#c98124', 't': '#4c2c16', 'x': '#9c8476', 'i': '#ffb74d', text: '#f4ecd8' }
   },
   {
     id: 'repique',
@@ -33,7 +33,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#3a3010',
     path: 'Alfaia/Repique',
-    colors: { 'd': '#947f2b', 'D': '#c9a724', 'g': '#d4cca1', 'G': '#d4c492', 'e': '#d4cca1', 'E': '#d4c492', 'b': '#4d441c', 't': '#4d441c', 'T': '#4d441c', 'x': '#9c9984', 'i': '#fff59d', text: '#1a1a1a' }
+    colors: { 'd': '#947f2b', 'D': '#c9a724', 'e': '#d4cca1', 'E': '#d4c492', 't': '#4d441c', 'x': '#9c9984', 'i': '#fff59d', text: '#1a1a1a' }
   },
   {
     id: 'caixa',
@@ -42,7 +42,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#2a103a',
     path: 'Caixa',
-    colors: { 'd': '#3f255e', 'D': '#4c267a', 'g': '#925c9c', 'G': '#7a3187', 'e': '#925c9c', 'E': '#7a3187', 'rd': '#a855f7', 'rg': '#d8b4fe', 'Re': '#d8b4fe', 're': '#d8b4fe', 'x': '#7e7b8c', 'f': '#d946ef', 'b': '#4a044e', 't': '#4a044e', 'T': '#4a044e', text: '#f4ecd8' }
+    colors: { 'd': '#3f255e', 'D': '#4c267a', 'e': '#925c9c', 'E': '#7a3187', 'rd': '#a855f7', 're': '#d8b4fe', 'x': '#7e7b8c', 'f': '#d946ef', 't': '#4a044e', text: '#f4ecd8' }
   },
   {
     id: 'gongue',
@@ -51,7 +51,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'gongue',
     mixerBg: '#1a1a1a',
     path: 'Gongue',
-    colors: { 'grv': '#444444', 'GRV': '#222222', 'aig': '#7f8c8d', 'AIG': '#bdc3c7', 'b': '#6d4c41', 't': '#6d4c41', 'T': '#6d4c41', text: '#f4ecd8' }
+    colors: { 'grv': '#444444', 'GRV': '#222222', 'aig': '#7f8c8d', 'AIG': '#bdc3c7', 't': '#6d4c41', text: '#f4ecd8' }
   },
   {
     id: 'agbe',
@@ -60,7 +60,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'shake',
     mixerBg: '#103a20',
     path: 'Agbe',
-    colors: { 'g': '#22c55e', 'G': '#15803d', 'e': '#22c55e', 'E': '#15803d', 'd': '#86efac', 'D': '#4ade80', 'b': '#052e16', 't': '#052e16', 'T': '#052e16', 's': '#dcfce7', text: '#f4ecd8' }
+    colors: { 'e': '#22c55e', 'E': '#15803d', 'd': '#86efac', 'D': '#4ade80', 's': '#dcfce7', 't': '#052e16', text: '#f4ecd8' }
   },
   {
     id: 'mineiro',
@@ -247,7 +247,7 @@ export const vouVadiarPreset: Preset = {
       id: 1,
       steps: 16,
       repeats: 1,
-      activeSteps: ["g", "D", 0, "d", "G", 0, "D", 0, "g", "D", 0, "d", "G", 0, 0, 0],
+      activeSteps: ["e", "D", 0, "d", "E", 0, "D", 0, "e", "D", 0, "d", "E", 0, 0, 0],
       instrumentIdx: 0,
       lyrics: [],
       notes: [],
@@ -260,7 +260,7 @@ export const vouVadiarPreset: Preset = {
       id: 4,
       steps: 16,
       repeats: 1,
-      activeSteps: ["D", "D", "g", "D", "D", "g", "D", "g", "D", "D", "g", "D", "D", "g", "D", "g"],
+      activeSteps: ["D", "D", "e", "D", "D", "e", "D", "e", "D", "D", "e", "D", "D", "e", "D", "e"],
       instrumentIdx: 3,
       lyrics: [],
       notes: [],
@@ -286,7 +286,7 @@ export const vouVadiarPreset: Preset = {
       id: 6,
       steps: 16,
       repeats: 1,
-      activeSteps: ["G", 0, "d", "g", "D", 0, "g", "d", "G", 0, "d", "g", "D", 0, "g", "d"],
+      activeSteps: ["E", 0, "d", "e", "D", 0, "e", "d", "E", 0, "d", "e", "D", 0, "e", "d"],
       instrumentIdx: 5,
       lyrics: [],
       notes: [],
@@ -332,7 +332,7 @@ export const baqueDeImalePreset: Preset = {
       id: 1,
       steps: 16,
       repeats: 1,
-      activeSteps: ["D", 0, 0, 0, "g", 0, "D", 0, "g", "D", 0, 0, "g", "D", 0, 0],
+      activeSteps: ["D", 0, 0, 0, "e", 0, "D", 0, "e", "D", 0, 0, "e", "D", 0, 0],
       instrumentIdx: 0,
       lyrics: [],
       notes: [],
@@ -345,7 +345,7 @@ export const baqueDeImalePreset: Preset = {
       id: 2,
       steps: 16,
       repeats: 1,
-      activeSteps: ["G", 0, 0, "d", "g", 0, "D", 0, "g", "D", 0, "d", "g", "D", 0, "d"],
+      activeSteps: ["E", 0, 0, "d", "e", 0, "D", 0, "e", "D", 0, "d", "e", "D", 0, "d"],
       instrumentIdx: 1,
       lyrics: [],
       notes: [],
@@ -358,7 +358,7 @@ export const baqueDeImalePreset: Preset = {
       id: 4,
       steps: 16,
       repeats: 1,
-      activeSteps: ["D", "D", "g", "D", "D", "g", "D", "g", "D", "D", "g", "D", "D", "g", "D", "g"],
+      activeSteps: ["D", "D", "e", "D", "D", "e", "D", "e", "D", "D", "e", "D", "D", "e", "D", "e"],
       instrumentIdx: 3,
       lyrics: [],
       notes: [],
@@ -384,7 +384,7 @@ export const baqueDeImalePreset: Preset = {
       id: 6,
       steps: 16,
       repeats: 1,
-      activeSteps: ["G", 0, "d", "g", "D", 0, "g", "d", "G", 0, "d", "g", "D", 0, "g", "d"],
+      activeSteps: ["E", 0, "d", "e", "D", 0, "e", "d", "E", 0, "d", "e", "D", 0, "e", "d"],
       instrumentIdx: 5,
       lyrics: [],
       notes: [],
