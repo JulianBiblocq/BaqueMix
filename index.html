@@ -19,7 +19,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-    <link rel="manifest" href="manifest.json" />
+    <link rel="manifest" href="/BaqueMix/manifest.json" />
 
     <!-- Open Graph (Facebook, WhatsApp, Discord, LinkedIn...) -->
     <meta property="og:type" content="website" />
@@ -63,11 +63,11 @@
       "keywords": "maracatu, baque virado, sequenciador, ritmo, alfaia, caixa, gonguê, agbê, mineiro, percussão brasileira"
     }
     </script>
-    <script type="module" crossorigin src="/BaqueMix/assets/index-BMTqx5lj.js"></script>
-    <link rel="stylesheet" crossorigin href="/BaqueMix/assets/index-Dy5UIRE2.css">
-  </head>
+    <script type="module" crossorigin src="/BaqueMix/assets/index-G1C7Bu-a.js"></script>
+    <link rel="stylesheet" crossorigin href="/BaqueMix/assets/index-C9nAdbKB.css">
+  <link rel="manifest" href="/BaqueMix/manifest.webmanifest"></head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -109,6 +109,14 @@
               .then(reg => {
                 console.log('Service Worker registered:', reg.scope);
                 
+                // If there's already a waiting worker on load, prompt the user
+                if (reg.waiting) {
+                  console.log('Service Worker waiting on load; prompting refresh.');
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('sw-update-available', { detail: reg }));
+                  }, 1000);
+                }
+
                 // Detect updates to the service worker code
                 reg.onupdatefound = () => {
                   const installingWorker = reg.installing;
@@ -118,9 +126,7 @@
                         if (navigator.serviceWorker.controller) {
                           // A new service worker has been installed and is ready to activate
                           console.log('New content is available; prompting refresh.');
-                          if (confirm('Une nouvelle version de BaqueMix est disponible. Voulez-vous recharger la page pour l\'appliquer ?')) {
-                            window.location.reload();
-                          }
+                          window.dispatchEvent(new CustomEvent('sw-update-available', { detail: reg }));
                         }
                       }
                     };
