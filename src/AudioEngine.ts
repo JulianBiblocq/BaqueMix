@@ -13,6 +13,7 @@
  *  - Barulho Loop: Loops barulho sounds on keydown and stops them on keyup.
  */
 
+import * as Tone from 'tone';
 import { instrumentAudioConfigs, StrokeMapping, InstrumentAudioConfig } from './data/audioConfig';
 
 export class AudioEngine {
@@ -405,6 +406,12 @@ export class AudioEngine {
       source.onended = () => {
         gainNode.disconnect();
       };
+    }
+
+    if (instrumentId === 'apito') {
+      Tone.Draw.schedule(() => {
+        window.dispatchEvent(new CustomEvent('baquemix-apito-shake'));
+      }, time);
     }
   }
 

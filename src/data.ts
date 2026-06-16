@@ -89,6 +89,16 @@ export const instrumentsConfig: InstrumentConfig[] = [
     color: '#ea580c'
   },
   {
+    id: 'apito',
+    iconImg: 'icones/micro.svg',
+    name: 'Apito',
+    type: 'hands',
+    mixerBg: '#3c3a10',
+    path: 'Apito',
+    colors: { 'W': '#e74c3c', 'w': '#f1c40f', text: '#f4ecd8' },
+    color: '#e74c3c'
+  },
+  {
     id: 'voice',
     iconImg: 'icones/micro.svg',
     name: 'Vocal / Toada',
@@ -450,6 +460,7 @@ export function getMaxTicks(timeSignature: TimeSignature): number {
 
 export function isDarkText(instId: string, strokeVal: string): boolean {
   if (!strokeVal) return false;
+  if (instId === 'apito' && strokeVal === 'w') return true;
   if (instId === 'gongue' && (strokeVal === 'A' || strokeVal === 'a')) return true;
   if (instId === 'agbe' && ['s', 'S', 'd', 'D', 'e', 'E', 'v', 'V'].includes(strokeVal)) return true;
   if (instId === 'caixa' && ['r', 'R'].includes(strokeVal)) return true;

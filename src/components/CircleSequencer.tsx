@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as Tone from 'tone';
 import { TrackGroup, Language, HitTrigger, TimeSignature, SongSection } from '../types';
 import { instrumentsConfig, getMarkers, ASSETS_BASE_URL, isDarkText, getVisualStrokeSymbol } from '../data';
@@ -69,6 +69,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const measureDisplayRef = useRef<HTMLSpanElement>(null);
   const centerOverlayRef = useRef<HTMLDivElement>(null);
+  const [isCenterShaking, setIsCenterShaking] = useState(false);
 
   const livePlaybackRef = useRef({
     step: -1,
@@ -87,13 +88,8 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
       songSections: currentSongSections,
     } = stateRef.current;
 
-    // 1. Resolve active signal (visible on the measure it's set and the next measure)
-    let sigId = currentMeasureSignals?.[measureIdx] || null;
-    if (!sigId && currentMeasureSignals && currentMeasureSignals.length > 0) {
-      const total = currentMeasureSignals.length;
-      const prevIdx = (measureIdx - 1 + total) % total;
-      sigId = currentMeasureSignals[prevIdx] || null;
-    }
+    // 1. Resolve active signal (visible only on the measure it's set)
+    const sigId = currentMeasureSignals?.[measureIdx] || null;
     const activeSig = sigId ? currentRhythmSignals?.find(s => s.id === sigId) : null;
 
     // 2. Resolve active section (last crossed section)
@@ -203,6 +199,23 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
     const measureIdx = isPlaying && live.step >= 0 ? live.measure : currentMeasure;
     updateOverlay(measureIdx);
   }, [currentMeasure, isPlaying, measureSignals, rhythmSignals, songSections]);
+
+  useEffect(() => {
+    let timerId: any = null;
+    const handleApitoShake = () => {
+      if (timerId) clearTimeout(timerId);
+      setIsCenterShaking(true);
+      timerId = setTimeout(() => {
+        setIsCenterShaking(false);
+      }, 300);
+    };
+
+    window.addEventListener('baquemix-apito-shake', handleApitoShake);
+    return () => {
+      window.removeEventListener('baquemix-apito-shake', handleApitoShake);
+      if (timerId) clearTimeout(timerId);
+    };
+  }, []);
 
   const getLiveActivePatternId = (track: TrackGroup): number | null => {
     const live = livePlaybackRef.current;
@@ -934,7 +947,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
           {/* Afficheur rond */}
           <div
             id="center-afficheur"
-            className="w-[20%] aspect-square rounded-full border-4 border-[var(--cordel-border)] shadow-2xl relative overflow-hidden flex items-center justify-center text-center p-1.5 md:p-2.5 select-none"
+            className={`w-[20%] aspect-square rounded-full border-4 border-[var(--cordel-border)] shadow-2xl relative overflow-hidden flex items-center justify-center text-center p-1.5 md:p-2.5 select-none ${isCenterShaking ? 'shake-active' : ''}`}
             style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' }}
           >
             {/* Background image for signal */}

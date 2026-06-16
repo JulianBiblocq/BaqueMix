@@ -41,7 +41,6 @@ import { MestreStudio } from './components/MestreStudio';
 
 // Module scope audio engines to avoid duplicate instantiations on React re-renders
 let bMetroClick: Tone.Synth | null = null;
-let whistleSynth: Tone.Player | null = null;
 const channels: { [id: string]: Tone.Channel } = {};
 const meters: { [id: string]: Tone.Meter } = {};
 const voiceSynths: { [id: string]: any } = {};
@@ -1164,17 +1163,7 @@ export default function App() {
     }
   }, [reverbType]);
 
-  // Synchronize Whistle volume parameter when whistleVol changes
-  useEffect(() => {
-    if (whistleSynth) {
-      if (whistleVol === 0) {
-        whistleSynth.volume.value = -Infinity;
-      } else {
-        const gain = whistleVol / 100;
-        whistleSynth.volume.value = Tone.gainToDb(gain * 0.4);
-      }
-    }
-  }, [whistleVol]);
+  // whistleVol state is maintained to prevent breaking RightSidebar integration
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSwingOn, setIsSwingOn] = useState<boolean>(true);
@@ -1526,14 +1515,7 @@ export default function App() {
         volume: 4,
       }).connect(masterVolumeNode);
 
-      if (!whistleSynth) {
-        const initVol = whistleVol === 0 ? -Infinity : Tone.gainToDb((whistleVol / 100) * 0.4);
-
-        whistleSynth = new Tone.Player({
-          url: `${ASSETS_BASE_URL}sons-maracatu/Apito.ogg`,
-          volume: initVol,
-        }).connect(masterVolumeNode);
-      }
+      // whistleSynth initialization removed (Apito is now a standalone track)
 
       if (!reverbNode) {
         reverbNode = new Tone.Reverb({ decay: 1.4, preDelay: 0.0 }).connect(masterVolumeNode);
@@ -1637,14 +1619,8 @@ export default function App() {
         const currentMeasureIdx = measureCountRef.current;
 
         if (stepIdx === 0) {
-          // Play the whistle sound with a 1-measure delay (on the transition measure)
           const prevMeasureIdx = (currentMeasureIdx - 1 + (totalMeasuresRef.current || 1)) % (totalMeasuresRef.current || 1);
           const sigId = measureSignalsRef.current[prevMeasureIdx] || null;
-          if (sigId) {
-            if (whistleSynth && whistleSynth.loaded) {
-              whistleSynth.start(time);
-            }
-          }
           lastPlayedSignalIdRef.current = sigId;
         }
 
@@ -1999,7 +1975,7 @@ export default function App() {
       const dataToSave = {
         bpm,
         timeSig,
-        version: 2,
+        version: 3,
         totalMeasures,
         tracks: tracksCopy,
         letras,
@@ -2237,6 +2213,13 @@ export default function App() {
             }
           });
         }
+        if (version < 3) {
+          loadedTracks.forEach(t => {
+            if (t.instrumentIdx >= 8) {
+              t.instrumentIdx += 1;
+            }
+          });
+        }
         loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
       } else if (p.circles) {
         // Migrate old format
@@ -2244,6 +2227,13 @@ export default function App() {
         if (version < 2) {
           oldCircles.forEach(c => {
             if (c.instrumentIdx >= 4) {
+              c.instrumentIdx += 1;
+            }
+          });
+        }
+        if (version < 3) {
+          oldCircles.forEach(c => {
+            if (c.instrumentIdx >= 8) {
               c.instrumentIdx += 1;
             }
           });
@@ -4462,7 +4452,7 @@ export default function App() {
     const dataToSave: Preset = {
       bpm,
       timeSig,
-      version: 2,
+      version: 3,
       totalMeasures,
       tracks: tracksCopy,
       letras,
@@ -4551,7 +4541,7 @@ export default function App() {
     const dataToSave: Preset = {
       bpm,
       timeSig,
-      version: 2,
+      version: 3,
       totalMeasures,
       tracks: tracksCopy,
       letras,
@@ -4871,11 +4861,7 @@ export default function App() {
                 isLeftHanded={isLeftHanded}
                 onNavigateMeasure={(measureIdx) => handleTimelineNavigate(measureIdx, 0, 16)}
                 activeSignal={(() => {
-                  let sigId = measureSignals[currentMeasure];
-                  if (!sigId && totalMeasures > 0) {
-                    const prevMeasure = (currentMeasure - 1 + totalMeasures) % totalMeasures;
-                    sigId = measureSignals[prevMeasure];
-                  }
+                  const sigId = measureSignals[currentMeasure];
                   if (!sigId) return null;
                   const sig = (metadata?.rhythmSignals || []).find(s => s.id === sigId);
                   return sig || null;
