@@ -5,6 +5,6 @@ coverage/
 .DS_Store
 *.log
 .env*
-!.env.example
-/public/Mixdown/
+# Ignore public/Mixdown only in local build scenarios, but track it for GitHub Pages deployment:
+# /public/Mixdown/
 
