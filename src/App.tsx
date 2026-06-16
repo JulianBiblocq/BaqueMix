@@ -1640,7 +1640,7 @@ export default function App() {
           // Play the whistle sound with a 1-measure delay (on the transition measure)
           const prevMeasureIdx = (currentMeasureIdx - 1 + (totalMeasuresRef.current || 1)) % (totalMeasuresRef.current || 1);
           const sigId = measureSignalsRef.current[prevMeasureIdx] || null;
-          if (sigId && sigId !== lastPlayedSignalIdRef.current) {
+          if (sigId) {
             if (whistleSynth && whistleSynth.loaded) {
               whistleSynth.start(time);
             }
