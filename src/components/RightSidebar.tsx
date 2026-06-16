@@ -261,9 +261,6 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
     return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
   };
 
-  // Render localized HTML strings safely for the gold rule
-  const goldRuleHtml = t('goldRule');
-
   return (
     <>
       <div
@@ -335,12 +332,6 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
                 <p dangerouslySetInnerHTML={{ __html: t('voiceLegend2') }} />
               </div>
             </div>
-
-            {/* Gold Rule */}
-            <div
-              className="text-[11px] mt-2 mb-1 text-[var(--cordel-text)] font-bold leading-relaxed border-l-4 border-[var(--cordel-border)] pl-2"
-              dangerouslySetInnerHTML={{ __html: goldRuleHtml }}
-            />
 
             {/* Instruments Details */}
             <div className="relative flex flex-col gap-1 bg-[var(--cordel-bg)] cordel-border-sm p-2">

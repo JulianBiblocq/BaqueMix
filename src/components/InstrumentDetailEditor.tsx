@@ -1733,15 +1733,6 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
               <p className="text-[10px] text-[#666] mt-0.5">{inst.name}</p>
             </div>
 
-            {/* Gold rule */}
-            {inst.type !== 'voice' && (
-              <div className="bg-[#f4ecd8] cordel-border-sm p-2.5 text-[10px] text-[#1a1a1a]">
-                <p className="font-bold mb-1">💡 {lang === 'fr' ? "Règle d'or" : 'Regra de ouro'}:</p>
-                <p>• {lang === 'fr' ? 'Majuscule = Coup Fort' : 'Maiúscula = Golpe Forte'}</p>
-                <p>• {lang === 'fr' ? 'Minusc. = Coup Faible' : 'Minúscula = Golpe Fraco'}</p>
-              </div>
-            )}
-
             {/* Sculpting Legend */}
             <div className="bg-[#f4ecd8] cordel-border-sm p-2.5 text-[10px] flex flex-col gap-1.5 text-[#1a1a1a]">
               <p className="font-bold">🎛️ {lang === 'fr' ? 'Sculpture du son' : 'Escultura do som'}:</p>
