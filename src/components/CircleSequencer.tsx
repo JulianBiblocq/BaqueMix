@@ -449,7 +449,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
       } = stateRef.current;
 
       const live = livePlaybackRef.current;
-      const localStep = localPlaying ? live.step : -1;
+      const localStep = live.step;
       const localTicks = live.maxTicks || 96;
 
       // Consume hit triggers to create ripples
@@ -651,9 +651,9 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
       }
 
       // Rotate Drumstick indicating active play head step
-      if (localPlaying && localStep !== -1) {
+      if (localStep !== -1) {
         stickAngle = -Math.PI / 2 + ((localStep / localTicks) * Math.PI * 2);
-      } else if (localStep === -1) {
+      } else {
         stickAngle = -Math.PI / 2;
       }
 
@@ -734,7 +734,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
         }
         ctx.setLineDash([]);
 
-        const currentStep = (localPlaying && localStep >= 0) ? Math.floor((localStep / localTicks) * activePattern.steps) : -1;
+        const currentStep = (localStep >= 0) ? Math.floor((localStep / localTicks) * activePattern.steps) : -1;
 
         for (let i = 0; i < activePattern.steps; i++) {
           const stepAngle = -Math.PI / 2 + (i * (Math.PI * 2 / activePattern.steps));

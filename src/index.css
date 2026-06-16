@@ -121,7 +121,9 @@ body {
   /* Main workspace becomes vertical flex */
   #main-workspace.mobile-stack {
     flex-direction: column !important;
-    height: calc(100vh - 116px) !important;
+    height: auto !important;
+    flex-grow: 1 !important;
+    min-height: 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
   }

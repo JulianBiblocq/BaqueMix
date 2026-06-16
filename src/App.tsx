@@ -2635,8 +2635,23 @@ export default function App() {
         } catch (_) {}
       });
       setIsPlaying(false);
+      setCurrentMeasure(measureCountRef.current);
+      setCurrentStepIndex(currentStepIndexRef.current);
+
+      const pausedStep = currentStepIndexRef.current;
+      const pausedMeasure = measureCountRef.current;
+      const pausedMaxTicks = maxTicksRef.current;
+      const ratioVal = pausedMaxTicks > 0 ? (pausedStep >= 0 ? pausedStep : 0) / pausedMaxTicks : 0;
+
       window.dispatchEvent(new CustomEvent('baquemix-tick', {
-        detail: { step: -1, measure: 0, maxTicks: 16 }
+        detail: {
+          step: pausedStep,
+          measure: pausedMeasure,
+          maxTicks: pausedMaxTicks,
+          ratio: ratioVal,
+          visualStep16: Math.floor(ratioVal * 16),
+          visualStep12: Math.floor(ratioVal * 12)
+        }
       }));
     }
   };
@@ -4752,7 +4767,7 @@ export default function App() {
       />
 
       {/* Main Workspace workspace containing expanding grids layouts */}
-      <div id="main-workspace" className="flex flex-grow overflow-hidden relative w-full h-[calc(100dvh-130px)] mobile-stack cordel-bg">
+      <div id="main-workspace" className="flex flex-grow min-h-0 overflow-hidden relative w-full mobile-stack cordel-bg">
         {viewMode === 'roda' && (
           <>
             {/* Left column tracks mixers */}
