@@ -794,9 +794,9 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
 
           // Render letter/direction marker on top of step
           if (state !== 0) {
-            let txtColor = inst.type === 'voice' ? themeText : themeBg;
-            if (isDarkText(inst.id, String(state))) {
-              txtColor = themeText;
+            let txtColor = '#f4ecd8'; // Cream by default
+            if (inst.type === 'voice' || isDarkText(inst.id, String(state))) {
+              txtColor = '#1a1a1a'; // Dark charcoal
             }
             ctx.fillStyle = txtColor;
             const fontSize = Math.max(10, Math.floor((textSymbol.length > 1 ? 15 : 20) * dynamicScale * 0.9));

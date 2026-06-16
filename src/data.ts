@@ -35,7 +35,7 @@ export const instrumentsConfig: InstrumentConfig[] = [
     type: 'hands',
     mixerBg: '#3a3010',
     path: 'Alfaia/Repique',
-    colors: { 'd': '#947f2b', 'D': '#c9a724', 'e': '#d4cca1', 'E': '#d4c492', 'Q': '#d4c492', 'q': '#d4cca1', 'B': '#4d441c', 'X': '#9c9984', 'I': '#fff59d', 'C': '#a89f91', text: '#1a1a1a' },
+    colors: { 'd': '#947f2b', 'D': '#c9a724', 'e': '#d4cca1', 'E': '#d4c492', 'Q': '#d4c492', 'q': '#d4cca1', 'B': '#4d441c', 'X': '#9c9984', 'I': '#fff59d', 'C': '#a89f91', text: '#f4ecd8' },
     color: '#c9a724'
   },
   {
