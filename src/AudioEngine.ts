@@ -224,7 +224,10 @@ export class AudioEngine {
           // @ts-ignore
           fetchPath = `${import.meta.env.BASE_URL || '/'}Mixdown/${filename}`;
         } else {
-          fetchPath = path.startsWith('/') ? path : '/' + path;
+          const cleanPath = path.startsWith('/') ? path : '/' + path;
+          // @ts-ignore
+          const baseUrl = import.meta.env.BASE_URL || '/';
+          fetchPath = baseUrl.endsWith('/') ? baseUrl + cleanPath.slice(1) : baseUrl + cleanPath;
         }
         const response = await fetch(fetchPath);
 

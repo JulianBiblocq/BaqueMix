@@ -2179,15 +2179,19 @@ export default function App() {
 
   // Dynamic layout radial positioning offsets
   const updateRadii = (list: TrackGroup[]) => {
-    if (list.length === 0) return;
+    const visibleList = list.filter(t => {
+      const inst = instrumentsConfig[t.instrumentIdx];
+      return !t.isHidden && inst?.id !== 'apito';
+    });
+    if (visibleList.length === 0) return;
     const minRadius = 180;
     const maxRadius = 495;
 
-    if (list.length === 1) {
-      list[0].radius = (minRadius + maxRadius) / 2;
+    if (visibleList.length === 1) {
+      visibleList[0].radius = (minRadius + maxRadius) / 2;
     } else {
-      const gap = (maxRadius - minRadius) / (list.length - 1);
-      list.forEach((t, idx) => {
+      const gap = (maxRadius - minRadius) / (visibleList.length - 1);
+      visibleList.forEach((t, idx) => {
         t.radius = minRadius + idx * gap;
       });
     }

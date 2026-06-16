@@ -309,7 +309,8 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
 
     // Detect click on any track
     currentTracks.forEach((track) => {
-      if (track.isHidden) return;
+      const inst = instrumentsConfig[track.instrumentIdx];
+      if (track.isHidden || inst?.id === 'apito') return;
       
       const hasSolo = currentTracks.some(t => t.isSolo);
       const isMutedOut = hasSolo ? !track.isSolo : track.isMute;
@@ -701,7 +702,8 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
 
       // Render concentric sequencer tracks
       currentTracks.forEach((track) => {
-        if (track.isHidden) return;
+        const inst = instrumentsConfig[track.instrumentIdx];
+        if (track.isHidden || inst?.id === 'apito') return;
 
         const hasSolo = currentTracks.some(t => t.isSolo);
         const isMutedOut = hasSolo ? !track.isSolo : track.isMute;
@@ -711,7 +713,6 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
         if (activePatternId === null) return;
         const activePattern = track.patterns.find(p => p.id === activePatternId);
         if (!activePattern) return;
-        const inst = instrumentsConfig[track.instrumentIdx];
         const hasAnyNotes = activePattern.activeSteps.some(s => s !== 0);
         const isActiveState = hasAnyNotes;
 

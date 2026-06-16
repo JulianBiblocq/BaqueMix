@@ -515,13 +515,13 @@ export const instrumentAudioConfigs: InstrumentAudioConfig[] = [
       {
         symbol: 'W',
         keys: ['W'],
-        files: ["E:/projets/Roda de maracatu/Mixdown/Apito W long.ogg"],
+        files: ["/sons-maracatu/Apito W long.ogg"],
         caseSensitive: true
       },
       {
         symbol: 'w',
         keys: ['w'],
-        files: ["E:/projets/Roda de maracatu/Mixdown/Apito w court.ogg"],
+        files: ["/sons-maracatu/Apito w court.ogg"],
         caseSensitive: true
       }
     ]
