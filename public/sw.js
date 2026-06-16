@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-const CACHE_NAME = 'baquemix-cache-v2.3';
+const CACHE_NAME = 'baquemix-cache-v2.4';
 
 // Core static files to cache immediately on SW install
 const STATIC_ASSETS = [
@@ -20,7 +20,7 @@ const STATIC_ASSETS = [
 
 // Audio files to cache immediately for offline usage
 const AUDIO_ASSETS = [
-  './sons-maracatu/Apito.wav',
+  './sons-maracatu/Apito.ogg',
   './sons-maracatu/Agbe/barulho.wav',
   './sons-maracatu/Agbe/faible.wav',
   './sons-maracatu/Agbe/fort.wav',
@@ -90,7 +90,8 @@ const PRESET_ASSETS = [
   './presets/Baque_de_Luanda.json',
   './presets/Pitomba.json',
   './presets/Vovo_falou.json',
-  './presets/_Vou vadiar carnaval.json'
+  './presets/Vou vadiar carnaval.json',
+  './presets/_convencao_2.json'
 ];
 
 // Install Event: cache all core static assets, audio files, and presets

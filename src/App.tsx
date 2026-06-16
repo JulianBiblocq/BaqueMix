@@ -1530,7 +1530,7 @@ export default function App() {
         const initVol = whistleVol === 0 ? -Infinity : Tone.gainToDb((whistleVol / 100) * 0.4);
 
         whistleSynth = new Tone.Player({
-          url: `${ASSETS_BASE_URL}sons-maracatu/Apito.wav`,
+          url: `${ASSETS_BASE_URL}sons-maracatu/Apito.ogg`,
           volume: initVol,
         }).connect(masterVolumeNode);
       }
