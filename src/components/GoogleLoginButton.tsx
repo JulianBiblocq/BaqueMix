@@ -22,9 +22,26 @@ export interface GoogleUserProfile {
 interface GoogleLoginButtonProps {
   onProfileUpdate?: (profile: GoogleUserProfile | null) => void;
   className?: string;
+  lang?: 'fr' | 'pt';
 }
 
-export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
+export function isValidGoogleClientId(id: string | undefined | null): boolean {
+  if (!id) return false;
+  const trimmed = id.trim();
+  return (
+    trimmed !== '' &&
+    trimmed !== 'undefined' &&
+    trimmed !== 'null' &&
+    !trimmed.includes('YOUR_GOOGLE_CLIENT_ID') &&
+    /^\d/.test(trimmed) &&
+    trimmed.endsWith('.apps.googleusercontent.com')
+  );
+}
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const hasGoogleClientId = isValidGoogleClientId(googleClientId);
+
+const GoogleLoginButtonActive: React.FC<GoogleLoginButtonProps> = ({
   onProfileUpdate,
   className = '',
 }) => {
@@ -151,4 +168,34 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
       </button>
     </div>
   );
+};
+
+const GoogleLoginButtonDisabled: React.FC<GoogleLoginButtonProps> = ({
+  className = '',
+  lang = 'pt',
+}) => {
+  const titleText = lang === 'pt'
+    ? "Login Google indisponível (modo offline)"
+    : "Connexion Google indisponible (mode hors-ligne)";
+
+  return (
+    <div className={className}>
+      <button
+        disabled
+        className="bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] text-[var(--cordel-text)] opacity-40 cursor-not-allowed w-12 h-9 flex justify-center items-center"
+        title={titleText}
+      >
+        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+          <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.113-5.211 4.113-3.467 0-6.277-2.81-6.277-6.277s2.81-6.277 6.277-6.277c1.558 0 2.973.568 4.072 1.503L21.05 4.41C18.665 2.195 15.602 1 11.916 1 5.887 1 11.916 5.887 11.916 11.916S5.887 22.83 11.916 22.83c6.177 0 10.99-4.346 10.99-10.914 0-.648-.073-1.28-.2-1.63H12.24z"/>
+        </svg>
+      </button>
+    </div>
+  );
+};
+
+export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = (props) => {
+  if (!hasGoogleClientId) {
+    return <GoogleLoginButtonDisabled {...props} />;
+  }
+  return <GoogleLoginButtonActive {...props} />;
 };

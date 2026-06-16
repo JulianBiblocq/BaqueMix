@@ -185,7 +185,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                 <span className="text-[10px] font-bold text-[var(--cordel-wood)] uppercase tracking-wide flex items-center gap-1">
                   🔑 {lang === 'pt' ? 'Autenticação' : 'Authentification'}
                 </span>
-                <GoogleLoginButton className="w-full justify-center" />
+                <GoogleLoginButton className="w-full justify-center" lang={lang} />
               </div>
               
               {/* 📂 PROJET */}
@@ -839,7 +839,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             <Download className="w-4 h-4" /> {lang === 'pt' ? 'Instalar' : 'Installer'}
           </button>
         )}
-        <GoogleLoginButton />
+        <GoogleLoginButton lang={lang} />
         <button
           onClick={onToggleDarkMode}
           className="bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] text-[var(--cordel-text)] cordel-button text-xl px-2 py-1 w-12 text-center cursor-pointer flex justify-center items-center"

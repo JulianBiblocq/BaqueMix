@@ -5,14 +5,38 @@ import {GameDataProvider} from './contexts/GameDataContext.tsx';
 import App from './App.tsx';
 import './index.css';
 
+export function isValidGoogleClientId(id: string | undefined | null): boolean {
+  if (!id) return false;
+  const trimmed = id.trim();
+  return (
+    trimmed !== '' &&
+    trimmed !== 'undefined' &&
+    trimmed !== 'null' &&
+    !trimmed.includes('YOUR_GOOGLE_CLIENT_ID') &&
+    /^\d/.test(trimmed) &&
+    trimmed.endsWith('.apps.googleusercontent.com')
+  );
+}
+
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const hasGoogleClientId = isValidGoogleClientId(googleClientId);
+
+if (!hasGoogleClientId) {
+  console.warn("La sauvegarde Cloud (Google Auth/Drive) est désactivée faute de clé client ID valide (VITE_GOOGLE_CLIENT_ID). L'application fonctionne en mode Offline-First.");
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={googleClientId}>
+    {hasGoogleClientId ? (
+      <GoogleOAuthProvider clientId={googleClientId}>
+        <GameDataProvider>
+          <App />
+        </GameDataProvider>
+      </GoogleOAuthProvider>
+    ) : (
       <GameDataProvider>
         <App />
       </GameDataProvider>
-    </GoogleOAuthProvider>
+    )}
   </StrictMode>,
 );
