@@ -29,8 +29,6 @@ export type AudioContextType = ReturnType<typeof useAudioSync> & {
   setReverbType: React.Dispatch<React.SetStateAction<'room' | 'studio' | 'hall'>>;
   activeKeyboardInstrumentId: string | null;
   setActiveKeyboardInstrumentId: React.Dispatch<React.SetStateAction<string | null>>;
-  whistleVol: number;
-  setWhistleVol: React.Dispatch<React.SetStateAction<number>>;
   
   // Recording
   isRecording: boolean;
@@ -157,9 +155,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   const [activeKeyboardInstrumentId, setActiveKeyboardInstrumentId] = useState<string | null>(null);
 
-  const [whistleVol, setWhistleVol] = useState<number>(() => {
-    return Number(localStorage.getItem('baquemix_whistle_vol') ?? '60');
-  });
   const [activePresetName, setActivePresetName] = useState<string>('');
 
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -223,8 +218,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     masterVol,
     masterEQ,
     masterCompressor,
-    reverbType,
-    whistleVol
+    reverbType
   });
 
   // Dynamic layout radial positioning offsets
@@ -405,10 +399,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setMasterVol(p.masterVol);
       }
 
-      if (p.whistleVol !== undefined) {
-        setWhistleVol(p.whistleVol);
-      }
-
       // Sync refs
       sequencer.tracksRef.current = loadedTracks;
       sequencer.totalMeasuresRef.current = loadedMeasures;
@@ -549,8 +539,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       measureSignals: sequencer.measureSignals,
       masterEQ,
       masterCompressor,
-      masterVol,
-      whistleVol
+      masterVol
     };
     const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
     const dlLink = document.createElement('a');
@@ -618,8 +607,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       measureSignals: sequencer.measureSignals,
       masterEQ,
       masterCompressor,
-      masterVol,
-      whistleVol
+      masterVol
     };
 
     const textStr = JSON.stringify(dataToShare);
@@ -659,8 +647,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         measureSignals: sequencer.measureSignals,
         masterEQ,
         masterCompressor,
-        masterVol,
-        whistleVol
+        masterVol
       };
 
       const name = sequencer.metadata?.toada?.trim() || 'Sem Título';
@@ -887,8 +874,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setReverbType,
     activeKeyboardInstrumentId,
     setActiveKeyboardInstrumentId,
-    whistleVol,
-    setWhistleVol,
     isRecording,
     recordingSeconds,
     handleAudioRecordingToggle,

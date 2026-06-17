@@ -197,7 +197,6 @@ interface UseAudioSyncProps {
   masterEQ: { low: number; mid: number; high: number };
   masterCompressor: { threshold: number; ratio: number };
   reverbType: 'room' | 'studio' | 'hall';
-  whistleVol: number;
 }
 
 export function useAudioSync({
@@ -240,8 +239,7 @@ export function useAudioSync({
   masterVol,
   masterEQ,
   masterCompressor,
-  reverbType,
-  whistleVol
+  reverbType
 }: UseAudioSyncProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -944,14 +942,6 @@ export function useAudioSync({
       }
     }));
   };
-
-  // Sync Whistle Volume
-  useEffect(() => {
-    if (channels['apito']) {
-      const dbVol = whistleVol === 0 ? -Infinity : Tone.gainToDb((whistleVol / 100) * 0.4);
-      channels['apito'].volume.value = dbVol;
-    }
-  }, [whistleVol]);
 
   // Synchronize track volume, panning, reverb levels, and mute/solo dynamically when React state changes
   useEffect(() => {
