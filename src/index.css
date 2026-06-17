@@ -116,8 +116,8 @@ body {
   background: #eaddcf;
 }
 
-/* === MOBILE RESPONSIVE LAYOUT === */
-@media (max-width: 768px) {
+/* === MOBILE & TABLET RESPONSIVE LAYOUT (portrait/medium screens) === */
+@media (max-width: 1023px) {
   /* Main workspace becomes vertical flex */
   #main-workspace.mobile-stack {
     flex-direction: column !important;
@@ -155,7 +155,7 @@ body {
   #circle-sequencer-panel {
     width: 100% !important;
     height: 100% !important;
-    min-height: 280px !important;
+    min-height: 340px !important;
     order: 1;
     flex-shrink: 0 !important;
   }
