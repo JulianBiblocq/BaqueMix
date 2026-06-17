@@ -472,8 +472,11 @@ export function useAudioSync({
           let currentTicks = maxTicksRef.current;
           let stepIdx = currentStepIndexRef.current;
 
-          // 1. Commuter la mesure si on arrive à la fin
+          // 1. Déterminer le prochain pas et commuter la mesure si on arrive à la fin
+          let nextStepIdx = stepIdx + 1;
+
           if (stepIdx === -1) {
+            nextStepIdx = 0;
             if (soloPatternPlayIdRef.current !== null) {
               measureCountRef.current = 0;
             } else if (loopStartRef.current !== null && (measureCountRef.current < loopStartRef.current || (loopEndRef.current !== null && measureCountRef.current > loopEndRef.current))) {
@@ -486,6 +489,7 @@ export function useAudioSync({
             currentTicks = getMaxTicks(firstTimeSig);
             maxTicksRef.current = currentTicks;
           } else if (stepIdx === currentTicks - 1) {
+            nextStepIdx = 0;
             if (soloPatternPlayIdRef.current !== null) {
               measureCountRef.current = 0;
             } else {
@@ -500,10 +504,12 @@ export function useAudioSync({
             const nextTimeSig = measureTimeSigsRef.current[nextMeasureIdx] || '4/4';
             currentTicks = getMaxTicks(nextTimeSig);
             maxTicksRef.current = currentTicks;
+          } else {
+            nextStepIdx = nextStepIdx % currentTicks;
           }
 
           // 2. Avancer le pas
-          stepIdx = (stepIdx + 1) % currentTicks;
+          stepIdx = nextStepIdx;
           currentStepIndexRef.current = stepIdx;
 
           const currentMeasureIdx = measureCountRef.current;
@@ -512,6 +518,8 @@ export function useAudioSync({
             const prevMeasureIdx = (currentMeasureIdx - 1 + (totalMeasuresRef.current || 1)) % (totalMeasuresRef.current || 1);
             const sigId = measureSignalsRef.current[prevMeasureIdx] || null;
             lastPlayedSignalIdRef.current = sigId;
+            // Update React state explicitly for context subscribers, once per measure boundary
+            setCurrentMeasure(currentMeasureIdx);
           }
 
           const _stepForUI = isNaN(stepIdx) ? 0 : stepIdx;
@@ -942,6 +950,7 @@ export function useAudioSync({
     currentStepIndex,
     setCurrentMeasure,
     setCurrentStepIndex,
+    setIsLoading,
     isMetroOn,
     setIsMetroOn,
     isSwingOn,

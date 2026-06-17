@@ -38,11 +38,17 @@ interface CircleSequencerProps {
   measureSignals?: (string | null)[];
   rhythmSignals?: { id: string; name: string; image: string }[];
   songSections?: SongSection[];
+  circleId?: number;
+  measureIndex?: number;
+  trackId?: number;
 }
 
 export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
   const sequencer = useSequencer();
   const audio = useAudio();
+
+  // Extract identity props even if unused to maintain interface consistency
+  const { circleId, measureIndex, trackId } = props;
 
   const isMobile = props.isMobile !== undefined ? props.isMobile : false;
 

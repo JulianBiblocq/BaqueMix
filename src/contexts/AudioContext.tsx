@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as Tone from 'tone';
 import { useAudioSync, audioEngine, masterVolumeNode, buildTickSchedule } from '../hooks/useAudioSync';
 import { useSequencer } from './SequencerContext';
@@ -238,14 +238,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const normalizePatternData = (p: Pattern, instIdx: number) => {
+  const normalizePatternData = (p: Pattern, instIdx: number, targetMeasures: number) => {
     if (!p.notes) p.notes = Array(p.steps).fill('');
     if (!p.lyrics) p.lyrics = Array(p.steps).fill('');
     if (!p.activeSteps) p.activeSteps = Array(p.steps).fill(0);
-    if (!p.measureAssignments) p.measureAssignments = Array(sequencer.totalMeasuresRef.current || 8).fill(false);
+    if (!p.measureAssignments) {
+      p.measureAssignments = Array(targetMeasures).fill(false);
+    } else if (p.measureAssignments.length < targetMeasures) {
+      const currentLen = p.measureAssignments.length;
+      for (let i = currentLen; i < targetMeasures; i++) {
+        p.measureAssignments.push(p.measureAssignments[0] || false);
+      }
+    }
   };
 
-  const applyPreset = async (p: any) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const applyPreset = useCallback(async (p: any) => {
     try {
       sequencer.clearHistory();
       sequencer.setLetras(p.letras || '');
@@ -271,7 +279,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           });
         }
-        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx, loadedMeasures)));
       } else if (p.circles) {
         const oldCircles = JSON.parse(JSON.stringify(p.circles));
         if (version < 2) {
@@ -289,7 +297,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           });
         }
         loadedTracks = migrateCirclesToTracks(oldCircles, loadedMeasures);
-        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx)));
+        loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx, loadedMeasures)));
       }
       
       const promises: Promise<void>[] = [];
@@ -413,13 +421,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       sequencer.measureCountRef.current = 0;
       audioSync.setCurrentMeasure(0);
+      audioSync.setIsLoading(false);
     } catch (err) {
       console.error("Failed to apply preset:", err);
+      audioSync.setIsLoading(false);
       throw err;
     }
-  };
+  }, []);
 
-  const loadFallbackPreset = async (name: string) => {
+  const loadFallbackPreset = useCallback(async (name: string) => {
     let p;
     if (name.endsWith('.json')) {
       try {
@@ -435,7 +445,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       p = name === 'baque-de-imale' ? baqueDeImalePreset : vouVadiarPreset;
     }
     await applyPreset(p);
-  };
+  }, [applyPreset]);
 
   const handlePresetSelect = async (value: string) => {
     setActivePresetName(value);
