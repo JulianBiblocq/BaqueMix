@@ -81,31 +81,14 @@ export default function App() {
   const [localPresets, setLocalPresets] = useState<string[]>([]);
   const [presetFiles, setPresetFiles] = useState<string[]>([]);
 
-  // Dialog System
-  const [customDialog, setCustomDialog] = useState<{
-    type: 'alert' | 'confirm' | 'prompt';
-    message: string;
-    defaultValue?: string;
-    onResolve: (value: any) => void;
-  } | null>(null);
-
-  const alertAsync = (message: string): Promise<void> => {
-    return new Promise((resolve) => {
-      setCustomDialog({ type: 'alert', message, onResolve: resolve });
-    });
-  };
-
-  const confirmAsync = (message: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setCustomDialog({ type: 'confirm', message, onResolve: resolve });
-    });
-  };
-
-  const promptAsync = (message: string, defaultValue = ''): Promise<string | null> => {
-    return new Promise((resolve) => {
-      setCustomDialog({ type: 'prompt', message, defaultValue, onResolve: resolve });
-    });
-  };
+  // Dialog System from Context
+  const {
+    customDialog,
+    setCustomDialog,
+    alertAsync,
+    confirmAsync,
+    promptAsync,
+  } = sequencer;
 
   // A2HS install prompt
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
