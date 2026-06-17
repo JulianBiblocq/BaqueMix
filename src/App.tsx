@@ -30,8 +30,16 @@ import { TouchStrokeSelector, TouchSelectorState } from './components/TouchStrok
 import { saveVocalRecording, getVocalRecording } from './db';
 import { useVocalRecorder } from './hooks/useVocalRecorder';
 import { useSequencerState } from './hooks/useSequencerState';
-import { AudioEngine } from './AudioEngine';
-import { InputManager } from './InputManager';
+import {
+  useAudioSync,
+  audioEngine,
+  inputManager,
+  channels,
+  meters,
+  masterVolumeNode,
+  reverbSends,
+  masterMeterNode
+} from './hooks/useAudioSync';
 import { instrumentAudioConfigs } from './data/audioConfig';
 import { QuizEngine } from './components/QuizEngine';
 import { DicteeEngine } from './components/DicteeEngine';
@@ -41,23 +49,10 @@ import { RythmeLiveEngine } from './components/RythmeLiveEngine';
 import { VaralCordel } from './components/VaralCordel';
 import { MestreStudio } from './components/MestreStudio';
 
-// Module scope audio engines to avoid duplicate instantiations on React re-renders
-let bMetroClick: Tone.Synth | null = null;
-const channels: { [id: string]: Tone.Channel } = {};
-const meters: { [id: string]: Tone.Meter } = {};
-const voiceSynths: { [id: string]: any } = {};
-let audioEngine: AudioEngine | null = null;
-let inputManager: InputManager | null = null;
-
+// Module scope recording and mixdown nodes
 let wavRecordingBuffersL: Float32Array[] = [];
 let wavRecordingBuffersR: Float32Array[] = [];
 let scriptProcessorNode: ScriptProcessorNode | null = null;
-let reverbNode: Tone.Freeverb | null = null;
-const reverbSends: { [id: string]: Tone.Gain } = {};
-let masterVolumeNode: Tone.Gain | null = null;
-let masterMeterNode: Tone.Meter | null = null;
-let masterEQNode: Tone.EQ3 | null = null;
-let masterCompressorNode: Tone.Compressor | null = null;
 
 const VOCAL_RECORDING_ARM_DELAY_MS = 300;
 const VOCAL_RECORDING_ARM_DELAY_SEC = 0.3;
@@ -343,12 +338,132 @@ export default function App() {
   const [masterVol, setMasterVol] = useState<number>(-6);
   const [masterEQ, setMasterEQ] = useState<{ low: number; mid: number; high: number }>({ low: 0, mid: 0, high: 0 });
   const [masterCompressor, setMasterCompressor] = useState<{ threshold: number; ratio: number }>({ threshold: -20, ratio: 4 });
-  const [isMetroOn, setIsMetroOn] = useState<boolean>(false);
+  const [reverbType, setReverbType] = useState<'room' | 'studio' | 'hall'>('studio');
+  const [isLeftHanded, setIsLeftHanded] = useState<boolean>(() => localStorage.getItem('baquemix_left_handed') === 'true');
+  const [activeKeyboardInstrumentId, setActiveKeyboardInstrumentId] = useState<string | null>(null);
+
+  // Shared audio and transport Refs to resolve hook circular dependency
+  const isPlayingRef = useRef<boolean>(false);
+  const measureCountRef = useRef<number>(0);
+  const currentStepIndexRef = useRef<number>(-1);
+  const lastPlayedSignalIdRef = useRef<string | null>(null);
+  const setIsPlayingRef = useRef<(val: boolean) => void>(() => {});
+
+  // 2. Vocal Recorder custom Hook
+  const {
+    isRecordingVocal,
+    recordingVocalPatternId,
+    recordedPatternIds,
+    audioDevices,
+    selectedAudioDeviceId,
+    isVocalGuideEnabled,
+    setIsVocalGuideEnabled,
+    recordingVocalPatternIdRef,
+    vocalRecordingStateRef,
+    vocalMediaRecorderRef,
+    recordedMeasuresCountRef,
+    recordingDurationMeasuresRef,
+    vocalPlayersRef,
+    isVocalGuideEnabledRef,
+    handleAudioDeviceChange,
+    handleImportVocalFile,
+    handleAudioPatternCreated,
+    startVocalRecording,
+    stopVocalRecording,
+    finishVocalRecording,
+    handleVocalModeChange,
+    handleVocalLatencyChange,
+    handleVocalBpmSyncToggle,
+    handleDeleteVocalRecording,
+    getSystemDefaultLatencyMs,
+    loadVocalRecording
+  } = useVocalRecorder({
+    tracks,
+    setTracks,
+    pushUndoState,
+    bpm,
+    measureBpms,
+    totalMeasures,
+    audioEngine,
+    setIsPlaying: (val) => setIsPlayingRef.current(val),
+    channels,
+    masterVolumeNode,
+    isPlayingRef,
+    measureCountRef,
+    currentStepIndexRef,
+    lastPlayedSignalIdRef
+  });
+
+  // 3. Audio Sync & Transport custom Hook
+  const {
+    isPlaying,
+    isLoading,
+    currentMeasure,
+    currentStepIndex,
+    setCurrentMeasure,
+    setCurrentStepIndex,
+    isMetroOn,
+    setIsMetroOn,
+    isSwingOn,
+    setIsSwingOn,
+    soloPatternPlayId,
+    setSoloPatternPlayId,
+    // Control Handlers
+    handleTogglePlay,
+    handleStop,
+    handleRewind,
+    handleStartSoloPattern,
+    handleStopSoloPattern,
+    // Scheduling references
+    hitTriggersRef,
+    soloPatternPlayIdRef,
+    maxTicksRef,
+    tickScheduleRef
+  } = useAudioSync({
+    tracks,
+    tracksRef,
+    totalMeasures,
+    totalMeasuresRef,
+    measureTimeSigs,
+    measureTimeSigsRef,
+    measureBpms,
+    measureBpmsRef,
+    measureBpmTransitionsRef,
+    measureVolsRef,
+    measureVolTransitionsRef,
+    measureSignalsRef,
+    loopStartRef,
+    loopEndRef,
+
+    isRecordingVocal,
+    startVocalRecording,
+    stopVocalRecording,
+    finishVocalRecording,
+    recordingVocalPatternIdRef,
+    vocalRecordingStateRef,
+    recordedMeasuresCountRef,
+    recordingDurationMeasuresRef,
+    vocalPlayersRef,
+    isVocalGuideEnabledRef,
+    loadVocalRecording,
+
+    isPlayingRef,
+    currentStepIndexRef,
+    measureCountRef,
+    lastPlayedSignalIdRef,
+    setIsPlayingRef,
+
+    bpm,
+    isLeftHanded,
+    activeKeyboardInstrumentId,
+    masterVol,
+    masterEQ,
+    masterCompressor,
+    reverbType
+  });
 
   const [activePresetName, setActivePresetName] = useState<string>('');
   const [presetFiles, setPresetFiles] = useState<string[]>([]);
-  const [isLeftHanded, setIsLeftHanded] = useState<boolean>(() => localStorage.getItem('baquemix_left_handed') === 'true');
-  const [activeKeyboardInstrumentId, setActiveKeyboardInstrumentId] = useState<string | null>(null);
 
   // Sync left-handed preference
   useEffect(() => {
@@ -388,8 +503,6 @@ export default function App() {
 
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 1024);
   const [activeRightPanel, setActiveRightPanel] = useState<'legend' | 'letras' | null>(
@@ -636,7 +749,6 @@ export default function App() {
   }, []);
 
 
-  const [reverbType, setReverbType] = useState<'room' | 'studio' | 'hall'>('studio');
   const [touchSelector, setTouchSelector] = useState<TouchSelectorState | null>(null);
   const [hoveredStroke, setHoveredStroke] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<'roda' | 'mixer' | 'toada'>('roda');
@@ -649,24 +761,11 @@ export default function App() {
     assignments: { [trackId: number]: (number | null)[] };
   } | null>(null);
 
-
-  const masterVolRef = useRef<number>(-6);
-  const masterEQRef = useRef({ low: 0, mid: 0, high: 0 });
-  const masterCompressorRef = useRef({ threshold: -20, ratio: 4 });
-
   // Zoom state
   const [measureWidth, setMeasureWidth] = useState<number>(480);
 
   // Autosave notification state
   const [isSavedIndicatorVisible, setIsSavedIndicatorVisible] = useState<boolean>(false);
-
-  // Pattern Solo Playback state and ref
-  const [soloPatternPlayId, setSoloPatternPlayId] = useState<number | null>(null);
-  const soloPatternPlayIdRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    soloPatternPlayIdRef.current = soloPatternPlayId;
-  }, [soloPatternPlayId]);
 
   // Inspecteur sequences state and ref
   const inspecteurSequencesRef = useRef<{
@@ -938,26 +1037,7 @@ export default function App() {
 
 
 
-  useEffect(() => {
-    masterVolRef.current = masterVol;
-  }, [masterVol]);
 
-  useEffect(() => {
-    masterEQRef.current = masterEQ;
-    if (masterEQNode) {
-      masterEQNode.low.value = masterEQ.low;
-      masterEQNode.mid.value = masterEQ.mid;
-      masterEQNode.high.value = masterEQ.high;
-    }
-  }, [masterEQ]);
-
-  useEffect(() => {
-    masterCompressorRef.current = masterCompressor;
-    if (masterCompressorNode) {
-      masterCompressorNode.threshold.value = masterCompressor.threshold;
-      masterCompressorNode.ratio.value = masterCompressor.ratio;
-    }
-  }, [masterCompressor]);
 
 
 
@@ -998,84 +1078,6 @@ export default function App() {
     });
   }, [mixerControlsKey]);
 
-  // Synchronize Reverb parameters when reverbType changes
-  useEffect(() => {
-    if (reverbNode) {
-      const config = {
-        room: { roomSize: 0.4, dampening: 4000 },
-        studio: { roomSize: 0.6, dampening: 3000 },
-        hall: { roomSize: 0.85, dampening: 1500 }
-      }[reverbType];
-
-      reverbNode.roomSize.value = config.roomSize;
-      reverbNode.dampening = config.dampening;
-    }
-  }, [reverbType]);
-
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSwingOn, setIsSwingOn] = useState<boolean>(true);
-
-  const [currentMeasure, setCurrentMeasure] = useState<number>(0);
-
-  const measureCountRef = useRef<number>(0);
-  const isPlayingRef = useRef<boolean>(false);
-  const currentStepIndexRef = useRef<number>(-1);
-  const maxTicksRef = useRef<number>(96);
-  const isMetroOnRef = useRef<boolean>(false);
-  const isSwingOnRef = useRef<boolean>(true);
-  const hitTriggersRef = useRef<HitTrigger[]>([]);
-  const engineTimeoutsRef = useRef<any[]>([]);
-  const lastPlayedSignalIdRef = useRef<string | null>(null);
-  const tickScheduleRef = useRef<Map<number, Map<number, ScheduledNote[]>>>(new Map());
-
-
-
-  // Dedicated synchronization of audio engine refs and recompilation of tick schedule
-  // when composition structure, tracks, or states change (runs on load, clean, or bounds edits)
-  useEffect(() => {
-    console.log("⚙️⚙️⚙️ [AUDIO_ENGINE_SYNC_&_RECOMPILE] State changed! Syncing refs and recompiling tickScheduleRef...");
-    tracksRef.current = tracks;
-    totalMeasuresRef.current = totalMeasures;
-    measureTimeSigsRef.current = measureTimeSigs;
-    measureBpmsRef.current = measureBpms;
-    measureBpmTransitionsRef.current = measureBpmTransitions;
-    measureVolsRef.current = measureVols;
-    measureVolTransitionsRef.current = measureVolTransitions;
-    measureSignalsRef.current = measureSignals;
-    maxTicksRef.current = getMaxTicks(timeSig);
-
-    try {
-      const schedule = buildTickSchedule(
-        tracks,
-        totalMeasures,
-        measureTimeSigs,
-        instrumentsConfig,
-        soloPatternPlayId
-      );
-      tickScheduleRef.current = schedule;
-      console.log("✅✅✅ [AUDIO_ENGINE_SYNC_&_RECOMPILE] Success. Compiled measure map size:", schedule.size);
-    } catch (err) {
-      console.error("❌❌❌ [AUDIO_ENGINE_SYNC_&_RECOMPILE] Failed to compile tick schedule:", err);
-    }
-  }, [
-    tracks,
-    totalMeasures,
-    measureTimeSigs,
-    measureBpms,
-    measureBpmTransitions,
-    measureVols,
-    measureVolTransitions,
-    measureSignals,
-    timeSig,
-    soloPatternPlayId
-  ]);
-
-  // Synchronisation des refs de statut d'exécution (se déclenche lors des play/pause, metronome, swing)
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-    isMetroOnRef.current = isMetroOn;
-    isSwingOnRef.current = isSwingOn;
-  }, [isPlaying, isMetroOn, isSwingOn]);
 
   useEffect(() => {
     const voicePatternIds: number[] = [];
@@ -1109,458 +1111,12 @@ export default function App() {
     return (i18n[lang] as any)[key] || key;
   };
 
-  // 1. Initialize stable Audio Engine Nodes
+  // Resize collapse left sidebar on small width screens
   useEffect(() => {
-    const initAudio = async () => {
-      if (bMetroClick) return; // already initialized
-
-      if (!masterVolumeNode) {
-        masterEQNode = new Tone.EQ3({
-          low: masterEQRef.current.low,
-          mid: masterEQRef.current.mid,
-          high: masterEQRef.current.high
-        });
-        masterCompressorNode = new Tone.Compressor({
-          threshold: masterCompressorRef.current.threshold,
-          ratio: masterCompressorRef.current.ratio,
-          attack: 0.03,
-          release: 0.25
-        });
-
-        masterVolumeNode = new Tone.Gain(1.0);
-        
-        masterVolumeNode.connect(masterEQNode);
-        masterEQNode.connect(masterCompressorNode);
-        masterCompressorNode.toDestination();
-        
-        masterVolumeNode.gain.value = Tone.dbToGain(masterVolRef.current === -40 ? -Infinity : masterVolRef.current);
-        masterMeterNode = new Tone.Meter();
-        (window as any).masterMeterNode = masterMeterNode;
-        Tone.Destination.connect(masterMeterNode);
-      }
-
-      // Configurer le lookAhead de Tone.js à 150ms pour pré-scheduler les événements audio.
-      // Avec la mémoïsation React complète, 150ms est optimal pour garantir à la fois l'absence de coupures
-      // et une synchronisation audio-visuelle parfaite.
-      try {
-        Tone.getContext().lookAhead = 0.15;
-      } catch (err) {
-        console.warn("Failed to set Tone.js lookAhead:", err);
-      }
-
-      bMetroClick = new Tone.Synth({
-        oscillator: { type: 'square' },
-        envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.01 },
-        volume: 4,
-      }).connect(masterVolumeNode);
-
-      // whistleSynth initialization removed (Apito is now a standalone track)
-
-      if (!reverbNode) {
-        reverbNode = new Tone.Freeverb({ roomSize: 0.6, dampening: 3000 }).connect(masterVolumeNode);
-      }
-
-      const totalAudioCount = instrumentsConfig.filter((i) => i.type !== 'voice').length;
-
-      instrumentsConfig.forEach((inst) => {
-        channels[inst.id] = new Tone.Channel({ volume: 0 }).connect(masterVolumeNode!);
-        meters[inst.id] = new Tone.Meter();
-        channels[inst.id].connect(meters[inst.id]);
-
-        if (!reverbSends[inst.id]) {
-          reverbSends[inst.id] = new Tone.Gain(0);
-          channels[inst.id].connect(reverbSends[inst.id]);
-          reverbSends[inst.id].connect(reverbNode!);
-        }
-
-        if (inst.type === 'voice') {
-          voiceSynths[inst.id] = new Tone.AMSynth({
-            harmonicity: 1,
-            oscillator: { type: 'sine' },
-            modulation: { type: 'sine' },
-            envelope: { attack: 0.05, decay: 0.2 },
-            volume: -10,
-          }).connect(channels[inst.id]);
-        }
-      });
-
-      // Synchronize track volume, panning, reverb levels, and mute/solo initially once nodes exist
-      const initialHasSolo = tracksRef.current.some((t: any) => t.isSolo);
-      tracksRef.current.forEach((t) => {
-        const inst = instrumentsConfig[t.instrumentIdx];
-        if (inst) {
-          if (channels[inst.id]) {
-            const gain = (t.volumeVal ?? 100) / 100;
-            channels[inst.id].volume.value = Tone.gainToDb(gain);
-            channels[inst.id].pan.value = (t.panVal || 0) / 100;
-            channels[inst.id].mute = t.isMute || (initialHasSolo && !t.isSolo);
-          }
-          if (reverbSends[inst.id]) {
-            reverbSends[inst.id].gain.value = (t.reverbVal || 0) / 100;
-          }
-        }
-      });
-
-      // Load vocal recordings for all patterns in tracks
-      tracksRef.current.forEach((t) => {
-        const inst = instrumentsConfig[t.instrumentIdx];
-        if (inst && inst.type === 'voice') {
-          t.patterns.forEach((p) => {
-            loadVocalRecording(p.id);
-          });
-        }
-      });
-
-      // Stable 96-tick sequencing loop using our AudioEngine
-      const rawCtx = Tone.getContext().rawContext as AudioContext;
-      audioEngine = new AudioEngine(
-        rawCtx,
-        (time) => {
-        console.log("⏰⏰⏰ [AUDIO ENGINE ON_TICK CALLBACK] Fired. time parameter: " + time + " | Current step index ref: " + currentStepIndexRef.current);
-        let currentTicks = maxTicksRef.current;
-        let stepIdx = currentStepIndexRef.current;
-
-        // 1. Commuter la mesure si on arrive à la fin
-        if (stepIdx === -1) {
-          if (soloPatternPlayIdRef.current !== null) {
-            measureCountRef.current = 0;
-          } else if (loopStartRef.current !== null && (measureCountRef.current < loopStartRef.current || (loopEndRef.current !== null && measureCountRef.current > loopEndRef.current))) {
-            measureCountRef.current = loopStartRef.current;
-          } else {
-            measureCountRef.current = measureCountRef.current % (totalMeasuresRef.current || 1);
-          }
-          const firstMeasureIdx = measureCountRef.current;
-          const firstTimeSig = measureTimeSigsRef.current[firstMeasureIdx] || '4/4';
-          currentTicks = getMaxTicks(firstTimeSig);
-          maxTicksRef.current = currentTicks;
-        } else if (stepIdx === currentTicks - 1) {
-          if (soloPatternPlayIdRef.current !== null) {
-            measureCountRef.current = 0;
-          } else {
-            const currentMeasureIdx = measureCountRef.current;
-            if (loopStartRef.current !== null && loopEndRef.current !== null && currentMeasureIdx === loopEndRef.current) {
-              measureCountRef.current = loopStartRef.current;
-            } else {
-              measureCountRef.current = (measureCountRef.current + 1) % (totalMeasuresRef.current || 1);
-            }
-          }
-          const nextMeasureIdx = measureCountRef.current;
-          const nextTimeSig = measureTimeSigsRef.current[nextMeasureIdx] || '4/4';
-          currentTicks = getMaxTicks(nextTimeSig);
-          maxTicksRef.current = currentTicks;
-        }
-
-        // 2. Avancer le pas
-        stepIdx = (stepIdx + 1) % currentTicks;
-        currentStepIndexRef.current = stepIdx;
-
-        const currentMeasureIdx = measureCountRef.current;
-
-        if (stepIdx === 0) {
-          const prevMeasureIdx = (currentMeasureIdx - 1 + (totalMeasuresRef.current || 1)) % (totalMeasuresRef.current || 1);
-          const sigId = measureSignalsRef.current[prevMeasureIdx] || null;
-          lastPlayedSignalIdRef.current = sigId;
-        }
-
-        const _stepForUI = isNaN(stepIdx) ? 0 : stepIdx;
-        const _measureForUI = isNaN(currentMeasureIdx) ? 0 : currentMeasureIdx;
-        const _currentTicks = isNaN(currentTicks) || currentTicks <= 0 ? 96 : currentTicks;
-        const ratioVal = _stepForUI / _currentTicks;
-
-        const delayMs = Math.max(0, (time - rawCtx.currentTime) * 1000);
-        const timeoutId = setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('baquemix-tick', {
-            detail: {
-              step: _stepForUI,
-              measure: _measureForUI,
-              maxTicks: _currentTicks,
-              ratio: ratioVal,
-              visualStep16: Math.floor(ratioVal * 16),
-              visualStep12: Math.floor(ratioVal * 12),
-              time: time
-            }
-          }));
-          engineTimeoutsRef.current = engineTimeoutsRef.current.filter(id => id !== timeoutId);
-        }, delayMs);
-        engineTimeoutsRef.current.push(timeoutId);
-
-        // Pré-calculer la durée d'un 96n une seule fois par tick (formule mathématique sans allocation d'objet)
-        const targetBpm = measureBpmsRef.current[currentMeasureIdx] ?? 100;
-        const tick96nSec = 2.5 / targetBpm;
-
-        // 3. Appliquer le BPM — uniquement au début de la mesure via AudioParam scheduling
-        // (évite 96 écritures/mesure qui forçaient Tone.js à recalculer son horloge interne)
-        const transition = measureBpmTransitionsRef.current[currentMeasureIdx] || 'immediate';
-
-        if (stepIdx === 0) {
-          try {
-            if (transition === 'ramp') {
-              const prevMeasureIdx = (currentMeasureIdx - 1 + totalMeasuresRef.current) % totalMeasuresRef.current;
-              const startBpm = measureBpmsRef.current[prevMeasureIdx] ?? targetBpm;
-              const measureDurationSec = currentTicks * tick96nSec;
-              // Planifier la rampe BPM via AudioParam (propre et sans écriture répétée)
-              Tone.Transport.bpm.cancelScheduledValues(time);
-              Tone.Transport.bpm.setValueAtTime(startBpm, time);
-              Tone.Transport.bpm.linearRampToValueAtTime(targetBpm, time + measureDurationSec);
-            } else {
-              Tone.Transport.bpm.cancelScheduledValues(time);
-              Tone.Transport.bpm.setValueAtTime(targetBpm, time);
-            }
-          } catch (e) {}
-        }
-
-        // 3b. Appliquer le volume — planifié via AudioParam pour la mesure courante (indépendant du volume master)
-        const targetVolPercent = measureVolsRef.current[currentMeasureIdx] !== undefined ? measureVolsRef.current[currentMeasureIdx] : 100;
-        const volTransition = measureVolTransitionsRef.current[currentMeasureIdx] || 'immediate';
-
-        if (stepIdx === 0) {
-          try {
-            const endGain = targetVolPercent / 100;
-            if (volTransition === 'ramp') {
-              const prevMeasureIdx = (currentMeasureIdx - 1 + totalMeasuresRef.current) % totalMeasuresRef.current;
-              const startVolPercent = measureVolsRef.current[prevMeasureIdx] !== undefined ? measureVolsRef.current[prevMeasureIdx] : 100;
-              const startGain = startVolPercent / 100;
-              const measureDurationSec = currentTicks * tick96nSec;
-              Tone.Destination.volume.cancelScheduledValues(time);
-              Tone.Destination.volume.setValueAtTime(Tone.gainToDb(startGain === 0 ? 0.0001 : startGain), time);
-              Tone.Destination.volume.linearRampToValueAtTime(Tone.gainToDb(endGain === 0 ? 0.0001 : endGain), time + measureDurationSec);
-            } else {
-              Tone.Destination.volume.cancelScheduledValues(time);
-              Tone.Destination.volume.setValueAtTime(Tone.gainToDb(endGain === 0 ? 0.0001 : endGain), time);
-            }
-          } catch (e) {}
-        }
-
-        // Click metronome beat pulse
-        const currentMeasureSig = measureTimeSigsRef.current[currentMeasureIdx] || '4/4';
-        const markers = getCachedMarkers(currentMeasureSig, currentTicks);
-
-        if (isMetroOnRef.current && markers.includes(stepIdx)) {
-          const noteVal = stepIdx === 0 ? 'A5' : 'E5';
-          bMetroClick?.triggerAttackRelease(noteVal, '32n', time);
-        }
-
-        // Parse trigger of step events
-        // --- SWING & MICRO-TIMING MARACATU ---
-        let swingOffset = 0;
-        if (isSwingOnRef.current) {
-          const stepDurationSec = tick96nSec * 6; // one 16th note
-          const posInBeat = ((stepIdx / (currentTicks / 4)) % 1) * 4; // 0-3 within a beat group of 4 steps
-          const posInGroup = Math.round(posInBeat) % 4;
-          
-          const swingIntensity = 1.0;
-          const jitter = (nextRandom() * 0.06 - 0.03) * stepDurationSec; // +/- 3%
-
-          if (posInGroup === 0) {
-            // 1ère DC : Légèrement au fond + jitter
-            swingOffset = (0.05 * swingIntensity * stepDurationSec) + jitter;
-          } else if (posInGroup === 1) {
-            // 2ème DC : En retard + jitter
-            swingOffset = (0.15 * swingIntensity * stepDurationSec) + jitter;
-          } else if (posInGroup === 2) {
-            // 3ème DC : Pivot stable + jitter minimal
-            const minimalJitter = (nextRandom() * 0.02 - 0.01) * stepDurationSec;
-            swingOffset = (0.02 * swingIntensity * stepDurationSec) + minimalJitter;
-          } else if (posInGroup === 3) {
-            // 4ème DC : En avance + jitter
-            swingOffset = (-0.10 * swingIntensity * stepDurationSec) + jitter;
-          }
-        }
-        const swingTime = time + swingOffset;
-
-        // ─── LECTURE DEPUIS LE TABLEAU PRÉ-COMPILÉ (O(1) par tick) ───────
-        // Les instruments (non-voix) sont joués depuis tickSchedule pour
-        // éviter tout forEach/find/switch dans le thread audio.
-        const measureMap = tickScheduleRef.current.get(currentMeasureIdx);
-        const scheduledNotes = measureMap?.get(stepIdx);
-
-        if (scheduledNotes) {
-          for (const note of scheduledNotes) {
-            try {
-              // Velocity humanization (random — can't be pre-computed)
-              let vel = 1.0;
-              if (isSwingOnRef.current) {
-                vel = note.isStrong
-                  ? 0.8 + (nextRandom() * 0.2 - 0.1)
-                  : 0.4 + (nextRandom() * 0.24 - 0.12);
-              }
-              vel *= note.stepVolMultiplier;
-
-              // Micro-timing offset
-              const stepDurSec = tick96nSec * (currentTicks / note.stepsPerMeasure);
-              const microOffset = (note.microtimingPct / 100) * stepDurSec * 0.5;
-              const triggerTime = swingTime + microOffset;
-
-              console.log("🎵 [PLAY NOTE] AudioEngine", note.instId, note.playerKey, triggerTime);
-              audioEngine?.playNote(note.instId, note.playerKey, triggerTime, note.baseGain * vel, note.stepDecayMultiplier);
-
-              const delayMs = Math.max(0, (triggerTime - rawCtx.currentTime) * 1000);
-              const timeoutId = setTimeout(() => {
-                hitTriggersRef.current.push({ trackId: note.trackId, stepIndex: note.circleStepIdx, state: note.state });
-                engineTimeoutsRef.current = engineTimeoutsRef.current.filter(id => id !== timeoutId);
-              }, delayMs);
-              engineTimeoutsRef.current.push(timeoutId);
-            } catch (_) {}
-          }
-        }
-
-        // ─── LOGIQUE VOCALE (conservée dans le loop car stateful) ────────
-        tracksRef.current.forEach((track) => {
-          const currentMeasureLocal = measureCountRef.current % totalMeasuresRef.current;
-          const inst = instrumentsConfig[track.instrumentIdx];
-          if (!inst || inst.type !== 'voice') return; // instruments handled above
-
-          // Recording handling
-          if (recordingVocalPatternIdRef.current !== null) {
-            const hasPatternBeingRecorded = track.patterns.some((p: any) => p.id === recordingVocalPatternIdRef.current);
-            if (hasPatternBeingRecorded) {
-              if (stepIdx === 0 && vocalRecordingStateRef.current === 'waiting') {
-                vocalRecordingStateRef.current = 'recording';
-                const startDelayMs = Math.max(0, (time - Tone.context.rawContext.currentTime) * 1000);
-                setTimeout(() => {
-                  if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'inactive') {
-                    try { vocalMediaRecorderRef.current.start(); } catch (err) {}
-                  }
-                }, startDelayMs);
-              }
-              if (stepIdx === currentTicks - 1 && vocalRecordingStateRef.current === 'recording') {
-                recordedMeasuresCountRef.current++;
-                if (recordedMeasuresCountRef.current >= recordingDurationMeasuresRef.current) {
-                  vocalRecordingStateRef.current = 'inactive';
-                  const stopDelayMs = Math.max(0, (time + tick96nSec - Tone.context.rawContext.currentTime) * 1000);
-                  setTimeout(() => {
-                    let stopped = false;
-                    if (vocalMediaRecorderRef.current && vocalMediaRecorderRef.current.state === 'recording') {
-                      try { vocalMediaRecorderRef.current.stop(); stopped = true; } catch (err) {}
-                    }
-                    if (!stopped) { finishVocalRecording(); }
-                  }, stopDelayMs);
-                }
-              }
-            }
-          }
-
-          const isSoloPlayActive = soloPatternPlayIdRef.current !== null;
-          const isTargetSoloTrack = isSoloPlayActive && track.patterns.some((p: any) => p.id === soloPatternPlayIdRef.current);
-          let activePattern: any;
-          let canPlay = false;
-
-          if (isSoloPlayActive) {
-            if (isTargetSoloTrack) { activePattern = track.patterns.find((p: any) => p.id === soloPatternPlayIdRef.current); canPlay = true; }
-            else return;
-          } else {
-            activePattern = track.patterns.find((p: any) => p.measureAssignments[currentMeasureLocal]);
-            const hasSoloVoice = tracksRef.current.some((t: any) => t.isSolo);
-            canPlay = hasSoloVoice ? track.isSolo : !track.isMute;
-          }
-
-          if (!activePattern || !canPlay) return;
-
-          // Micro mode: loop vocal recording at measure start
-          if (activePattern.vocalMode === 'micro' && stepIdx === 0 && recordingVocalPatternIdRef.current !== activePattern.id) {
-            const isContinuation = currentMeasureLocal > 0 && activePattern.measureAssignments[currentMeasureLocal - 1];
-            if (!isContinuation) {
-              const player = vocalPlayersRef.current[activePattern.id];
-              if (player?.loaded) {
-                try {
-                  player.stop();
-                  const totalLatencyMs = (activePattern.vocalLatency || 0) + getSystemDefaultLatencyMs();
-                  const offsetSec = Math.max(0, VOCAL_RECORDING_ARM_DELAY_SEC + (totalLatencyMs / 1000));
-                  
-                  // Calculate dynamic playback rate for time-stretching (BPM sync)
-                  let rate = 1.0;
-                  if (activePattern.vocalBpmSync !== false && activePattern.vocalBaseBpm) {
-                    const currentMeasureBpm = measureBpmsRef.current[currentMeasureLocal] ?? targetBpm;
-                    rate = currentMeasureBpm / activePattern.vocalBaseBpm;
-                  }
-                  player.playbackRate = rate;
-
-                  if (totalLatencyMs >= 0) { 
-                    player.start(time, offsetSec); 
-                  } else { 
-                    player.start(time + Math.abs(totalLatencyMs) / 1000, VOCAL_RECORDING_ARM_DELAY_SEC); 
-                  }
-                } catch (_) {}
-              }
-            }
-          }
-
-          // Step-by-step vocal guide or non-micro vocal steps
-          const stepCount = activePattern.steps;
-          const circleStepIdx = Math.floor((stepIdx / currentTicks) * stepCount);
-          const expectedTick = Math.floor((circleStepIdx * currentTicks) / stepCount);
-          if (stepIdx !== expectedTick) return;
-
-          const state = activePattern.activeSteps[circleStepIdx];
-          if (!state || state === 0) return;
-
-          if (activePattern.vocalMode !== 'micro' || (recordingVocalPatternIdRef.current === activePattern.id && isVocalGuideEnabledRef.current)) {
-            const baseGain = 1.0;
-            const stepVolMultiplier = (activePattern.volumes?.[circleStepIdx] ?? 80) / 100;
-            const stepDecayMultiplier = (activePattern.decays?.[circleStepIdx] ?? 100) / 100;
-            const manualMicro = activePattern.microtimings?.[circleStepIdx] ?? 0;
-            const stepDurSec = tick96nSec * (currentTicks / stepCount);
-            const microTimeOffset = (manualMicro / 100) * stepDurSec * 0.5;
-            const finalTriggerTime = swingTime + microTimeOffset;
-            let note = 'C5';
-            if (activePattern.notes?.[circleStepIdx]?.trim()) note = activePattern.notes[circleStepIdx];
-            else if (state === 'P') note = 'E5';
-            try {
-              const synth = voiceSynths[inst.id];
-              if (synth) {
-                synth.volume.setValueAtTime(Tone.gainToDb(baseGain * stepVolMultiplier) - 10, finalTriggerTime);
-                synth.triggerAttackRelease(note, `${(1 / 8) * stepDecayMultiplier}s`, finalTriggerTime);
-              }
-            } catch (_) {}
-          }
-        });
-        },
-        () => {
-          const currentMeasureIdx = measureCountRef.current % totalMeasuresRef.current;
-          const targetBpm = measureBpmsRef.current[currentMeasureIdx] ?? 100;
-          return 2.5 / targetBpm;
-        }
-      );
-
-      // Initialize InputManager
-      inputManager = new InputManager(audioEngine);
-      inputManager.setLeftHanded(isLeftHanded);
-      if (activeKeyboardInstrumentId) {
-        inputManager.setActiveInstrument(activeKeyboardInstrumentId);
-      }
-
-      // Connect channels to audioEngine
-      instrumentsConfig.forEach((inst) => {
-        if (inst.type !== 'voice' && channels[inst.id]) {
-          audioEngine?.setInstrumentChannel(inst.id, channels[inst.id]);
-        }
-      });
-
-      // Load all samples via the AudioEngine
-      audioEngine.loadAllSamples()
-        .then(() => {
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          console.error("Failed to load samples via AudioEngine:", err);
-          setIsLoading(false);
-        });
-    };
-
-    initAudio();
-
-    // Resize collapse left sidebar on small width screens
     if (window.innerWidth <= 1000) {
       setIsLeftPanelCollapsed(true);
     }
   }, []);
-
-
-
-  // Update BPM of Transport
-  useEffect(() => {
-    Tone.Transport.bpm.value = bpm;
-  }, [bpm]);
 
   // Prevent context menu (long press options) on step edit cells & touch selector bubble
   useEffect(() => {
@@ -1576,23 +1132,6 @@ export default function App() {
     };
   }, []);
 
-  // Adjust Master Volume gain
-  useEffect(() => {
-    if (masterVolumeNode) {
-      try {
-        masterVolumeNode.gain.setValueAtTime(Tone.dbToGain(masterVol === -40 ? -Infinity : masterVol), Tone.context.currentTime);
-      } catch (err) {}
-    }
-  }, [masterVol]);
-
-  // Reset Destination Volume to neutral when stopped
-  useEffect(() => {
-    if (!isPlaying) {
-      try {
-        Tone.Destination.volume.setValueAtTime(0, Tone.context.currentTime);
-      } catch (err) {}
-    }
-  }, [isPlaying]);
 
   // Autosave sequencer state in localStorage with 1 second debounce
   const isInitialMount = useRef(true);
@@ -2117,187 +1656,8 @@ export default function App() {
   };
 
 
-  const {
-    isRecordingVocal,
-    recordingVocalPatternId,
-    recordedPatternIds,
-    audioDevices,
-    selectedAudioDeviceId,
-    isVocalGuideEnabled,
-    setIsVocalGuideEnabled,
-    recordingVocalPatternIdRef,
-    vocalRecordingStateRef,
-    vocalMediaRecorderRef,
-    recordedMeasuresCountRef,
-    recordingDurationMeasuresRef,
-    vocalPlayersRef,
-    isVocalGuideEnabledRef,
-    handleAudioDeviceChange,
-    handleImportVocalFile,
-    handleAudioPatternCreated,
-    startVocalRecording,
-    stopVocalRecording,
-    finishVocalRecording,
-    handleVocalModeChange,
-    handleVocalLatencyChange,
-    handleVocalBpmSyncToggle,
-    handleDeleteVocalRecording,
-    getSystemDefaultLatencyMs,
-    loadVocalRecording
-  } = useVocalRecorder({
-    tracks,
-    setTracks,
-    pushUndoState,
-    bpm,
-    measureBpms,
-    totalMeasures,
-    audioEngine,
-    setIsPlaying,
-    channels,
-    masterVolumeNode,
-    isPlayingRef,
-    measureCountRef,
-    currentStepIndexRef,
-    lastPlayedSignalIdRef
-  });
 
 
-  // 3. User operations callbacks
-  const handleTogglePlay = async () => {
-    console.log("📣📣📣 [PLAY_BUTTON_TRIGGERED] handleTogglePlay called! Current state -> isPlaying: " + isPlaying + " | First step (currentStepIndexRef.current): " + currentStepIndexRef.current);
-    await Tone.start();
-    if (soloPatternPlayIdRef.current !== null) {
-      setSoloPatternPlayId(null);
-    }
-    if (!isPlaying) {
-      lastPlayedSignalIdRef.current = null;
-      // Ensure Transport is running
-      if (Tone.Transport.state !== 'started') {
-        Tone.Transport.start();
-      }
-      console.log("🚀 [AUDIO ENGINE START] Starting audioEngine. Step index ref:", currentStepIndexRef.current);
-      audioEngine?.start();
-      setIsPlaying(true);
-    } else {
-      console.log("⏸️ [AUDIO ENGINE STOP] Stopping audioEngine.");
-      audioEngine?.stop();
-      engineTimeoutsRef.current.forEach(clearTimeout);
-      engineTimeoutsRef.current = [];
-      hitTriggersRef.current = [];
-      Tone.Transport.pause();
-      if (isRecordingVocal) {
-        stopVocalRecording();
-      }
-      // Stop ongoing voice synthesizers decay and barulho loops
-      audioEngine?.stopAllBarulho();
-      instrumentsConfig.forEach((inst) => {
-        if (voiceSynths[inst.id]) voiceSynths[inst.id].triggerRelease();
-      });
-
-      (Object.values(vocalPlayersRef.current) as any[]).forEach((player) => {
-        try {
-          player.stop();
-        } catch (_) {}
-      });
-      setIsPlaying(false);
-      setCurrentMeasure(measureCountRef.current);
-      setCurrentStepIndex(currentStepIndexRef.current);
-
-      const pausedStep = currentStepIndexRef.current;
-      const pausedMeasure = measureCountRef.current;
-      const pausedMaxTicks = maxTicksRef.current;
-      const ratioVal = pausedMaxTicks > 0 ? (pausedStep >= 0 ? pausedStep : 0) / pausedMaxTicks : 0;
-
-      window.dispatchEvent(new CustomEvent('baquemix-tick', {
-        detail: {
-          step: pausedStep,
-          measure: pausedMeasure,
-          maxTicks: pausedMaxTicks,
-          ratio: ratioVal,
-          visualStep16: Math.floor(ratioVal * 16),
-          visualStep12: Math.floor(ratioVal * 12)
-        }
-      }));
-    }
-  };
-
-  // Keep event handler refs up to date on every render to prevent stale closures in keybindings
-  const handleTogglePlayRef = useRef(handleTogglePlay);
-  const handleUndoRef = useRef(handleUndo);
-  const handleRedoRef = useRef(handleRedo);
-
-  useEffect(() => {
-    handleTogglePlayRef.current = handleTogglePlay;
-    handleUndoRef.current = handleUndo;
-    handleRedoRef.current = handleRedo;
-  });
-
-  // Keybindings listener: Spacebar & Undo
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeTag = document.activeElement?.tagName || '';
-      const activeId = document.activeElement?.id || '';
-
-      if (
-        e.code === 'Space' &&
-        activeTag !== 'INPUT' &&
-        activeTag !== 'SELECT' &&
-        activeId !== 'letras-textarea'
-      ) {
-        e.preventDefault();
-        handleTogglePlayRef.current();
-      }
-
-      const isUndoKey = (e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey) && !e.shiftKey;
-      const isRedoKey = 
-        ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey) && e.shiftKey) ||
-        ((e.key === 'y' || e.key === 'Y') && (e.ctrlKey || e.metaKey));
-      
-      if (isUndoKey) {
-        e.preventDefault();
-        handleUndoRef.current();
-      } else if (isRedoKey) {
-        e.preventDefault();
-        handleRedoRef.current();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const handleRewind = () => {
-    if (soloPatternPlayIdRef.current !== null) {
-      setSoloPatternPlayId(null);
-    }
-    audioEngine?.stop();
-    engineTimeoutsRef.current.forEach(clearTimeout);
-    engineTimeoutsRef.current = [];
-    hitTriggersRef.current = [];
-    Tone.Transport.stop();
-    if (isRecordingVocal) {
-      stopVocalRecording();
-    }
-    audioEngine?.stopAllBarulho();
-    instrumentsConfig.forEach((inst) => {
-      if (voiceSynths[inst.id]) voiceSynths[inst.id].triggerRelease();
-    });
-
-    (Object.values(vocalPlayersRef.current) as any[]).forEach((player) => {
-      try {
-        player.stop();
-      } catch (_) {}
-    });
-    setIsPlaying(false);
-    setCurrentStepIndex(-1);
-    currentStepIndexRef.current = -1;
-    measureCountRef.current = 0;
-    setCurrentMeasure(0);
-    Tone.Transport.seconds = 0;
-    lastPlayedSignalIdRef.current = null;
-    window.dispatchEvent(new CustomEvent('baquemix-tick', {
-      detail: { step: -1, measure: 0, maxTicks: 16 }
-    }));
-  };
 
   const handlePresetSelect = (value: string) => {
     setActivePresetName(value);
@@ -3172,51 +2532,7 @@ export default function App() {
     setLoopEndMeasure(null);
   };
 
-  const handleStartSoloPattern = async (patternId: number) => {
-    await Tone.start();
-    
-    // Stop vocal recording if any
-    if (isRecordingVocal) {
-      stopVocalRecording();
-    }
-    
-    // Reset playhead
-    audioEngine?.stop();
-    Tone.Transport.stop();
-    
-    audioEngine?.stopAllBarulho();
-    instrumentsConfig.forEach((inst) => {
-      if (voiceSynths[inst.id]) voiceSynths[inst.id].triggerRelease();
-    });
 
-    (Object.values(vocalPlayersRef.current) as any[]).forEach((player) => {
-      try {
-        player.stop();
-      } catch (_) {}
-    });
-
-    setSoloPatternPlayId(patternId);
-    
-    // Set step to -1 to start clean, measure count to 0
-    setCurrentStepIndex(-1);
-    currentStepIndexRef.current = -1;
-    measureCountRef.current = 0;
-    setCurrentMeasure(0);
-    Tone.Transport.seconds = 0;
-    lastPlayedSignalIdRef.current = null;
-
-    // Start playback
-    if (Tone.Transport.state !== 'started') {
-      Tone.Transport.start();
-    }
-    audioEngine?.start();
-    setIsPlaying(true);
-  };
-
-  const handleStopSoloPattern = () => {
-    setSoloPatternPlayId(null);
-    handleTogglePlay(); // stop main loop and pause
-  };
 
   const handleCopyPattern = (pattern: Pattern) => {
     setCopiedPattern(JSON.parse(JSON.stringify(pattern)));
