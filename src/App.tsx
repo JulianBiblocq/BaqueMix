@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as Tone from 'tone';
 import { useSequencer } from './contexts/SequencerContext';
 import { useAudio } from './contexts/AudioContext';
+import LZString from 'lz-string';
 import {
   audioEngine,
   inputManager,
@@ -280,17 +281,106 @@ export default function App() {
     });
   };
 
-  // Fetch presets catalog & library
+  // Load Preset catalog and decode initial composition from URL query/hash or local storage
   useEffect(() => {
-    fetch(`${ASSETS_BASE_URL}presets/catalog.json`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setPresetFiles(data.map((item: any) => item.file));
+    const hash = window.location.hash;
+    let loadedFromHash = false;
+
+    const tryLoadQueryOrHash = async () => {
+      // 1. Try URL query parameter '?baque='
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const baqueParam = urlParams.get('baque');
+        if (baqueParam) {
+          const decompressed = LZString.decompressFromEncodedURIComponent(baqueParam);
+          if (decompressed) {
+            const preset = JSON.parse(decompressed);
+            await audio.applyPreset(preset);
+            // Clean URL immediately to keep address bar clean
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return true;
+          }
         }
-      })
-      .catch(err => console.error("Failed to load presets catalog:", err));
-  }, []);
+      } catch (err) {
+        console.error('Failed to load shared state from URL query parameter:', err);
+      }
+
+      // 2. Fallback to existing '#state=' hash
+      if (!hash || !hash.startsWith('#state=')) return false;
+      const encoded = hash.substring(7);
+      // Try new compressed format first (gzip + base64url)
+      try {
+        const padding = '='.repeat((4 - encoded.length % 4) % 4);
+        const standard = (encoded + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const binary = atob(standard);
+        const bytes = new Uint8Array([...binary].map(c => c.charCodeAt(0)));
+        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+        const jsonStr = await new Response(stream).text();
+        const stateData = JSON.parse(jsonStr);
+        await audio.applyPreset(stateData);
+        return true;
+      } catch (_) {}
+      // Fallback: try old uncompressed base64 format
+      try {
+        const jsonStr = decodeURIComponent(escape(atob(encoded)));
+        const stateData = JSON.parse(jsonStr);
+        await audio.applyPreset(stateData);
+        return true;
+      } catch (err) {
+        console.error('Failed to load shared state from URL hash:', err);
+      }
+      return false;
+    };
+
+    tryLoadQueryOrHash().then(async (loaded) => {
+      loadedFromHash = loaded;
+
+      let restoredFromLocalStorage = false;
+      if (!loadedFromHash) {
+        try {
+          const savedSession = localStorage.getItem('baquemix_autosave');
+          if (savedSession) {
+            const data = JSON.parse(savedSession);
+            await audio.applyPreset(data);
+            restoredFromLocalStorage = true;
+            console.log('[BaqueMix] Autosave restored from localStorage.');
+          }
+        } catch (err) {
+          console.error('[BaqueMix] Failed to restore autosave from localStorage:', err);
+        }
+      }
+
+      fetch(`${ASSETS_BASE_URL}presets/catalog.json`)
+        .then((res) => res.json())
+        .then((files: string[]) => {
+          setPresetFiles(files);
+          if (files.length > 0 && !loadedFromHash && !restoredFromLocalStorage) {
+            audio.setActivePresetName(files[0]);
+            audio.loadFallbackPreset(files[0]);
+          }
+        })
+        .catch((err) => console.error('Could not load catalog.json:', err));
+    });
+  }, [audio.applyPreset, audio.loadFallbackPreset, audio.setActivePresetName]);
+
+  // PWA File Handler: handle files opened via the OS file handler (launchQueue API)
+  useEffect(() => {
+    if ('launchQueue' in window) {
+      (window as any).launchQueue.setConsumer(async (launchParams: any) => {
+        if (!launchParams.files || launchParams.files.length === 0) return;
+        try {
+          const fileHandle = launchParams.files[0];
+          const file: File = await fileHandle.getFile();
+          if (!file.name.endsWith('.json')) return;
+          const text = await file.text();
+          const data = JSON.parse(text);
+          await audio.applyPreset(data);
+        } catch (err) {
+          console.error('Failed to load file from launchQueue:', err);
+        }
+      });
+    }
+  }, [audio.applyPreset]);
 
   const refreshLocalPresets = async () => {
     try {
