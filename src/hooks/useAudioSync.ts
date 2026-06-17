@@ -537,7 +537,8 @@ export function useAudioSync({
           engineTimeoutsRef.current.push(timeoutId);
 
           // Pré-calculer la durée d'un 96n une seule fois par tick
-          const targetBpm = measureBpmsRef.current[currentMeasureIdx] ?? 100;
+          const rawBpm = measureBpmsRef.current[currentMeasureIdx];
+          const targetBpm = isNaN(rawBpm) || rawBpm <= 0 ? 100 : rawBpm;
           const tick96nSec = 2.5 / targetBpm;
 
           // 3. Appliquer le BPM
@@ -546,8 +547,10 @@ export function useAudioSync({
           if (stepIdx === 0) {
             try {
               if (transition === 'ramp') {
-                const prevMeasureIdx = (currentMeasureIdx - 1 + totalMeasuresRef.current) % totalMeasuresRef.current;
-                const startBpm = measureBpmsRef.current[prevMeasureIdx] ?? targetBpm;
+                const totalM = totalMeasuresRef.current || 1;
+                const prevMeasureIdx = (currentMeasureIdx - 1 + totalM) % totalM;
+                const rawPrevBpm = measureBpmsRef.current[prevMeasureIdx];
+                const startBpm = isNaN(rawPrevBpm) || rawPrevBpm <= 0 ? targetBpm : rawPrevBpm;
                 const measureDurationSec = currentTicks * tick96nSec;
                 Tone.Transport.bpm.cancelScheduledValues(time);
                 Tone.Transport.bpm.setValueAtTime(startBpm, time);
@@ -741,7 +744,8 @@ export function useAudioSync({
         },
         () => {
           const currentMeasureIdx = measureCountRef.current % (totalMeasuresRef.current || 1);
-          const targetBpm = measureBpmsRef.current[currentMeasureIdx] ?? 100;
+          const rawBpm = measureBpmsRef.current[currentMeasureIdx];
+          const targetBpm = isNaN(rawBpm) || rawBpm <= 0 ? 100 : rawBpm;
           return 2.5 / targetBpm;
         }
       );

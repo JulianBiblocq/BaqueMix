@@ -12,57 +12,77 @@ import { useSequencer } from '../contexts/SequencerContext';
 import { useAudio } from '../contexts/AudioContext';
 
 interface CircleSequencerProps {
+  lang?: Language;
+  isLeftHanded?: boolean;
+  tracks?: TrackGroup[];
+  isPlaying?: boolean;
+  currentStepIndex?: number;
+  currentMeasure?: number;
+  maxTicks?: number;
+  timeSig?: TimeSignature;
+  onTogglePlay?: () => void;
+  onStepChange?: (trackId: number, patternId: number, stepIdx: number, newState: string | number, lyric?: string, note?: string) => void;
+  langPromptVoiceText?: string;
+  isMetroOn?: boolean;
+  activeCircleIdByInst?: { [instIdx: number]: number | null };
+  totalMeasures?: number;
+  activePatternIdByTrack?: Record<number, number | null>;
+  hitTriggersRef?: React.MutableRefObject<HitTrigger[]>;
+  bpm?: number;
+  measureBpms?: number[];
+  measureVols?: number[];
   isMobile?: boolean;
+  onNavigateMeasure?: (measureIdx: number) => void;
+  activeSignal?: { id: string; name: string; image: string } | null;
+  soloPatternPlayId?: number | null;
+  measureSignals?: (string | null)[];
+  rhythmSignals?: { id: string; name: string; image: string }[];
+  songSections?: SongSection[];
 }
 
-export const CircleSequencer: React.FC<CircleSequencerProps> = ({
-  isMobile = false,
-}) => {
+export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
   const sequencer = useSequencer();
   const audio = useAudio();
 
-  const {
-    lang,
-    isLeftHanded = false,
-    tracks,
-    totalMeasures,
-    bpm,
-    measureBpms,
-    measureVols,
-    measureSignals = [],
-    metadata,
-    songSections = [],
-    handleStepValueSelectAndToggle: onStepChange,
-  } = sequencer;
+  const isMobile = props.isMobile !== undefined ? props.isMobile : false;
 
-  const rhythmSignals = metadata?.rhythmSignals || [];
+  const lang = props.lang !== undefined ? props.lang : sequencer.lang;
+  const isLeftHanded = props.isLeftHanded !== undefined ? props.isLeftHanded : sequencer.isLeftHanded;
+  const tracks = props.tracks !== undefined ? props.tracks : sequencer.tracks;
+  const totalMeasures = props.totalMeasures !== undefined ? props.totalMeasures : sequencer.totalMeasures;
+  const bpm = props.bpm !== undefined ? props.bpm : sequencer.bpm;
+  const measureBpms = props.measureBpms !== undefined ? props.measureBpms : sequencer.measureBpms;
+  const measureVols = props.measureVols !== undefined ? props.measureVols : sequencer.measureVols;
+  const measureSignals = props.measureSignals !== undefined ? props.measureSignals : (sequencer.measureSignals || []);
+  const songSections = props.songSections !== undefined ? props.songSections : (sequencer.songSections || []);
 
-  const {
-    isPlaying,
-    currentStepIndex,
-    currentMeasure,
-    maxTicksRef,
-    soloPatternPlayId = null,
-    hitTriggersRef,
-    isMetroOn,
-    handleTogglePlay,
-    handleTimelineNavigate,
-  } = audio;
+  const isPlaying = props.isPlaying !== undefined ? props.isPlaying : audio.isPlaying;
+  const currentStepIndex = props.currentStepIndex !== undefined ? props.currentStepIndex : audio.currentStepIndex;
+  const currentMeasure = props.currentMeasure !== undefined ? props.currentMeasure : audio.currentMeasure;
+  const isMetroOn = props.isMetroOn !== undefined ? props.isMetroOn : audio.isMetroOn;
+  const soloPatternPlayId = props.soloPatternPlayId !== undefined ? props.soloPatternPlayId : audio.soloPatternPlayId;
+  const hitTriggersRef = props.hitTriggersRef !== undefined ? props.hitTriggersRef : audio.hitTriggersRef;
 
-  const maxTicks = maxTicksRef.current;
-  if (!tracks) return null;
-  const timeSig = sequencer.measureTimeSigs[currentMeasure] || sequencer.timeSig;
-  const onTogglePlay = handleTogglePlay;
-  const onNavigateMeasure = (measureIdx: number) => handleTimelineNavigate(measureIdx, 0, 16);
+  const metadata = sequencer.metadata;
+  const rhythmSignals = props.rhythmSignals !== undefined ? props.rhythmSignals : (metadata?.rhythmSignals || []);
+
+  const maxTicks = props.maxTicks !== undefined ? props.maxTicks : audio.maxTicksRef.current;
+  const timeSig = props.timeSig !== undefined ? props.timeSig : (sequencer.measureTimeSigs[currentMeasure] || sequencer.timeSig);
+
+  const onTogglePlay = props.onTogglePlay !== undefined ? props.onTogglePlay : audio.handleTogglePlay;
+  const onNavigateMeasure = props.onNavigateMeasure !== undefined ? props.onNavigateMeasure : ((mIdx: number) => audio.handleTimelineNavigate(mIdx, 0, 16));
+  const onStepChange = props.onStepChange !== undefined ? props.onStepChange : sequencer.handleStepValueSelectAndToggle;
 
   const t = (key: string) => (i18n[lang] as any)[key] || key;
-  const langPromptVoiceText = t('promptVoice');
+  const langPromptVoiceText = props.langPromptVoiceText !== undefined ? props.langPromptVoiceText : t('promptVoice');
+
+  if (!tracks) return null;
 
   // Compute activePatternIdByTrack
-  const activePatternIdByTrack = (() => {
+  const activePatternIdByTrack = props.activePatternIdByTrack !== undefined ? props.activePatternIdByTrack : (() => {
     const result: { [trackId: number]: number | null } = {};
     tracks.forEach(track => {
-      if (soloPatternPlayId !== null) {
+      if (soloPatternPlayId !== null && soloPatternPlayId !== undefined) {
         const hasSoloPattern = track.patterns.some(p => p.id === soloPatternPlayId);
         result[track.id] = hasSoloPattern ? soloPatternPlayId : null;
       } else {
@@ -73,7 +93,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = ({
     return result;
   })();
 
-  const activeCircleIdByInst = (() => {
+  const activeCircleIdByInst = props.activeCircleIdByInst !== undefined ? props.activeCircleIdByInst : (() => {
     const result: { [instIdx: number]: number | null } = {};
     tracks.forEach(track => {
       const pId = activePatternIdByTrack[track.id];
