@@ -229,7 +229,9 @@ export class AudioEngine {
           const baseUrl = import.meta.env.BASE_URL || '/';
           fetchPath = baseUrl.endsWith('/') ? baseUrl + cleanPath.slice(1) : baseUrl + cleanPath;
         }
-        const response = await fetch(fetchPath);
+        // Encode spaces and special characters in the URL path (keep slashes unencoded)
+        const encodedFetchPath = fetchPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+        const response = await fetch(encodedFetchPath);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
