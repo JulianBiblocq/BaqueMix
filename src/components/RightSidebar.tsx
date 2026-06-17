@@ -882,6 +882,29 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
 
 
 
+                    {/* Whistle Volume Slider */}
+                    {audio.whistleVol !== undefined && (
+                      <div className="flex flex-col gap-1 mt-0.5 bg-[var(--cordel-bg)] cordel-border-sm p-2">
+                        <div className="flex justify-between items-center text-[9px] font-bold text-[var(--cordel-text)] uppercase font-cactus">
+                          <span>{lang === 'fr' ? 'Volume du sifflet' : 'Volume do apito'}</span>
+                          <span>{audio.whistleVol}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={audio.whistleVol}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            audio.setWhistleVol(val);
+                            localStorage.setItem('baquemix_whistle_vol', String(val));
+                          }}
+                          className="w-full h-2 bg-[var(--cordel-text)]/20 border border-[var(--cordel-border)] rounded-none outline-none cursor-pointer mt-0.5"
+                          style={{ accentColor: 'var(--cordel-text)' }}
+                        />
+                      </div>
+                    )}
+
                     {/* Galerie des signaux existants */}
                     {(metadata?.rhythmSignals || []).length > 0 && (
                       <div className="flex flex-col gap-1.5">

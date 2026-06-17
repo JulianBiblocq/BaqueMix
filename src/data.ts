@@ -175,7 +175,7 @@ export const i18n = {
     letrasPlaceholder: "Cole a toada completa aqui (Pressione Extrair para o Karaokê)...",
     limitReached: "Limite máximo de instrumentos atingido (20)!",
     invalidFile: "Arquivo de ritmo inválido!",
-    swingBtn: "Swing",
+    swingBtn: "Balanço",
     creditLabel: "Criado por Julian Biblocq | Arte: Toni Braga",
     metaInfo: "Informações",
     metaToada: "Nome da Toada",

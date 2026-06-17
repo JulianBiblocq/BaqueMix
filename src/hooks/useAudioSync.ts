@@ -197,6 +197,7 @@ interface UseAudioSyncProps {
   masterEQ: { low: number; mid: number; high: number };
   masterCompressor: { threshold: number; ratio: number };
   reverbType: 'room' | 'studio' | 'hall';
+  whistleVol: number;
 }
 
 export function useAudioSync({
@@ -239,7 +240,8 @@ export function useAudioSync({
   masterVol,
   masterEQ,
   masterCompressor,
-  reverbType
+  reverbType,
+  whistleVol
 }: UseAudioSyncProps) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -942,6 +944,35 @@ export function useAudioSync({
       }
     }));
   };
+
+  // Sync Whistle Volume
+  useEffect(() => {
+    if (channels['apito']) {
+      const dbVol = whistleVol === 0 ? -Infinity : Tone.gainToDb((whistleVol / 100) * 0.4);
+      channels['apito'].volume.value = dbVol;
+    }
+  }, [whistleVol]);
+
+  // Synchronize track volume, panning, reverb levels, and mute/solo dynamically when React state changes
+  useEffect(() => {
+    if (Object.keys(channels).length === 0) return;
+
+    const hasSolo = tracks.some((t: any) => t.isSolo);
+
+    tracks.forEach((t) => {
+      const inst = instrumentsConfig[t.instrumentIdx];
+      if (!inst || !channels[inst.id]) return;
+
+      const gain = (t.volumeVal ?? 100) / 100;
+      channels[inst.id].volume.value = Tone.gainToDb(gain);
+      channels[inst.id].pan.value = (t.panVal || 0) / 100;
+      channels[inst.id].mute = t.isMute || (hasSolo && !t.isSolo);
+
+      if (reverbSends[inst.id]) {
+        reverbSends[inst.id].gain.value = (t.reverbVal || 0) / 100;
+      }
+    });
+  }, [tracks]);
 
   return {
     isPlaying,
