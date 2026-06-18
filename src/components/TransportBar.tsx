@@ -41,6 +41,34 @@ const TransportBarComponent: React.FC<TransportBarProps> = ({ viewMode }) => {
     return `${m}:${s}`;
   };
 
+  const bpmIntervalRef = React.useRef<number | null>(null);
+  const bpmTimeoutRef = React.useRef<number | null>(null);
+
+  const stopBpmChange = React.useCallback(() => {
+    if (bpmTimeoutRef.current) {
+      window.clearTimeout(bpmTimeoutRef.current);
+      bpmTimeoutRef.current = null;
+    }
+    if (bpmIntervalRef.current) {
+      window.clearInterval(bpmIntervalRef.current);
+      bpmIntervalRef.current = null;
+    }
+  }, []);
+
+  const startBpmChange = React.useCallback((delta: number) => {
+    setBpm(prev => Math.min(240, Math.max(40, prev + delta)));
+    
+    bpmTimeoutRef.current = window.setTimeout(() => {
+      bpmIntervalRef.current = window.setInterval(() => {
+        setBpm(prev => Math.min(240, Math.max(40, prev + delta)));
+      }, 75);
+    }, 400);
+  }, [setBpm]);
+
+  React.useEffect(() => {
+    return stopBpmChange;
+  }, [stopBpmChange]);
+
   return (
     <div className="w-full h-[60px] bg-[var(--cordel-bg)] border-t-2 border-[var(--cordel-border)] flex flex-wrap items-center justify-between px-4 z-50 shrink-0">
       
@@ -99,18 +127,26 @@ const TransportBarComponent: React.FC<TransportBarProps> = ({ viewMode }) => {
           </span>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setBpm(Math.max(40, bpm - 1))}
-              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-xs cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm active:scale-95 transition-all"
+              onMouseDown={() => startBpmChange(-1)}
+              onMouseUp={stopBpmChange}
+              onMouseLeave={stopBpmChange}
+              onTouchStart={(e) => { e.preventDefault(); startBpmChange(-1); }}
+              onTouchEnd={(e) => { e.preventDefault(); stopBpmChange(); }}
+              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-xs cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm active:scale-95 transition-all select-none"
               title={lang === 'fr' ? 'Diminuer le tempo' : lang === 'pt' ? 'Diminuir o tempo' : 'Decrease tempo'}
-              style={{ padding: 0 }}
+              style={{ padding: 0, touchAction: 'none' }}
             >
               -
             </button>
             <button
-              onClick={() => setBpm(Math.min(240, bpm + 1))}
-              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-xs cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm active:scale-95 transition-all"
+              onMouseDown={() => startBpmChange(1)}
+              onMouseUp={stopBpmChange}
+              onMouseLeave={stopBpmChange}
+              onTouchStart={(e) => { e.preventDefault(); startBpmChange(1); }}
+              onTouchEnd={(e) => { e.preventDefault(); stopBpmChange(); }}
+              className="w-5 h-5 flex items-center justify-center bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)]/50 font-bold text-xs cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] rounded-sm active:scale-95 transition-all select-none"
               title={lang === 'fr' ? 'Augmenter le tempo' : lang === 'pt' ? 'Aumentar o tempo' : 'Increase tempo'}
-              style={{ padding: 0 }}
+              style={{ padding: 0, touchAction: 'none' }}
             >
               +
             </button>
