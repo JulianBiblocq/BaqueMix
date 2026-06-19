@@ -425,12 +425,17 @@ export default function App() {
       const activeTag = document.activeElement?.tagName || '';
       const activeId = document.activeElement?.id || '';
 
+      // Ignore global shortcuts if user is typing in an input or textarea
       if (
-        e.code === 'Space' &&
-        activeTag !== 'INPUT' &&
-        activeTag !== 'SELECT' &&
-        activeId !== 'letras-textarea'
+        activeTag === 'INPUT' ||
+        activeTag === 'SELECT' ||
+        activeTag === 'TEXTAREA' ||
+        activeId === 'letras-textarea'
       ) {
+        return;
+      }
+
+      if (e.code === 'Space') {
         e.preventDefault();
         audio.handleTogglePlay();
       }
