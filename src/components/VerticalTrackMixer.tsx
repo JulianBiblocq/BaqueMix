@@ -641,7 +641,7 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
               orient="vertical"
               value={track.volumeVal}
               onChange={(e) => onVolumeChange(parseInt(e.target.value))}
-              className="vertical-fader z-10 h-[130px] w-8 cursor-pointer"
+              className="vertical-fader touch-none z-10 h-[130px] w-8 cursor-pointer"
             />
           </div>
           <span className="text-[10px] font-bold text-[var(--cordel-text)]">{track.volumeVal}</span>
@@ -660,7 +660,7 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
               orient="vertical"
               value={track.reverbVal || 0}
               onChange={(e) => onReverbChange(parseInt(e.target.value))}
-              className="vertical-fader z-10 h-[130px] w-8 cursor-pointer"
+              className="vertical-fader touch-none z-10 h-[130px] w-8 cursor-pointer"
             />
           </div>
           <span className="text-[10px] font-bold text-[var(--cordel-text)]">{track.reverbVal || 0}</span>

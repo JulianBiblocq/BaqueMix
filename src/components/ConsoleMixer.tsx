@@ -384,7 +384,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
                     orient="vertical"
                     value={metroVolume}
                     onChange={(e) => setMetroVolume(parseFloat(e.target.value))}
-                    className="vertical-fader z-10 h-[130px] w-8 cursor-pointer"
+                    className="vertical-fader touch-none z-10 h-[130px] w-8 cursor-pointer"
                   />
                 </div>
                 <span className="text-[10px] font-bold text-[var(--cordel-text)] text-center leading-none">
@@ -526,7 +526,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
                     orient="vertical"
                     value={masterVol}
                     onChange={(e) => onMasterVolChange(parseFloat(e.target.value))}
-                    className="vertical-fader z-10 h-[130px] w-8 cursor-pointer"
+                    className="vertical-fader touch-none z-10 h-[130px] w-8 cursor-pointer"
                   />
                 </div>
                 <span className="text-[10px] font-bold text-[var(--cordel-text)] text-center leading-none">
