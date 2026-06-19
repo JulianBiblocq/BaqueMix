@@ -599,9 +599,14 @@ export function useAudioSync({
         masterVolumeNode.connect(masterEQNode);
         masterEQNode.connect(masterCompressorNode);
         
+        // Add a highpass filter at 55Hz to remove mud and sub-bass that tablets/phones can't reproduce
+        // This prevents inaudible low frequencies from triggering the Limiter and causing stutter/pumping
+        const masterHighpassNode = new Tone.Filter(55, 'highpass');
+        masterCompressorNode.connect(masterHighpassNode);
+
         // Add a Limiter at -2dB to prevent digital clipping when many instruments hit simultaneously
         const masterLimiterNode = new Tone.Limiter(-2);
-        masterCompressorNode.connect(masterLimiterNode);
+        masterHighpassNode.connect(masterLimiterNode);
         masterLimiterNode.toDestination();
         
         masterVolumeNode.gain.value = Tone.dbToGain(masterVol === -40 ? -Infinity : masterVol);
