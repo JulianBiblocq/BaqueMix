@@ -138,7 +138,9 @@ export default function App() {
         if ('caches' in window) {
           const keys = await caches.keys();
           for (const key of keys) {
-            await caches.delete(key);
+            if (key.includes('workbox') || key.includes('o-girador')) {
+              await caches.delete(key);
+            }
           }
         }
       } catch (err) {
@@ -201,7 +203,9 @@ export default function App() {
                     if ('caches' in window) {
                       const keys = await caches.keys();
                       for (const key of keys) {
-                        await caches.delete(key);
+                        if (key.includes('workbox') || key.includes('o-girador')) {
+                          await caches.delete(key);
+                        }
                       }
                     }
                   } catch (err) {}
