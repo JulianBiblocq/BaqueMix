@@ -489,10 +489,14 @@ input[type="range"] {
   pointer-events: none !important;
 }
 
-/* Prevent touch gestures from scrolling the page when moving faders */
-.vertical-fader,
-input[type="range"] {
-  touch-action: none !important;
+/* Pour les faders verticaux, on bloque le scroll vertical mais on autorise le pan horizontal (nécessaire sur Webkit vertical-lr) */
+.vertical-fader {
+  touch-action: pan-x !important;
+}
+
+/* Pour les faders normaux (horizontaux), on bloque le scroll horizontal */
+input[type="range"]:not(.vertical-fader) {
+  touch-action: pan-y !important;
 }
 
 @keyframes roda-shake {

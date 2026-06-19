@@ -405,7 +405,7 @@ export default function App() {
 
   useEffect(() => {
     refreshLocalPresets();
-  }, [sequencer.tracks]);
+  }, []);
 
   // InputManager Keyboard Listeners
   useEffect(() => {

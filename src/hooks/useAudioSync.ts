@@ -535,6 +535,21 @@ export function useAudioSync({
     }
   }, [isPlaying]);
 
+  const tracksMusicalSignature = useMemo(() => {
+    return JSON.stringify(
+      tracks.map(t => ({
+        id: t.id,
+        isMute: t.isMute,
+        isSolo: t.isSolo,
+        instrumentIdx: t.instrumentIdx,
+        patterns: t.patterns.map(p => {
+          const { vocalAudioData, ...safePattern } = p;
+          return safePattern;
+        })
+      }))
+    );
+  }, [tracks]);
+
   // Recompile tick schedule when state changes
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -552,8 +567,9 @@ export function useAudioSync({
     } catch (err) {
       console.error("❌ Failed to compile tick schedule:", err);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    tracks,
+    tracksMusicalSignature,
     totalMeasures,
     measureTimeSigs,
     soloPatternPlayId
