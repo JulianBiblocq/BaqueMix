@@ -1068,7 +1068,7 @@ export function useAudioSync({
         console.error("❌ Critical error during initAudio:", err);
       } finally {
         if (audioEngine) {
-          audioEngine.loadCoreSamples().catch(e => console.warn("Background load core samples failed:", e));
+          audioEngine.loadAllSamples().catch(e => console.warn("Background load samples failed:", e));
         }
         // ALWAYS unblock the UI.
         setIsLoading(false);
@@ -1251,6 +1251,8 @@ export function useAudioSync({
     }));
   };
 
+  const lastAppliedTracksParamsRef = useRef<Record<string, string>>({});
+
   // Synchronize track volume, panning, reverb levels, and mute/solo dynamically when React state changes
   useEffect(() => {
     if (Object.keys(channels).length === 0) return;
@@ -1263,13 +1265,23 @@ export function useAudioSync({
 
       const gain = Math.max(0.00001, (t.volumeVal ?? 100) / 100);
       const db = t.volumeVal === 0 ? -Infinity : Tone.gainToDb(gain);
-      console.log(`Setting track ${inst.id} volume to ${t.volumeVal}% (db: ${db})`);
-      channels[inst.id].volume.value = db;
-      channels[inst.id].pan.value = (t.panVal || 0) / 100;
-      channels[inst.id].mute = t.isMute || (hasSolo && !t.isSolo);
+      const pan = (t.panVal || 0) / 100;
+      const muteState = t.isMute || (hasSolo && !t.isSolo);
+      const reverb = (t.reverbVal || 0) / 100;
 
-      if (reverbSends[inst.id]) {
-        reverbSends[inst.id].gain.value = (t.reverbVal || 0) / 100;
+      const paramHash = `${db}_${pan}_${muteState}_${reverb}`;
+
+      if (lastAppliedTracksParamsRef.current[t.id] !== paramHash) {
+        // console.log(`Setting track ${inst.id} volume to ${t.volumeVal}% (db: ${db})`);
+        channels[inst.id].volume.value = db;
+        channels[inst.id].pan.value = pan;
+        channels[inst.id].mute = muteState;
+
+        if (reverbSends[inst.id]) {
+          reverbSends[inst.id].gain.value = reverb;
+        }
+
+        lastAppliedTracksParamsRef.current[t.id] = paramHash;
       }
     });
   }, [tracks]);

@@ -247,15 +247,12 @@ export class AudioEngine {
     }
   }
 
-  public async loadCoreSamples(): Promise<void> {
-    const coreIndices = [0, 1, 3, 5]; // Alfaia Marcante, Alfaia Meio, Caixa, Gonguê
+  public async loadAllSamples(): Promise<void> {
     const pathsArray: string[] = [];
-    for (const idx of coreIndices) {
-      if (instrumentAudioConfigs[idx]) {
-        for (const stroke of instrumentAudioConfigs[idx].strokes) {
-          for (const file of stroke.files) {
-            pathsArray.push(file);
-          }
+    for (const config of instrumentAudioConfigs) {
+      for (const stroke of config.strokes) {
+        for (const file of stroke.files) {
+          pathsArray.push(file);
         }
       }
     }

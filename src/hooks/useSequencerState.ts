@@ -201,12 +201,23 @@ export function useSequencerState() {
 
   // Enforce Apito is always the last track in the list
   useEffect(() => {
-    const apitoIdx = tracks.findIndex((t) => instrumentsConfig[t.instrumentIdx]?.id === 'apito');
-    if (apitoIdx > -1 && apitoIdx !== tracks.length - 1) {
-      const newTracks = [...tracks];
-      const apitoTrack = newTracks.splice(apitoIdx, 1)[0];
-      newTracks.push(apitoTrack);
-      setTracks(newTracks);
+    let needsSort = false;
+    let seenApito = false;
+    for (const t of tracks) {
+      const isApito = instrumentsConfig[t.instrumentIdx]?.id === 'apito';
+      if (isApito) {
+        seenApito = true;
+      } else if (seenApito) {
+        // We saw a non-apito AFTER an apito. It needs sorting!
+        needsSort = true;
+        break;
+      }
+    }
+    
+    if (needsSort) {
+      const apitos = tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.id === 'apito');
+      const others = tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.id !== 'apito');
+      setTracks([...others, ...apitos]);
     }
   }, [tracks]);
 
