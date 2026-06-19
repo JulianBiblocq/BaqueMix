@@ -239,7 +239,7 @@ export const TouchStrokeSelector: React.FC<TouchStrokeSelectorProps> = ({
 
   return (
     <div
-      className="fixed z-[9999] flex flex-col items-center pointer-events-none"
+      className="fixed z-[999999] flex flex-col items-center pointer-events-none"
       style={{
         left: `${leftPos}px`,
         top: `${selector.y}px`,
