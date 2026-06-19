@@ -19,6 +19,11 @@ export class InputManager {
 
   constructor(audioEngine: AudioEngine) {
     this.audioEngine = audioEngine;
+
+    // Stop all barulhos if the user switches tabs or the window loses focus
+    window.addEventListener('blur', () => {
+      this.audioEngine.stopAllBarulho();
+    });
   }
 
   /**
