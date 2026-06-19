@@ -1,4 +1,4 @@
-import{v as Z,r as M,m as S,o as e,R as N}from"./index-DnHlsETH.js";function X(){const[a,r]=M.useState({width:window.innerWidth,height:window.innerHeight});return M.useEffect(()=>{const s=()=>r({width:window.innerWidth,height:window.innerHeight});return window.addEventListener("resize",s),()=>window.removeEventListener("resize",s)},[]),a}const R=`
+import{v as Z,r as M,m as S,o as e,R as N}from"./index-Cl-C_3M9.js";function X(){const[a,r]=M.useState({width:window.innerWidth,height:window.innerHeight});return M.useEffect(()=>{const s=()=>r({width:window.innerWidth,height:window.innerHeight});return window.addEventListener("resize",s),()=>window.removeEventListener("resize",s)},[]),a}const R=`
   @keyframes pov-hit {
     0% { transform: translateY(0px) rotateX(0deg) scale(1); }
     30% { transform: translateY(-180px) rotateX(40deg) scale(0.9); }
