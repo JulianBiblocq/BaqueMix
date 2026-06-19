@@ -583,6 +583,10 @@ export function useAudioSync({
       if (bMetroClick) return; // already initialized
 
       if (!masterVolumeNode) {
+        if (!Tone.context || Tone.context.state !== 'running') {
+          Tone.setContext(new Tone.Context({ latencyHint: 'playback' }));
+        }
+
         masterEQNode = new Tone.EQ3({
           low: masterEQ.low,
           mid: masterEQ.mid,
@@ -617,7 +621,7 @@ export function useAudioSync({
 
       // Configure Tone.js lookAhead to 150ms for pre-scheduling audio events
       try {
-        Tone.getContext().lookAhead = 0.15;
+        Tone.getContext().lookAhead = 0.5;
       } catch (err) {
         console.warn("Failed to set Tone.js lookAhead:", err);
       }
@@ -807,6 +811,9 @@ export function useAudioSync({
           const drawTime = time + visualDelay;
 
           Tone.Draw.schedule(() => {
+            // ECO MODE: Bypass completely the UI visual dispatch during playback to save 100% CPU for audio
+            if ((window as any).oGiradorEcoMode && isPlayingRef.current) return;
+
             window.dispatchEvent(new CustomEvent('o-girador-tick', {
               detail: {
                 step: _stepForUI,

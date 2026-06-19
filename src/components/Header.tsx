@@ -98,6 +98,23 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   const onMasterVolChange = setMasterVol;
   const onTotalMeasuresChange = setTotalMeasures;
   const onReverbTypeChange = setReverbType;
+
+  // --- ECO MODE ---
+  const [ecoMode, setEcoMode] = useState<boolean>(() => {
+    return localStorage.getItem('o-girador-eco-mode') === 'true';
+  });
+
+  const toggleEcoMode = () => {
+    const newMode = !ecoMode;
+    setEcoMode(newMode);
+    localStorage.setItem('o-girador-eco-mode', String(newMode));
+    (window as any).oGiradorEcoMode = newMode;
+  };
+
+  useEffect(() => {
+    (window as any).oGiradorEcoMode = ecoMode;
+  }, [ecoMode]);
+  // ----------------
   const [addDropOpen, setAddDropOpen] = useState(false);
   const addDropRef = useRef<HTMLDivElement>(null);
   
@@ -385,6 +402,24 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                   <button onClick={() => { window.open('https://github.com/JulianBiblocq/o-girador/issues', '_blank'); setMobileMenuOpen(false); }} className="px-2 py-1.5 bg-[#27ae60] text-[#1a1a1a] cordel-border-sm text-xs font-bold font-cactus hover:opacity-90 cursor-pointer col-span-2 flex items-center justify-center gap-1">
                     💬 {t('feedbackBtn')}
                   </button>
+                </div>
+              </div>
+
+              {/* Eco Mode Toggle */}
+              <div className="flex flex-col gap-1 border-t border-[var(--cordel-text)] pt-2 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none font-bold text-[var(--cordel-text)]">
+                  <input
+                    type="checkbox"
+                    checked={ecoMode}
+                    onChange={toggleEcoMode}
+                    className="accent-[var(--cordel-text)] w-4 h-4 cursor-pointer"
+                  />
+                  🌱 Mode Éco {ecoMode ? '(On)' : '(Off)'}
+                </label>
+                <div className="text-xs opacity-80 leading-tight text-[var(--cordel-text)] font-sans">
+                  {lang === 'fr' 
+                    ? 'Désactive les animations pour soulager la tablette.'
+                    : 'Desativa animações para aliviar o tablet.'}
                 </div>
               </div>
 
@@ -846,6 +881,14 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           title="Dark / Light Mode"
         >
           {isDarkMode ? '🌞' : '🌙'}
+        </button>
+
+        <button
+          onClick={toggleEcoMode}
+          className={`border-2 border-[var(--cordel-border)] cordel-button text-xl px-2 py-1 w-12 text-center cursor-pointer flex justify-center items-center ${ecoMode ? 'bg-[#27ae60] text-[#1a1a1a]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]'}`}
+          title={lang === 'fr' ? 'Mode Éco (désactive les animations)' : 'Modo Eco (desativa animações)'}
+        >
+          🌱
         </button>
 
         <button
