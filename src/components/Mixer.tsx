@@ -86,6 +86,8 @@ const MixerComponent: React.FC<MixerProps> = ({
     isVocalGuideEnabled = true,
     setIsVocalGuideEnabled: onVocalGuideToggle,
     handleVocalBpmSyncToggle: onVocalBpmSyncToggle,
+    activeAoVivoTrackId,
+    setActiveAoVivoTrackId,
   } = sequencer;
 
   const {
@@ -243,6 +245,8 @@ const MixerComponent: React.FC<MixerProps> = ({
               canPaste={!!copiedPattern}
               onReorderPatterns={(patternId, direction) => onReorderPatterns && onReorderPatterns(track.id, patternId, direction)}
               isCollapsed={isTracksCollapsed}
+              activeAoVivoTrackId={activeAoVivoTrackId}
+              setActiveAoVivoTrackId={setActiveAoVivoTrackId}
             />
           ))}
         </div>

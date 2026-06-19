@@ -265,12 +265,20 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
 
     const soloPlayId = state.soloPatternPlayId;
     if (soloPlayId !== undefined && soloPlayId !== null) {
-      const hasSoloPattern = track.patterns.some(p => p.id === soloPlayId);
-      return hasSoloPattern ? soloPlayId : null;
+      for (let i = 0; i < track.patterns.length; i++) {
+        if (track.patterns[i].id === soloPlayId) {
+          return soloPlayId;
+        }
+      }
+      return null;
     }
 
-    const assignedPattern = track.patterns.find(p => p.measureAssignments[measureIdx]);
-    return assignedPattern ? assignedPattern.id : null;
+    for (let i = 0; i < track.patterns.length; i++) {
+      if (track.patterns[i].measureAssignments[measureIdx]) {
+        return track.patterns[i].id;
+      }
+    }
+    return null;
   };
 
   // Use refs in the animation loop to avoid stale closure issues
@@ -434,10 +442,21 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width = 1200;
+    bgCanvas.height = 1200;
+    const bgCtx = bgCanvas.getContext('2d');
+    let isBgCached = false;
+    let lastTimeSig = '';
+    let lastTicks = -1;
+
     let animId: number;
     let flashAlpha = 0;
     let stickAngle = -Math.PI / 2;
     let lastFlashBeat = -1;
+
+    const instrumentTotals: Record<number, number> = {};
+    const instrumentIndexes: Record<number, number> = {};
 
     interface Ripple {
       x: number;
@@ -462,6 +481,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
       themeText = computedStyle.getPropertyValue('--cordel-text').trim() || '#1a1a1a';
       themeBorder = computedStyle.getPropertyValue('--cordel-border').trim() || '#1a1a1a';
       themeWood = computedStyle.getPropertyValue('--cordel-wood').trim() || '#8b2a1a';
+      isBgCached = false;
     };
 
     updateThemeColors();
@@ -525,147 +545,162 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
       const centerX = 600;
       const centerY = 600;
 
-      ctx.clearRect(0, 0, 1200, 1200);
-
       // Cordel style Alfaia Drum
       const drumRadius = 560;
       const rimRadius = 540;
       const innerSkinRadius = 522;
 
-      // 1. Ropes (Cordas) - drawn with black ink style
-      const numCords = 16;
-      ctx.lineWidth = 7;
-      ctx.strokeStyle = themeBorder;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      for (let i = 0; i < numCords; i++) {
-        const a1 = (i * Math.PI * 2) / numCords;
-        const a2 = ((i + 0.5) * Math.PI * 2) / numCords;
-        
-        ctx.beginPath();
-        ctx.moveTo(centerX + Math.cos(a1) * (rimRadius - 5), centerY + Math.sin(a1) * (rimRadius - 5));
-        ctx.lineTo(centerX + Math.cos(a2) * drumRadius, centerY + Math.sin(a2) * drumRadius);
-        const a3 = ((i + 1) * Math.PI * 2) / numCords;
-        ctx.lineTo(centerX + Math.cos(a3) * (rimRadius - 5), centerY + Math.sin(a3) * (rimRadius - 5));
-        ctx.stroke();
-      }
-
-      // 2. Wooden Rim (Aro) - flat dark wood that fits Cordel
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, rimRadius, 0, Math.PI * 2);
-      ctx.lineWidth = 36;
-      ctx.strokeStyle = '#2c1e16'; // Very dark wood brown
-      ctx.stroke();
-
-      // Rim ink outlines
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, rimRadius - 18, 0, Math.PI * 2);
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = themeBorder;
-      ctx.stroke();
-      
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, rimRadius + 18, 0, Math.PI * 2);
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = themeBorder;
-      ctx.stroke();
-
-      // 3. Animal Skin (Couro) - Cream paper
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, innerSkinRadius, 0, Math.PI * 2);
-      ctx.fillStyle = themeBg;
-      ctx.save();
-      ctx.globalAlpha = 0.85;
-      ctx.fill();
-      ctx.restore();
-
-      // Skin edge ink shadow
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, innerSkinRadius, 0, Math.PI * 2);
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = themeBorder;
-      ctx.stroke();
-
-      // Inner decorative ring (Cordel style dashes)
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, innerSkinRadius - 15, 0, Math.PI * 2);
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = themeBorder;
-      ctx.setLineDash([8, 8]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Render Time markers around the rim
       const markers = getMarkers(localTimeSig, localTicks);
-      markers.forEach((tick, idx) => {
-        const angle = -Math.PI / 2 + ((tick / localTicks) * Math.PI * 2);
-        const inRad = innerSkinRadius - 35, outRad = innerSkinRadius - 20;
-        ctx.beginPath();
-        ctx.moveTo(centerX + Math.cos(angle) * inRad, centerY + Math.sin(angle) * inRad);
-        ctx.lineTo(centerX + Math.cos(angle) * outRad, centerY + Math.sin(angle) * outRad);
-        ctx.strokeStyle = themeBorder;
-        ctx.save();
-        if (tick !== 0) {
-          ctx.globalAlpha = 0.3;
-        }
-        ctx.lineWidth = (tick === 0) ? 4 : 2;
-        ctx.stroke();
-        ctx.restore();
-
-        // Draw a premium circular badge on the dark wood rim for the beat number
-        const textRad = 540;
-        const badgeX = centerX + Math.cos(angle) * textRad;
-        const badgeY = centerY + Math.sin(angle) * textRad;
-
-        ctx.beginPath();
-        ctx.arc(badgeX, badgeY, 18, 0, Math.PI * 2);
-        ctx.fillStyle = themeBg; // Cream skin color
-        ctx.fill();
-        ctx.strokeStyle = themeBorder; // Dark ink outline
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // Draw the beat number inside the badge
-        ctx.fillStyle = themeText; // Dark ink text
-        ctx.font = 'bold 20px "Outfit", "Inter", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const strVal = (idx + 1).toString();
-        ctx.fillText(strVal, badgeX, badgeY + 1.5); // slight offset for vertical alignment
-      });
-
-      // 5b. Grid lines (lines indicating beats and subdivisions) under the sequencer tracks
-      ctx.save();
-      const isCompound = localTimeSig === '6/8' || localTimeSig === '12/8';
       const ticksPerBeat = localTicks / markers.length;
-      
-      // For compound signatures, beat is dotted quarter note = 12 ticks, subdivision is eighth note = 4 ticks.
-      // For simple signatures, beat is quarter note = 24 ticks, subdivision is 16th note = 6 ticks.
-      const subdivisionTickInterval = isCompound ? 4 : 6;
 
-      for (let t = 0; t < localTicks; t += subdivisionTickInterval) {
-        const angle = -Math.PI / 2 + (t / localTicks) * Math.PI * 2;
-        const isMainBeat = t % ticksPerBeat === 0;
+      ctx.clearRect(0, 0, 1200, 1200);
 
-        ctx.beginPath();
-        // Draw from the play button edge (radius 60) to the outer skin limit (radius 516)
-        ctx.moveTo(centerX + Math.cos(angle) * 60, centerY + Math.sin(angle) * 60);
-        ctx.lineTo(centerX + Math.cos(angle) * 516, centerY + Math.sin(angle) * 516);
-
-        ctx.strokeStyle = themeBorder;
-        if (isMainBeat) {
-          ctx.globalAlpha = 0.28;
-          ctx.lineWidth = 2.0;
-          ctx.setLineDash([]);
-        } else {
-          ctx.globalAlpha = 0.12;
-          ctx.lineWidth = 1.0;
-          ctx.setLineDash([5, 5]);
-        }
-        ctx.stroke();
+      if (lastTimeSig !== localTimeSig || lastTicks !== localTicks) {
+        isBgCached = false;
+        lastTimeSig = localTimeSig;
+        lastTicks = localTicks;
       }
-      ctx.restore();
+
+      if (!isBgCached && bgCtx) {
+        bgCtx.clearRect(0, 0, 1200, 1200);
+
+        // 1. Ropes (Cordas) - drawn with black ink style
+        const numCords = 16;
+        bgCtx.lineWidth = 7;
+        bgCtx.strokeStyle = themeBorder;
+        bgCtx.lineCap = 'round';
+        bgCtx.lineJoin = 'round';
+
+        for (let i = 0; i < numCords; i++) {
+          const a1 = (i * Math.PI * 2) / numCords;
+          const a2 = ((i + 0.5) * Math.PI * 2) / numCords;
+          
+          bgCtx.beginPath();
+          bgCtx.moveTo(centerX + Math.cos(a1) * (rimRadius - 5), centerY + Math.sin(a1) * (rimRadius - 5));
+          bgCtx.lineTo(centerX + Math.cos(a2) * drumRadius, centerY + Math.sin(a2) * drumRadius);
+          const a3 = ((i + 1) * Math.PI * 2) / numCords;
+          bgCtx.lineTo(centerX + Math.cos(a3) * (rimRadius - 5), centerY + Math.sin(a3) * (rimRadius - 5));
+          bgCtx.stroke();
+        }
+
+        // 2. Wooden Rim (Aro) - flat dark wood that fits Cordel
+        bgCtx.beginPath();
+        bgCtx.arc(centerX, centerY, rimRadius, 0, Math.PI * 2);
+        bgCtx.lineWidth = 36;
+        bgCtx.strokeStyle = '#2c1e16'; // Very dark wood brown
+        bgCtx.stroke();
+
+        // Rim ink outlines
+        bgCtx.beginPath();
+        bgCtx.arc(centerX, centerY, rimRadius - 18, 0, Math.PI * 2);
+        bgCtx.lineWidth = 4;
+        bgCtx.strokeStyle = themeBorder;
+        bgCtx.stroke();
+        
+        bgCtx.beginPath();
+        bgCtx.arc(centerX, centerY, rimRadius + 18, 0, Math.PI * 2);
+        bgCtx.lineWidth = 4;
+        bgCtx.strokeStyle = themeBorder;
+        bgCtx.stroke();
+
+        // 3. Animal Skin (Couro) - Cream paper
+        bgCtx.beginPath();
+        bgCtx.arc(centerX, centerY, innerSkinRadius, 0, Math.PI * 2);
+        bgCtx.fillStyle = themeBg;
+        bgCtx.save();
+        bgCtx.globalAlpha = 0.85;
+        bgCtx.fill();
+        bgCtx.restore();
+
+        // Skin edge ink shadow
+        bgCtx.beginPath();
+        bgCtx.arc(centerX, centerY, innerSkinRadius, 0, Math.PI * 2);
+        bgCtx.lineWidth = 5;
+        bgCtx.strokeStyle = themeBorder;
+        bgCtx.stroke();
+
+        // Inner decorative ring (Cordel style dashes)
+        bgCtx.beginPath();
+        bgCtx.arc(centerX, centerY, innerSkinRadius - 15, 0, Math.PI * 2);
+        bgCtx.lineWidth = 1.5;
+        bgCtx.strokeStyle = themeBorder;
+        bgCtx.setLineDash([8, 8]);
+        bgCtx.stroke();
+        bgCtx.setLineDash([]);
+
+        // Render Time markers around the rim
+        markers.forEach((tick, idx) => {
+          const angle = -Math.PI / 2 + ((tick / localTicks) * Math.PI * 2);
+          const inRad = innerSkinRadius - 35, outRad = innerSkinRadius - 20;
+          bgCtx.beginPath();
+          bgCtx.moveTo(centerX + Math.cos(angle) * inRad, centerY + Math.sin(angle) * inRad);
+          bgCtx.lineTo(centerX + Math.cos(angle) * outRad, centerY + Math.sin(angle) * outRad);
+          bgCtx.strokeStyle = themeBorder;
+          bgCtx.save();
+          if (tick !== 0) {
+            bgCtx.globalAlpha = 0.3;
+          }
+          bgCtx.lineWidth = (tick === 0) ? 4 : 2;
+          bgCtx.stroke();
+          bgCtx.restore();
+
+          // Draw a premium circular badge on the dark wood rim for the beat number
+          const textRad = 540;
+          const badgeX = centerX + Math.cos(angle) * textRad;
+          const badgeY = centerY + Math.sin(angle) * textRad;
+
+          bgCtx.beginPath();
+          bgCtx.arc(badgeX, badgeY, 18, 0, Math.PI * 2);
+          bgCtx.fillStyle = themeBg; // Cream skin color
+          bgCtx.fill();
+          bgCtx.strokeStyle = themeBorder; // Dark ink outline
+          bgCtx.lineWidth = 1.5;
+          bgCtx.stroke();
+
+          // Draw the beat number inside the badge
+          bgCtx.fillStyle = themeText; // Dark ink text
+          bgCtx.font = 'bold 20px "Outfit", "Inter", sans-serif';
+          bgCtx.textAlign = 'center';
+          bgCtx.textBaseline = 'middle';
+          const strVal = (idx + 1).toString();
+          bgCtx.fillText(strVal, badgeX, badgeY + 1.5); // slight offset for vertical alignment
+        });
+
+        // 5b. Grid lines (lines indicating beats and subdivisions) under the sequencer tracks
+        bgCtx.save();
+        const isCompound = localTimeSig === '6/8' || localTimeSig === '12/8';
+        
+        // For compound signatures, beat is dotted quarter note = 12 ticks, subdivision is eighth note = 4 ticks.
+        // For simple signatures, beat is quarter note = 24 ticks, subdivision is 16th note = 6 ticks.
+        const subdivisionTickInterval = isCompound ? 4 : 6;
+
+        for (let t = 0; t < localTicks; t += subdivisionTickInterval) {
+          const angle = -Math.PI / 2 + (t / localTicks) * Math.PI * 2;
+          const isMainBeat = t % ticksPerBeat === 0;
+
+          bgCtx.beginPath();
+          // Draw from the play button edge (radius 60) to the outer skin limit (radius 516)
+          bgCtx.moveTo(centerX + Math.cos(angle) * 60, centerY + Math.sin(angle) * 60);
+          bgCtx.lineTo(centerX + Math.cos(angle) * 516, centerY + Math.sin(angle) * 516);
+
+          bgCtx.strokeStyle = themeBorder;
+          if (isMainBeat) {
+            bgCtx.globalAlpha = 0.28;
+            bgCtx.lineWidth = 2.0;
+            bgCtx.setLineDash([]);
+          } else {
+            bgCtx.globalAlpha = 0.12;
+            bgCtx.lineWidth = 1.0;
+            bgCtx.setLineDash([5, 5]);
+          }
+          bgCtx.stroke();
+        }
+        bgCtx.restore();
+
+        isBgCached = true;
+      }
+
+      ctx.drawImage(bgCanvas, 0, 0);
 
       // Metronome Flash (if active)
       if (localMetroOn && flashAlpha > 0) {
@@ -702,10 +737,17 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
       ctx.save();
       ctx.translate(centerX, centerY);
       ctx.rotate(stickAngle);
-      const visibleTrackRadii = currentTracks
-        .filter(t => !t.isHidden && instrumentsConfig[t.instrumentIdx]?.id !== 'apito')
-        .map(t => t.radius || 0);
-      const maxVisibleRadius = visibleTrackRadii.length > 0 ? Math.max(...visibleTrackRadii) : 120;
+      let maxVisibleRadius = -1;
+      for (let i = 0; i < currentTracks.length; i++) {
+        const t = currentTracks[i];
+        if (!t.isHidden && instrumentsConfig[t.instrumentIdx]?.id !== 'apito') {
+          const r = t.radius || 0;
+          if (r > maxVisibleRadius) {
+            maxVisibleRadius = r;
+          }
+        }
+      }
+      if (maxVisibleRadius === -1) maxVisibleRadius = 120;
       const stickLength = maxVisibleRadius + 35;
       ctx.beginPath();
       ctx.moveTo(0, -2);
@@ -746,22 +788,55 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
         ctx.restore();
       }
 
+      let hasSoloTrack = false;
+      for (let i = 0; i < currentTracks.length; i++) {
+        if (currentTracks[i].isSolo) {
+          hasSoloTrack = true;
+          break;
+        }
+      }
+
+      for (const key in instrumentTotals) delete instrumentTotals[key];
+      for (const key in instrumentIndexes) delete instrumentIndexes[key];
+
+      for (let i = 0; i < currentTracks.length; i++) {
+        const idx = currentTracks[i].instrumentIdx;
+        instrumentTotals[idx] = (instrumentTotals[idx] || 0) + 1;
+      }
+
       // Render concentric sequencer tracks
       currentTracks.forEach((track) => {
-        const inst = instrumentsConfig[track.instrumentIdx];
+        const instIdx = track.instrumentIdx;
+        const inst = instrumentsConfig[instIdx];
+        
+        if (instrumentTotals[instIdx] > 1) {
+          instrumentIndexes[instIdx] = (instrumentIndexes[instIdx] || 0) + 1;
+        }
+
         if (!inst || track.isHidden || inst.id === 'apito') return;
 
-
-        const hasSolo = currentTracks.some(t => t.isSolo);
-        const isMutedOut = hasSolo ? !track.isSolo : track.isMute;
+        const isMutedOut = hasSoloTrack ? !track.isSolo : track.isMute;
         if (isMutedOut) return;
 
         const activePatternId = getLiveActivePatternId(track);
         if (activePatternId === null) return;
-        const activePattern = track.patterns.find(p => p.id === activePatternId);
+        let activePattern = null;
+        for (let i = 0; i < track.patterns.length; i++) {
+          if (track.patterns[i].id === activePatternId) {
+            activePattern = track.patterns[i];
+            break;
+          }
+        }
         if (!activePattern) return;
+        
         const activePlayingSteps = sequencer.activeVariationsRef?.current[track.id] || activePattern.activeSteps;
-        const hasAnyNotes = activePlayingSteps.some((s: string | number) => s !== 0);
+        let hasAnyNotes = false;
+        for (let sIdx = 0; sIdx < activePlayingSteps.length; sIdx++) {
+          if (activePlayingSteps[sIdx] !== 0) {
+            hasAnyNotes = true;
+            break;
+          }
+        }
         const isActiveState = hasAnyNotes;
 
         ctx.save();
@@ -891,12 +966,20 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
             ctx.font = 'bold 10px serif';
             ctx.textAlign = 'left';
             let labelText = inst?.name || 'Instrument';
-            const identicals = currentTracks.filter(t => t.instrumentIdx === track.instrumentIdx);
-            if (identicals.length > 1) {
-              labelText += ` ${identicals.indexOf(track) + 1}`;
+            if (instrumentTotals[instIdx] > 1) {
+              labelText += ` ${instrumentIndexes[instIdx]}`;
             }
             if (track.patterns.length > 1) {
-              labelText += ` (P${track.patterns.findIndex(p => p.id === activePatternId) + 1})`;
+              let patternIdx = -1;
+              for (let pIdx = 0; pIdx < track.patterns.length; pIdx++) {
+                if (track.patterns[pIdx].id === activePatternId) {
+                  patternIdx = pIdx;
+                  break;
+                }
+              }
+              if (patternIdx !== -1) {
+                labelText += ` (P${patternIdx + 1})`;
+              }
             }
             ctx.fillText(labelText, x + 20, y + 3);
             ctx.restore();

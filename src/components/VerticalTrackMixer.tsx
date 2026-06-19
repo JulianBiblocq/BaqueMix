@@ -4,7 +4,7 @@ import { TrackGroup, Language } from '../types';
 import { i18n, instrumentsConfig, ASSETS_BASE_URL, isDarkText, getVisualStrokeSymbol } from '../data';
 import { PanKnob } from './PanKnob';
 import { getNextStepValue } from './InstrumentDetailEditor';
-import { useSequencer } from '../contexts/SequencerContext';
+
 
 interface VerticalTrackMixerProps {
   lang: Language;
@@ -61,6 +61,7 @@ interface VerticalTrackMixerProps {
   onReorderPatterns?: (patternId: number, direction: 'up' | 'down') => void;
   meter?: any;
   soloPatternPlayId?: number | null;
+  activeVariationsRef?: React.MutableRefObject<Record<number, (string | number)[]>>;
 }
 
 const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
@@ -105,8 +106,8 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
   onReorderPatterns,
   meter,
   soloPatternPlayId,
+  activeVariationsRef,
 }) => {
-  const sequencer = useSequencer();
   const [instDropdownOpen, setInstDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [editingPatternId, setEditingPatternId] = useState<number | null>(null);
@@ -501,7 +502,7 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
             <input type="number" min="2" max="32" value={activePattern.steps} onChange={(e) => onStepsChange(activePattern.id, parseInt(e.target.value) || 4)} className="w-12 bg-transparent border-b-2 border-[var(--cordel-border)] text-center font-bold font-cactus outline-none text-[var(--cordel-text)]" />
           </div>          <div className="flex gap-2 items-start w-full">
             {(() => {
-              const activePlayingSteps = sequencer.activeVariationsRef?.current[track.id] || activePattern.activeSteps;
+              const activePlayingSteps = activeVariationsRef?.current[track.id] || activePattern.activeSteps;
               return inst.type === 'voice' ? (
               <div className="grid grid-cols-4 gap-1.5 w-full step-boxes">
                 {Array.from({ length: activePattern.steps }).map((_, i) => {

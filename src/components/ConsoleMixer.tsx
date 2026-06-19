@@ -88,6 +88,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
     isVocalGuideEnabled = true,
     setIsVocalGuideEnabled: onVocalGuideToggle,
     handleVocalBpmSyncToggle: onVocalBpmSyncToggle,
+    activeVariationsRef,
   } = sequencer;
 
   const {
@@ -285,6 +286,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
             totalTracks={tracks.length}
             meter={meters ? meters[instrumentsConfig[track.instrumentIdx].id] : undefined}
             soloPatternPlayId={soloPatternPlayId}
+            activeVariationsRef={activeVariationsRef}
             onMoveUp={() => onMoveUp(track.id)}
             onMoveDown={() => onMoveDown(track.id)}
             onInstrumentChange={(i) => onInstrumentChange(track.id, i)}

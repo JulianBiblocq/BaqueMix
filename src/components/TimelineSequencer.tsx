@@ -314,16 +314,24 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
 
   // 2. Scrubbing ruler handler (Global mouse move/up listener)
   React.useEffect(() => {
+    let rafId: number | null = null;
+
     const handleMouseMove = (e: MouseEvent) => {
       if (isScrubbing.current) {
-        handleRulerClickOrDrag(e.clientX);
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          handleRulerClickOrDrag(e.clientX);
+        });
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (isScrubbing.current) {
         const touch = e.touches[0];
-        handleRulerClickOrDrag(touch.clientX);
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          handleRulerClickOrDrag(touch.clientX);
+        });
         e.preventDefault();
       }
     };
@@ -331,12 +339,14 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
     const handleMouseUp = () => {
       if (isScrubbing.current) {
         isScrubbing.current = false;
+        if (rafId) cancelAnimationFrame(rafId);
       }
     };
 
     const handleTouchEnd = () => {
       if (isScrubbing.current) {
         isScrubbing.current = false;
+        if (rafId) cancelAnimationFrame(rafId);
       }
     };
 
@@ -349,6 +359,7 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
 
@@ -1454,13 +1465,257 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
           )}
 
           {/* ══════════ TRACK ROWS ══════════ */}
-          {tracks.map((track, trackIndex) => {
-            const inst = instrumentsConfig[track.instrumentIdx];
-            const hasSolo = tracks.some(t => t.isSolo);
-            const isMutedBySolo = hasSolo && !track.isSolo;
-            const canPlay = !track.isMute && !isMutedBySolo;
+          {tracks.map((track, trackIndex) => (
+            <MemoizedTimelineTrackRow
+              key={track.id}
+              track={track}
+              trackIndex={trackIndex}
+              tracks={tracks}
+              totalMeasures={totalMeasures}
+              songSections={songSections}
+              measureTimeSigs={measureTimeSigs}
+              loopStartMeasure={loopStartMeasure}
+              loopEndMeasure={loopEndMeasure}
+              isLoopRegionActive={isLoopRegionActive}
+              isPanningActive={isPanningActive}
+              isMobile={isMobile}
+              isMacro={isMacro}
+              isMinZoom={isMinZoom}
+              lang={lang}
+              HEADER_W={HEADER_W}
+              MEASURE_W={MEASURE_W}
+              totalContentW={totalContentW}
+              isPlaying={isPlaying}
+              currentMeasure={currentMeasure}
+              tickPos={tickPos}
+              signalDropdownOpen={signalDropdownOpen}
+              setSignalDropdownOpen={setSignalDropdownOpen}
+              rhythmSignals={rhythmSignals}
+              onMuteToggle={onMuteToggle}
+              onSoloToggle={onSoloToggle}
+              onNavigate={onNavigate}
+              onPatternAssignForMeasure={onPatternAssignForMeasure}
+              onPatternVariationToggleForMeasure={onPatternVariationToggleForMeasure}
+              onMeasureSignalChange={onMeasureSignalChange}
+            />
+          ))}
+          {/* ══════════ PLAYHEAD (Bypass React via Ref) ══════════ */}
+          <div
+            ref={playheadRef}
+            className="absolute top-0 bottom-0 border-l-2 border-red-600 pointer-events-none z-30 shadow-[0_0_10px_rgba(220,38,38,0.7)]"
+            style={{
+              left: 0,
+              transform: `translateX(${HEADER_W + (currentStepIndex >= 0 ? currentMeasure * MEASURE_W + (tickPos / currentMeasureTicks) * MEASURE_W : 0)}px)`,
+              display: currentStepIndex >= 0 ? 'block' : 'none',
+              willChange: 'transform',
+            }}
+          />
 
-            return (
+          {/* ══════════ SNAP GUIDE (📍 NEW) ══════════ */}
+          {snapGuideX !== null && (
+            <div 
+              className="absolute top-0 bottom-0 w-0.5 bg-yellow-500 shadow-[0_0_8px_#f1c40f] z-50 pointer-events-none"
+              style={{ left: `${snapGuideX}px` }}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* 📍 NEW - Panning Hotkey overlay tooltip (similar to sandbox) */}
+      {isPanningActive && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-[var(--cordel-bg)] border border-[var(--cordel-border)]/50 rounded-full px-4 py-1.5 text-[10px] font-bold text-[var(--cordel-text)] cordel-shadow z-50 flex items-center gap-1.5 animate-pulse uppercase tracking-wider">
+          <span>✋ {lang === 'fr' ? 'Mode Déplacement Actif' : 'Modo Arrastar Ativo'}</span>
+          <span className="text-[8px] opacity-60 normal-case">{lang === 'fr' ? '(Glissez le fond pour scroller)' : '(Arraste o fundo para rolar)'}</span>
+        </div>
+      )}
+
+      {/* Bottom legend */}
+      {!isMobile && (
+        <div className="h-8 border-t border-[var(--cordel-border)] flex items-center justify-center px-4 bg-[var(--cordel-bg)] text-[10px] font-bold opacity-80 uppercase tracking-widest gap-4 shrink-0">
+          <span>💡 {lang === 'fr'
+            ? 'Cliquer-glisser sur la règle ou utiliser la molette pour défiler · Cliquer sur la timeline pour naviguer'
+            : 'Clique e arraste na régua ou use o scroll para navegar · Clique na timeline para navegar'}</span>
+        </div>
+      )}
+
+      {/* ══════════ SECTION FORM MODAL ══════════ */}
+      {sectionModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="w-[360px] bg-[var(--cordel-bg)] text-[var(--cordel-text)] p-5 cordel-border-sm cordel-shadow flex flex-col gap-4">
+            <h3 className="font-cactus text-xl font-bold uppercase border-b border-[var(--cordel-border)] pb-2 text-[var(--cordel-text)]">
+              {editingSection 
+                ? (lang === 'fr' ? 'Modifier la Section' : 'Editar Seção')
+                : (lang === 'fr' ? 'Créer une Section' : 'Criar Seção')}
+            </h3>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase text-[var(--cordel-text)]">{lang === 'fr' ? 'Nom de la section' : 'Nome da seção'}</label>
+              <input
+                type="text"
+                value={sectionFormName}
+                onChange={(e) => setSectionFormName(e.target.value)}
+                placeholder="Ex: Partie A / Refrain"
+                className="w-full bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] px-3 py-1.5 text-sm font-bold outline-none rounded-none focus:bg-[var(--cordel-border)]/10 text-[var(--cordel-text)]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold uppercase text-[var(--cordel-text)]">{lang === 'fr' ? 'Début (Mesure)' : 'Compasso inicial'}</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={totalMeasures}
+                  value={sectionFormStart}
+                  onChange={(e) => setSectionFormStart(e.target.value)}
+                  onBlur={() => {
+                    let val = parseInt(String(sectionFormStart)) || 1;
+                    val = Math.max(1, Math.min(totalMeasures, val));
+                    setSectionFormStart(val);
+                    let endVal = parseInt(String(sectionFormEnd)) || 1;
+                    if (endVal < val) {
+                      setSectionFormEnd(val);
+                    }
+                  }}
+                  className="w-full bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] px-2 py-1.5 text-sm font-bold outline-none rounded-none text-center text-[var(--cordel-text)]"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold uppercase text-[var(--cordel-text)]">{lang === 'fr' ? 'Fin (Mesure)' : 'Compasso final'}</label>
+                <input
+                  type="number"
+                  min={sectionFormStart}
+                  max={totalMeasures}
+                  value={sectionFormEnd}
+                  onChange={(e) => setSectionFormEnd(e.target.value)}
+                  onBlur={() => {
+                    let val = parseInt(String(sectionFormEnd)) || 1;
+                    let startVal = parseInt(String(sectionFormStart)) || 1;
+                    val = Math.max(startVal, Math.min(totalMeasures, val));
+                    setSectionFormEnd(val);
+                  }}
+                  className="w-full bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] px-2 py-1.5 text-sm font-bold outline-none rounded-none text-center text-[var(--cordel-text)]"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase text-[var(--cordel-text)]">{lang === 'fr' ? 'Couleur du bloc' : 'Cor do bloco'}</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {[
+                  { value: '#e08283', label: 'Rouge' },
+                  { value: '#f19066', label: 'Orange' },
+                  { value: '#f5cd79', label: 'Jaune' },
+                  { value: '#55efc4', label: 'Vert d\'eau' },
+                  { value: '#74b9ff', label: 'Bleu pastel' },
+                  { value: '#a29bfe', label: 'Violet doux' },
+                  { value: '#eaddcf', label: 'Cordel beige' }
+                ].map((colorOpt) => (
+                  <button
+                    key={colorOpt.value}
+                    onClick={() => setSectionFormColor(colorOpt.value)}
+                    className={`w-7 h-7 rounded-full cursor-pointer cordel-border-sm transition-transform ${
+                      sectionFormColor === colorOpt.value ? 'scale-115 ring-2 ring-[var(--cordel-text)]' : 'opacity-85'
+                    }`}
+                    style={{ backgroundColor: colorOpt.value }}
+                    title={colorOpt.label}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mb-3.5">
+              <label className="block text-xs font-bold mb-1.5 opacity-90">{lang === 'fr' ? 'Niveau d\'imbrication' : 'Nível de aninhamento'}</label>
+              <select
+                value={sectionFormLevel}
+                onChange={(e) => setSectionFormLevel(parseInt(e.target.value))}
+                className="w-full bg-white/10 border border-[var(--cordel-border)]/50 rounded p-1.5 text-xs text-[var(--cordel-text)] outline-none focus:border-[var(--cordel-border)]"
+              >
+                <option value={0} className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Niveau 0 (Base)' : 'Nível 0 (Base)'}</option>
+                <option value={1} className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Niveau 1 (Groupe)' : 'Nível 1 (Grupo)'}</option>
+                <option value={2} className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Niveau 2 (Super-groupe)' : 'Nível 2 (Super-grupo)'}</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2.5 mt-2 border-t border-[var(--cordel-border)]/30 pt-3">
+              <button
+                onClick={() => setSectionModalOpen(false)}
+                className="px-3 py-1.5 bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)] font-bold text-xs cordel-border-sm cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]"
+              >
+                {lang === 'fr' ? 'Annuler' : 'Cancelar'}
+              </button>
+               <button
+                onClick={() => {
+                  if (!sectionFormName.trim()) return;
+                  let startVal = parseInt(String(sectionFormStart)) || 1;
+                  startVal = Math.max(1, Math.min(totalMeasures, startVal));
+                  let endVal = parseInt(String(sectionFormEnd)) || 1;
+                  endVal = Math.max(startVal, Math.min(totalMeasures, endVal));
+                  if (editingSection) {
+                    onUpdateSection(editingSection.id, sectionFormName, startVal - 1, endVal - 1, sectionFormColor, sectionFormLevel);
+                  } else {
+                    onCreateSection(sectionFormName, startVal - 1, endVal - 1, sectionFormColor, 1, sectionFormLevel);
+                  }
+                  setSectionModalOpen(false);
+                }}
+                className="px-4 py-1.5 bg-[var(--cordel-wood)] text-[#f4ecd8] border border-[var(--cordel-border)] font-bold text-xs cordel-border-sm cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]"
+              >
+                {lang === 'fr' ? 'Valider' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tablature Export Modal removed (lifted to App.tsx) */}
+    </div>
+  );
+};
+interface MemoizedTimelineTrackRowProps {
+  track: any;
+  trackIndex: number;
+  tracks: any[];
+  totalMeasures: number;
+  songSections: any[];
+  measureTimeSigs: any[];
+  loopStartMeasure: number | null;
+  loopEndMeasure: number | null;
+  isLoopRegionActive: boolean;
+  isPanningActive: boolean;
+  isMobile: boolean;
+  isMacro: boolean;
+  isMinZoom: boolean;
+  lang: any;
+  HEADER_W: number;
+  MEASURE_W: number;
+  totalContentW: number;
+  isPlaying: boolean;
+  currentMeasure: number;
+  tickPos: number;
+  signalDropdownOpen: number | null;
+  setSignalDropdownOpen: (val: number | null) => void;
+  rhythmSignals: any[];
+  onMuteToggle: (id: number) => void;
+  onSoloToggle: (id: number) => void;
+  onNavigate: (mIdx: number, step: number, steps: number) => void;
+  onPatternAssignForMeasure: (trackId: number, patternId: number | null, mIdx: number) => void;
+  onPatternVariationToggleForMeasure: (trackId: number, patternId: number, mIdx: number, val: boolean) => void;
+  onMeasureSignalChange?: (mIdx: number, sigId: string | null) => void;
+}
+
+const MemoizedTimelineTrackRow = React.memo(({
+  track, trackIndex, tracks, totalMeasures, songSections, measureTimeSigs,
+  loopStartMeasure, loopEndMeasure, isLoopRegionActive, isPanningActive,
+  isMobile, isMacro, isMinZoom, lang, HEADER_W, MEASURE_W, totalContentW,
+  isPlaying, currentMeasure, tickPos, signalDropdownOpen, setSignalDropdownOpen, rhythmSignals,
+  onMuteToggle, onSoloToggle, onNavigate, onPatternAssignForMeasure,
+  onPatternVariationToggleForMeasure, onMeasureSignalChange
+}: MemoizedTimelineTrackRowProps) => {
+  const inst = instrumentsConfig[track.instrumentIdx];
+  const hasSolo = tracks.some((t: any) => t.isSolo);
+  const isMutedBySolo = hasSolo && !track.isSolo;
+  const canPlay = !track.isMute && !isMutedBySolo;
+
+  return (
               <div
                 key={track.id}
                 className={`flex border-b border-[var(--cordel-border)]/20 h-12 transition-opacity duration-150 ${
@@ -1746,176 +2001,22 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
                 })}
               </div>
             );
-          })}
+}, (prevProps, nextProps) => {
+  return prevProps.track === nextProps.track &&
+         prevProps.totalMeasures === nextProps.totalMeasures &&
+         prevProps.loopStartMeasure === nextProps.loopStartMeasure &&
+         prevProps.loopEndMeasure === nextProps.loopEndMeasure &&
+         prevProps.isLoopRegionActive === nextProps.isLoopRegionActive &&
+         prevProps.isPlaying === nextProps.isPlaying &&
+         prevProps.currentMeasure === nextProps.currentMeasure &&
+         prevProps.tickPos === nextProps.tickPos &&
+         prevProps.signalDropdownOpen === nextProps.signalDropdownOpen &&
+         prevProps.isMobile === nextProps.isMobile &&
+         prevProps.isMacro === nextProps.isMacro &&
+         prevProps.isMinZoom === nextProps.isMinZoom &&
+         prevProps.lang === nextProps.lang &&
+         prevProps.MEASURE_W === nextProps.MEASURE_W &&
+         prevProps.isPanningActive === nextProps.isPanningActive;
+});
 
-          {/* ══════════ PLAYHEAD (Bypass React via Ref) ══════════ */}
-          <div
-            ref={playheadRef}
-            className="absolute top-0 bottom-0 border-l-2 border-red-600 pointer-events-none z-30 shadow-[0_0_10px_rgba(220,38,38,0.7)]"
-            style={{
-              left: 0,
-              transform: `translateX(${HEADER_W + (currentStepIndex >= 0 ? currentMeasure * MEASURE_W + (tickPos / currentMeasureTicks) * MEASURE_W : 0)}px)`,
-              display: currentStepIndex >= 0 ? 'block' : 'none',
-              willChange: 'transform',
-            }}
-          />
 
-          {/* ══════════ SNAP GUIDE (📍 NEW) ══════════ */}
-          {snapGuideX !== null && (
-            <div 
-              className="absolute top-0 bottom-0 w-0.5 bg-yellow-500 shadow-[0_0_8px_#f1c40f] z-50 pointer-events-none"
-              style={{ left: `${snapGuideX}px` }}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* 📍 NEW - Panning Hotkey overlay tooltip (similar to sandbox) */}
-      {isPanningActive && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-[var(--cordel-bg)] border border-[var(--cordel-border)]/50 rounded-full px-4 py-1.5 text-[10px] font-bold text-[var(--cordel-text)] cordel-shadow z-50 flex items-center gap-1.5 animate-pulse uppercase tracking-wider">
-          <span>✋ {lang === 'fr' ? 'Mode Déplacement Actif' : 'Modo Arrastar Ativo'}</span>
-          <span className="text-[8px] opacity-60 normal-case">{lang === 'fr' ? '(Glissez le fond pour scroller)' : '(Arraste o fundo para rolar)'}</span>
-        </div>
-      )}
-
-      {/* Bottom legend */}
-      {!isMobile && (
-        <div className="h-8 border-t border-[var(--cordel-border)] flex items-center justify-center px-4 bg-[var(--cordel-bg)] text-[10px] font-bold opacity-80 uppercase tracking-widest gap-4 shrink-0">
-          <span>💡 {lang === 'fr'
-            ? 'Cliquer-glisser sur la règle ou utiliser la molette pour défiler · Cliquer sur la timeline pour naviguer'
-            : 'Clique e arraste na régua ou use o scroll para navegar · Clique na timeline para navegar'}</span>
-        </div>
-      )}
-
-      {/* ══════════ SECTION FORM MODAL ══════════ */}
-      {sectionModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="w-[360px] bg-[var(--cordel-bg)] text-[var(--cordel-text)] p-5 cordel-border-sm cordel-shadow flex flex-col gap-4">
-            <h3 className="font-cactus text-xl font-bold uppercase border-b border-[var(--cordel-border)] pb-2 text-[var(--cordel-text)]">
-              {editingSection 
-                ? (lang === 'fr' ? 'Modifier la Section' : 'Editar Seção')
-                : (lang === 'fr' ? 'Créer une Section' : 'Criar Seção')}
-            </h3>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase text-[var(--cordel-text)]">{lang === 'fr' ? 'Nom de la section' : 'Nome da seção'}</label>
-              <input
-                type="text"
-                value={sectionFormName}
-                onChange={(e) => setSectionFormName(e.target.value)}
-                placeholder="Ex: Partie A / Refrain"
-                className="w-full bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] px-3 py-1.5 text-sm font-bold outline-none rounded-none focus:bg-[var(--cordel-border)]/10 text-[var(--cordel-text)]"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase text-[var(--cordel-text)]">{lang === 'fr' ? 'Début (Mesure)' : 'Compasso inicial'}</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={totalMeasures}
-                  value={sectionFormStart}
-                  onChange={(e) => setSectionFormStart(e.target.value)}
-                  onBlur={() => {
-                    let val = parseInt(String(sectionFormStart)) || 1;
-                    val = Math.max(1, Math.min(totalMeasures, val));
-                    setSectionFormStart(val);
-                    let endVal = parseInt(String(sectionFormEnd)) || 1;
-                    if (endVal < val) {
-                      setSectionFormEnd(val);
-                    }
-                  }}
-                  className="w-full bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] px-2 py-1.5 text-sm font-bold outline-none rounded-none text-center text-[var(--cordel-text)]"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase text-[var(--cordel-text)]">{lang === 'fr' ? 'Fin (Mesure)' : 'Compasso final'}</label>
-                <input
-                  type="number"
-                  min={sectionFormStart}
-                  max={totalMeasures}
-                  value={sectionFormEnd}
-                  onChange={(e) => setSectionFormEnd(e.target.value)}
-                  onBlur={() => {
-                    let val = parseInt(String(sectionFormEnd)) || 1;
-                    let startVal = parseInt(String(sectionFormStart)) || 1;
-                    val = Math.max(startVal, Math.min(totalMeasures, val));
-                    setSectionFormEnd(val);
-                  }}
-                  className="w-full bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] px-2 py-1.5 text-sm font-bold outline-none rounded-none text-center text-[var(--cordel-text)]"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase text-[var(--cordel-text)]">{lang === 'fr' ? 'Couleur du bloc' : 'Cor do bloco'}</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {[
-                  { value: '#e08283', label: 'Rouge' },
-                  { value: '#f19066', label: 'Orange' },
-                  { value: '#f5cd79', label: 'Jaune' },
-                  { value: '#55efc4', label: 'Vert d\'eau' },
-                  { value: '#74b9ff', label: 'Bleu pastel' },
-                  { value: '#a29bfe', label: 'Violet doux' },
-                  { value: '#eaddcf', label: 'Cordel beige' }
-                ].map((colorOpt) => (
-                  <button
-                    key={colorOpt.value}
-                    onClick={() => setSectionFormColor(colorOpt.value)}
-                    className={`w-7 h-7 rounded-full cursor-pointer cordel-border-sm transition-transform ${
-                      sectionFormColor === colorOpt.value ? 'scale-115 ring-2 ring-[var(--cordel-text)]' : 'opacity-85'
-                    }`}
-                    style={{ backgroundColor: colorOpt.value }}
-                    title={colorOpt.label}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="mb-3.5">
-              <label className="block text-xs font-bold mb-1.5 opacity-90">{lang === 'fr' ? 'Niveau d\'imbrication' : 'Nível de aninhamento'}</label>
-              <select
-                value={sectionFormLevel}
-                onChange={(e) => setSectionFormLevel(parseInt(e.target.value))}
-                className="w-full bg-white/10 border border-[var(--cordel-border)]/50 rounded p-1.5 text-xs text-[var(--cordel-text)] outline-none focus:border-[var(--cordel-border)]"
-              >
-                <option value={0} className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Niveau 0 (Base)' : 'Nível 0 (Base)'}</option>
-                <option value={1} className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Niveau 1 (Groupe)' : 'Nível 1 (Grupo)'}</option>
-                <option value={2} className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Niveau 2 (Super-groupe)' : 'Nível 2 (Super-grupo)'}</option>
-              </select>
-            </div>
-
-            <div className="flex justify-end gap-2.5 mt-2 border-t border-[var(--cordel-border)]/30 pt-3">
-              <button
-                onClick={() => setSectionModalOpen(false)}
-                className="px-3 py-1.5 bg-[var(--cordel-bg)] text-[var(--cordel-text)] border border-[var(--cordel-border)] font-bold text-xs cordel-border-sm cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]"
-              >
-                {lang === 'fr' ? 'Annuler' : 'Cancelar'}
-              </button>
-               <button
-                onClick={() => {
-                  if (!sectionFormName.trim()) return;
-                  let startVal = parseInt(String(sectionFormStart)) || 1;
-                  startVal = Math.max(1, Math.min(totalMeasures, startVal));
-                  let endVal = parseInt(String(sectionFormEnd)) || 1;
-                  endVal = Math.max(startVal, Math.min(totalMeasures, endVal));
-                  if (editingSection) {
-                    onUpdateSection(editingSection.id, sectionFormName, startVal - 1, endVal - 1, sectionFormColor, sectionFormLevel);
-                  } else {
-                    onCreateSection(sectionFormName, startVal - 1, endVal - 1, sectionFormColor, 1, sectionFormLevel);
-                  }
-                  setSectionModalOpen(false);
-                }}
-                className="px-4 py-1.5 bg-[var(--cordel-wood)] text-[#f4ecd8] border border-[var(--cordel-border)] font-bold text-xs cordel-border-sm cursor-pointer hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]"
-              >
-                {lang === 'fr' ? 'Valider' : 'Confirmar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tablature Export Modal removed (lifted to App.tsx) */}
-    </div>
-  );
-};

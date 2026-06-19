@@ -44,6 +44,7 @@ export class AudioEngine {
   private instrumentChannels = new Map<string, any>(); // Maps instrumentId -> Tone.Channel
   private activeBarulhoNodes = new Map<string, Tone.ToneBufferSource>(); // Maps instrumentId -> active looping ToneBufferSource
   private activeBarulhoGains = new Map<string, Tone.Gain>(); // Maps instrumentId -> Tone.Gain of active Barulho (for cleanup)
+  private scheduledHits = new Set<Tone.ToneBufferSource>();
 
   // O(1) lookup cache for instrument configurations (built once in constructor)
   private readonly configMap: Map<string, InstrumentAudioConfig>;
@@ -143,6 +144,14 @@ export class AudioEngine {
       window.clearInterval(this.fallbackTimerId);
       this.fallbackTimerId = null;
     }
+
+    this.scheduledHits.forEach((source) => {
+      try {
+        source.stop();
+        source.dispose();
+      } catch (_) {}
+    });
+    this.scheduledHits.clear();
   }
 
   /**
@@ -231,15 +240,29 @@ export class AudioEngine {
         }
         // Encode spaces and special characters in the URL path (keep slashes unencoded)
         const encodedFetchPath = fetchPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-        const response = await fetch(encodedFetchPath);
-
+        
+        let response = await fetch(encodedFetchPath);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-        const toneBuffer = new Tone.ToneAudioBuffer(audioBuffer);
-        this.bufferPool.set(path, toneBuffer);
+        let arrayBuffer = await response.arrayBuffer();
+        
+        try {
+          const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+          const toneBuffer = new Tone.ToneAudioBuffer(audioBuffer);
+          this.bufferPool.set(path, toneBuffer);
+        } catch (decodeErr) {
+          console.warn(`AudioEngine: Safari/iOS fallback triggered for ${path}. Attempting .m4a`);
+          const fallbackPath = encodedFetchPath.replace(/\.ogg$/, '.m4a');
+          response = await fetch(fallbackPath);
+          if (!response.ok) {
+            throw new Error(`Fallback HTTP error! status: ${response.status}`);
+          }
+          arrayBuffer = await response.arrayBuffer();
+          const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+          const toneBuffer = new Tone.ToneAudioBuffer(audioBuffer);
+          this.bufferPool.set(path, toneBuffer);
+        }
       } catch (err) {
         console.error(`AudioEngine: Failed to load sample: ${path}`, err);
       } finally {
@@ -388,6 +411,7 @@ export class AudioEngine {
       this.activeBarulhoNodes.set(instrumentId, source);
       this.activeBarulhoGains.set(instrumentId, gainNode); // Track gainNode for proper cleanup
     } else {
+      this.scheduledHits.add(source);
       const duration = buffer.duration * decayMultiplier;
       if (decayMultiplier < 1.0) {
         source.start(time, 0, duration);
@@ -396,6 +420,7 @@ export class AudioEngine {
       }
 
       source.onended = () => {
+        this.scheduledHits.delete(source);
         try { source.dispose(); } catch (_) {}
         try { gainNode.dispose(); } catch (_) {}
       };

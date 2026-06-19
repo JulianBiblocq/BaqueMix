@@ -4,7 +4,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { TrackGroup, Language, Pattern } from '../types';
 import { i18n, instrumentsConfig, ASSETS_BASE_URL, isDarkText, getVisualStrokeSymbol } from '../data';
 import { getNextStepValue } from './InstrumentDetailEditor';
-import { useSequencer } from '../contexts/SequencerContext';
+
 
 const getGlobalClipboard = () => {
   if (typeof window !== 'undefined') {
@@ -65,6 +65,9 @@ interface TrackMixerProps {
   meter?: any;
   soloPatternPlayId?: number | null;
   isCollapsed?: boolean;
+  activeAoVivoTrackId: number | null;
+  setActiveAoVivoTrackId: (id: number | null) => void;
+  activeVariationsRef?: React.MutableRefObject<Record<number, (string | number)[]>>;
 }
 
 const TrackMixerComponent: React.FC<TrackMixerProps> = ({
@@ -112,9 +115,10 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
   meter,
   soloPatternPlayId,
   isCollapsed = false,
+  activeAoVivoTrackId,
+  setActiveAoVivoTrackId,
+  activeVariationsRef,
 }) => {
-  const sequencer = useSequencer();
-  const { activeAoVivoTrackId, setActiveAoVivoTrackId } = sequencer;
   const [instDropdownOpen, setInstDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -758,7 +762,7 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
 
       <div className="flex gap-2 items-start relative z-[2] w-full">
         {!isCollapsed && (() => {
-          const activePlayingSteps = sequencer.activeVariationsRef?.current[track.id] || activePattern.activeSteps;
+          const activePlayingSteps = activeVariationsRef?.current[track.id] || activePattern.activeSteps;
           return isTouchDevice || window.innerWidth <= 1024 ? (
           /* ── MOBILE TOUCH LAYOUT: Grid 8 per line with grouping and multi-select ── */
           <div className="flex flex-col gap-2 w-full select-none">

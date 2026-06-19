@@ -435,7 +435,7 @@ export function useAudioSync({
   const soloPatternVariationIdRef = useRef<string | null>(null);
 
   const hitTriggersRef = useRef<HitTrigger[]>([]);
-  const engineTimeoutsRef = useRef<any[]>([]);
+  const engineTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   // We still keep tickScheduleRef for rendering static partition / export / pre-compilation
   const tickScheduleRef = useRef<Map<number, Map<number, ScheduledNote[]>>>(new Map());
   
@@ -785,9 +785,9 @@ export function useAudioSync({
                 time: time
               }
             }));
-            engineTimeoutsRef.current = engineTimeoutsRef.current.filter(id => id !== timeoutId);
+            engineTimeoutsRef.current.delete(timeoutId);
           }, delayMs);
-          engineTimeoutsRef.current.push(timeoutId);
+          engineTimeoutsRef.current.add(timeoutId);
 
           // Pré-calculer la durée d'un 96n une seule fois par tick
           const rawBpm = measureBpmsRef.current[currentMeasureIdx];
@@ -901,9 +901,9 @@ export function useAudioSync({
                 const delayMs = Math.max(0, (triggerTime - rawCtx.currentTime) * 1000);
                 const timeoutId = setTimeout(() => {
                   hitTriggersRef.current.push({ trackId: note.trackId, stepIndex: note.circleStepIdx, state: note.state });
-                  engineTimeoutsRef.current = engineTimeoutsRef.current.filter(id => id !== timeoutId);
+                  engineTimeoutsRef.current.delete(timeoutId);
                 }, delayMs);
-                engineTimeoutsRef.current.push(timeoutId);
+                engineTimeoutsRef.current.add(timeoutId);
               } catch (_) {}
             }
           }
@@ -994,9 +994,9 @@ export function useAudioSync({
                     const delayMs = Math.max(0, (triggerTime - rawCtx.currentTime) * 1000);
                     const timeoutId = setTimeout(() => {
                       hitTriggersRef.current.push({ trackId: track.id, stepIndex: cellIdx, state });
-                      engineTimeoutsRef.current = engineTimeoutsRef.current.filter(id => id !== timeoutId);
+                      engineTimeoutsRef.current.delete(timeoutId);
                     }, delayMs);
-                    engineTimeoutsRef.current.push(timeoutId);
+                    engineTimeoutsRef.current.add(timeoutId);
                   }
                 }
               }
@@ -1056,7 +1056,7 @@ export function useAudioSync({
       }
       audioEngine?.stop();
       engineTimeoutsRef.current.forEach(clearTimeout);
-      engineTimeoutsRef.current = [];
+      engineTimeoutsRef.current.clear();
       hitTriggersRef.current = [];
       Tone.Transport.pause();
       if (isRecordingVocal) {
@@ -1104,7 +1104,7 @@ export function useAudioSync({
     }
     audioEngine?.stop();
     engineTimeoutsRef.current.forEach(clearTimeout);
-    engineTimeoutsRef.current = [];
+    engineTimeoutsRef.current.clear();
     hitTriggersRef.current = [];
     lastPlayedPatternRef.current = {};
     Tone.Transport.stop();
