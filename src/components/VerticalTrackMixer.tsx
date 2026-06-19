@@ -699,11 +699,16 @@ export const VerticalTrackMixer = React.memo(VerticalTrackMixerComponent, (prevP
     return false;
   }
 
+  if (JSON.stringify(prevProps.track) !== JSON.stringify(nextProps.track)) {
+    return false;
+  }
+
   const keys = Object.keys(prevProps) as Array<keyof VerticalTrackMixerProps>;
   for (const key of keys) {
-    if (typeof prevProps[key] === 'function') {
-      continue;
-    }
+    if (typeof prevProps[key] === 'function') continue;
+    if (key === 'track') continue;
+    if (key === 'currentStepIndex' || key === 'currentMeasure') continue;
+
     if (prevProps[key] !== nextProps[key]) {
       return false;
     }
