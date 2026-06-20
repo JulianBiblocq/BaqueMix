@@ -15,7 +15,6 @@ interface TimelineSequencerProps {
   isMobile: boolean;
   measureWidth: number;
   onMeasureWidthChange: (width: number) => void;
-  onExportTablature?: () => void;
 }
 
 const HEADER_W = 180;
@@ -29,7 +28,6 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
   isMobile,
   measureWidth,
   onMeasureWidthChange,
-  onExportTablature,
 }) => {
   const sequencer = useSequencer();
   const audio = useAudio();
@@ -857,16 +855,6 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
 
 
         </div>
-        {!isMobile && (
-          <button
-            onClick={onExportTablature}
-            className="bg-[var(--cordel-text)] text-[var(--cordel-bg)] font-bold text-[10px] md:text-xs px-2.5 py-0.5 md:py-1 rounded cordel-border-sm hover:opacity-85 transition-opacity cursor-pointer flex items-center gap-1 shadow-[1.5px_1.5px_0_var(--cordel-border)] font-sans"
-            title={lang === 'fr' ? 'Extraction de la tablature' : 'Extrair partitura'}
-          >
-            <span>📋</span>
-            <span>{lang === 'fr' ? 'Exporter la partition (TAB)' : 'Exportar partitura (TAB)'}</span>
-          </button>
-        )}
       </div>
 
       {/* ══════════ TIMELINE OVERVIEW (MINI-MAP) ══════════ */}

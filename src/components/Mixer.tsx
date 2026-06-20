@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -19,15 +19,13 @@ import {
 } from '@dnd-kit/sortable';
 import { TrackMixer } from './TrackMixer';
 import { InstrumentDetailEditor } from './InstrumentDetailEditor';
-import { i18n, instrumentsConfig } from '../data';
+import { i18n, instrumentsConfig, ASSETS_BASE_URL } from '../data';
 import { useSequencer } from '../contexts/SequencerContext';
 import { useAudio } from '../contexts/AudioContext';
 import { meters } from '../hooks/useAudioSync';
 import { Pattern } from '../types';
 
 interface MixerProps {
-  isLeftPanelCollapsed: boolean;
-  onToggleLeftPanel: () => void;
   onStepTouchStart?: (
     e: React.MouseEvent | React.TouchEvent,
     patternId: number,
@@ -42,8 +40,6 @@ interface MixerProps {
 }
 
 const MixerComponent: React.FC<MixerProps> = ({
-  isLeftPanelCollapsed,
-  onToggleLeftPanel,
   onStepTouchStart,
   onCopyPattern,
   onPastePattern,
@@ -118,6 +114,19 @@ const MixerComponent: React.FC<MixerProps> = ({
 
   const [isTracksCollapsed, setIsTracksCollapsed] = React.useState(true);
   const [editingTrackId, setEditingTrackId] = React.useState<number | null>(null);
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [addDropOpen, setAddDropOpen] = useState(false);
+  const addDropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (addDropRef.current && !addDropRef.current.contains(e.target as Node)) {
+        setAddDropOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -157,7 +166,7 @@ const MixerComponent: React.FC<MixerProps> = ({
 
   const trackIds = tracks ? tracks.map(t => `track-${t.id}`) : [];
 
-  if (isLeftPanelCollapsed) return null;
+
   if (!tracks) return null;
 
   const onTrackSelectPattern = (trackId: number, patternId: number) => {
@@ -223,26 +232,46 @@ const MixerComponent: React.FC<MixerProps> = ({
       id="left-panel"
       className="w-[400px] min-w-[400px] h-full bg-gradient-to-b from-[#1c1815] to-[#120e0c] border-r-2 border-[#eaddcf] flex flex-col p-5 box-border z-10 transition-all duration-300 overflow-hidden"
     >
-      <div className="flex justify-between items-center border-b border-[#333] pb-2.5 mb-4 shrink-0">
-        <span className="font-cactus text-2xl text-[#eaddcf] tracking-widest uppercase font-medium">
-          {t('mixer')}
-        </span>
-        <div className="flex items-center gap-2">
+      <div className="border-b border-[#333] pb-2.5 mb-4 shrink-0 w-full flex items-center gap-2">
+        <div className="relative flex-1" ref={addDropRef}>
           <button
-            onClick={() => setIsTracksCollapsed(!isTracksCollapsed)}
-            className="bg-transparent border border-[#444] px-2.5 py-1 text-sm font-extrabold cursor-pointer text-[#eaddcf] hover:bg-[#eaddcf] hover:text-black transition-colors"
-            title={isTracksCollapsed ? "Déplier les pas" : "Replier les pas"}
+            onClick={() => setAddDropOpen(!addDropOpen)}
+            className="w-full bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border cordel-button px-3 py-2 text-xs font-bold font-cactus uppercase transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]"
           >
-            {isTracksCollapsed ? '▼' : '▲'}
+            ➕ {t('addInst')}
           </button>
-          <button
-            onClick={onToggleLeftPanel}
-            className="bg-transparent border border-[#444] px-2.5 py-1 text-sm font-extrabold cursor-pointer text-[#eaddcf] hover:bg-[#eaddcf] hover:text-black transition-colors hidden md:block"
-            title={t('toggleBtn')}
-          >
-            ◀
-          </button>
+          {addDropOpen && (
+            <div className="absolute top-10 left-0 w-full bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] shadow-[4px_4px_0_var(--cordel-border)] max-h-none z-[100]">
+              {instrumentsConfig.map((inst, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    sequencer.handleAddTrackInstrument(idx, audio.currentMeasure);
+                    setAddDropOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] border-b border-[var(--cordel-border)] cursor-pointer"
+                >
+                  <img
+                    src={`${ASSETS_BASE_URL}${inst.iconImg}`}
+                    alt={inst.name}
+                    className="w-5 h-5 object-contain filter invert opacity-80"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <span>{inst.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+        <button
+          onClick={() => setIsTracksCollapsed(!isTracksCollapsed)}
+          className="bg-transparent border border-[#444] px-3 py-2 text-sm font-extrabold cursor-pointer text-[#eaddcf] hover:bg-[#eaddcf] hover:text-black transition-colors"
+          title={isTracksCollapsed ? "Déplier les pas" : "Replier les pas"}
+        >
+          {isTracksCollapsed ? '▼' : '▲'}
+        </button>
       </div>
 
       <div id="mixer-section" className="flex-grow overflow-y-auto pr-1">
@@ -367,7 +396,4 @@ const MixerComponent: React.FC<MixerProps> = ({
   );
 };
 
-export const Mixer = React.memo(MixerComponent, (prevProps, nextProps) => {
-  if (prevProps.isLeftPanelCollapsed && nextProps.isLeftPanelCollapsed) return true;
-  return prevProps.isLeftPanelCollapsed === nextProps.isLeftPanelCollapsed;
-});
+export const Mixer = React.memo(MixerComponent);

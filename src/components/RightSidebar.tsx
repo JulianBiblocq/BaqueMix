@@ -12,13 +12,15 @@ import { useAudio } from '../contexts/AudioContext';
 import { PresetMetadata } from '../types';
 
 interface RightSidebarProps {
-  activePanel: 'legend' | 'letras' | null;
+  activePanel: 'legend' | 'letras' | 'info' | null;
   onTogglePanel: (panel: 'legend' | 'letras') => void;
+  isMobile: boolean;
 }
 
 const RightSidebarComponent: React.FC<RightSidebarProps> = ({
   activePanel,
   onTogglePanel,
+  isMobile,
 }) => {
   const sequencer = useSequencer();
   const audio = useAudio();
@@ -74,7 +76,7 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
   const [signalCameraActive, setSignalCameraActive] = React.useState<boolean>(false);
   const signalVideoRef = React.useRef<HTMLVideoElement | null>(null);
   const signalStreamRef = React.useRef<MediaStream | null>(null);
-  const [subTab, setSubTab] = React.useState<'toada' | 'info' | 'gravacao'>('info');
+  const [subTab, setSubTab] = React.useState<'toada' | 'info' | 'gravacao' | 'legendes'>('info');
   const [pendingSignalImage, setPendingSignalImage] = React.useState<string | null>(null);
   const [pendingSignalName, setPendingSignalName] = React.useState<string>('');
   const [isCapturingBurst, setIsCapturingBurst] = React.useState<boolean>(false);
@@ -269,9 +271,14 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
     return (section as any)[key] || key;
   };
 
-  if (!activePanel) return null;
+  if (isMobile && !activePanel) return null;
 
-  const getYouTubeEmbedUrl = (url: string) => {
+  React.useEffect(() => {
+    if (isMobile) {
+      if (activePanel === 'legend') setSubTab('legendes');
+      if (activePanel === 'letras') setSubTab('toada');
+    }
+  }, [activePanel, isMobile]);  const getYouTubeEmbedUrl = (url: string) => {
     if (!url) return '';
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
     const videoId = match ? match[1] : null;
@@ -284,23 +291,68 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
         id="right-sidebar-panel"
         className="w-[340px] min-w-[340px] bg-[var(--cordel-bg)] cordel-bg border-l-[3px] border-[var(--cordel-border)] flex flex-col h-full transition-all duration-300 relative z-10 text-[var(--cordel-text)]"
       >
-        {/* --- LEGEND SECTION --- */}
-        {activePanel === 'legend' && (
-        <div className="flex flex-col p-5 h-full overflow-y-auto">
-          <div className="flex justify-between items-center border-b-[3px] border-[var(--cordel-border)] pb-3 mb-4">
+        <div className="flex flex-col p-5 h-full overflow-hidden">
+          <div className="flex justify-between items-center border-b-[3px] border-[var(--cordel-border)] pb-3 mb-4 shrink-0">
             <span className="font-cactus font-bold text-2xl text-[var(--cordel-text)] tracking-wider uppercase font-medium">
-              {t('legend')}
+              Info
             </span>
+            {isMobile && (
+              <button
+                onClick={() => onTogglePanel('letras')}
+                className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm cordel-button px-2 py-1 text-sm font-bold hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors"
+              >
+                X
+              </button>
+            )}
+          </div>
+
+          {/* Sub-tab Selector */}
+          <div className="grid grid-cols-2 gap-1 mb-4 shrink-0">
             <button
-              onClick={() => onTogglePanel('legend')}
-              className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm cordel-button px-2 py-1 text-sm font-bold hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors hidden md:block"
-              title={t('toggleLegendBtn')}
+              onClick={() => setSubTab('toada')}
+              className={`py-1.5 font-cactus font-bold text-[10px] uppercase cordel-border-sm cursor-pointer transition-colors ${
+                subTab === 'toada'
+                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
+                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
+              }`}
             >
-              ▶
+              📝 Toada
+            </button>
+            <button
+              onClick={() => setSubTab('info')}
+              className={`py-1.5 font-cactus font-bold text-[10px] uppercase cordel-border-sm cursor-pointer transition-colors ${
+                subTab === 'info'
+                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
+                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
+              }`}
+            >
+              ℹ️ Info
+            </button>
+            <button
+              onClick={() => setSubTab('gravacao')}
+              className={`py-1.5 font-cactus font-bold text-[10px] uppercase cordel-border-sm cursor-pointer transition-colors ${
+                subTab === 'gravacao'
+                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
+                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
+              }`}
+            >
+              🎙️ Gravação
+            </button>
+            <button
+              onClick={() => setSubTab('legendes')}
+              className={`py-1.5 font-cactus font-bold text-[10px] uppercase cordel-border-sm cursor-pointer transition-colors ${
+                subTab === 'legendes'
+                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
+                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
+              }`}
+            >
+              📖 {t('legend')}
             </button>
           </div>
 
-          <div className="flex flex-col gap-1.5 pr-1 flex-grow">
+          {/* TAB 4: Légendes */}
+          {subTab === 'legendes' && (
+          <div className="flex flex-col gap-1.5 pr-1 flex-grow overflow-y-auto custom-scrollbar min-h-0">
             {/* Shortcuts & Gestures */}
             <div className="relative flex flex-col gap-1 bg-[var(--cordel-bg)] cordel-border-sm p-2">
               <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus">
@@ -639,61 +691,8 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
               </button>
             </div>
 
-
           </div>
-        </div>
-      )}
-
-      {/* --- LETRAS / TOADA SECTION --- */}
-      {activePanel === 'letras' && (
-        <div className="flex flex-col p-5 h-full overflow-hidden">
-          <div className="flex justify-between items-center border-b-[3px] border-[var(--cordel-border)] pb-3 mb-4 shrink-0">
-            <span className="font-cactus font-bold text-2xl text-[var(--cordel-text)] tracking-wider uppercase font-medium">
-              {t('letrasTitle')}
-            </span>
-            <button
-              onClick={() => onTogglePanel('letras')}
-              className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm cordel-button px-2 py-1 text-sm font-bold hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors hidden md:block"
-            >
-              X
-            </button>
-          </div>
-
-          {/* Sub-tab Selector */}
-          <div className="flex gap-2 mb-4 shrink-0">
-            <button
-              onClick={() => setSubTab('toada')}
-              className={`flex-1 py-1.5 font-cactus font-bold text-xs uppercase cordel-border-sm cursor-pointer transition-colors ${
-                subTab === 'toada'
-                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
-                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
-              }`}
-            >
-              📝 {lang === 'fr' ? 'Paroles' : 'Letra'}
-            </button>
-            <button
-              onClick={() => setSubTab('info')}
-              className={`flex-1 py-1.5 font-cactus font-bold text-xs uppercase cordel-border-sm cursor-pointer transition-colors ${
-                subTab === 'info'
-                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
-                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
-              }`}
-            >
-              ℹ️ Info
-            </button>
-            <button
-              onClick={() => setSubTab('gravacao')}
-              className={`flex-1 py-1.5 font-cactus font-bold text-xs uppercase cordel-border-sm cursor-pointer transition-colors ${
-                subTab === 'gravacao'
-                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
-                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)]/10'
-              }`}
-            >
-              🎙️ Gravação
-            </button>
-          </div>
-
-          {/* Tab 1: Paroles / Lyrics */}
+          )}
           {subTab === 'toada' && (
             <div className="flex flex-col flex-grow overflow-hidden min-h-0">
               <span className="text-[10px] font-bold text-[var(--cordel-text)] uppercase tracking-wider font-cactus mb-1 shrink-0">
@@ -1051,7 +1050,6 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
             </div>
           )}
         </div>
-      )}
     </div>
 
     </>

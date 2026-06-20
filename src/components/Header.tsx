@@ -21,10 +21,7 @@ import { useAudio } from '../contexts/AudioContext';
 interface HeaderProps {
   presetFiles: string[];
   localPresets: string[];
-  activeRightPanel: 'legend' | 'letras' | null;
-  onToggleRightPanel: (panel: 'legend' | 'letras') => void;
-  isLeftPanelCollapsed: boolean;
-  onToggleLeftPanel: () => void;
+
   viewMode: 'roda' | 'console' | 'timeline';
   onViewModeToggle: (mode: 'roda' | 'console' | 'timeline') => void;
   isDarkMode: boolean;
@@ -39,10 +36,7 @@ interface HeaderProps {
 const HeaderComponent: React.FC<HeaderProps> = ({
   presetFiles = [],
   localPresets = [],
-  activeRightPanel,
-  onToggleRightPanel,
-  isLeftPanelCollapsed,
-  onToggleLeftPanel,
+
   viewMode,
   onViewModeToggle,
   isDarkMode,
@@ -82,8 +76,6 @@ const HeaderComponent: React.FC<HeaderProps> = ({
     setIsSwingOn,
     masterVol,
     setMasterVol,
-    reverbType,
-    setReverbType,
     handleTimeSigChange: onTimeSigChange,
   } = audio;
 
@@ -97,7 +89,6 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   const onSwingToggle = () => setIsSwingOn(!isSwingOn);
   const onMasterVolChange = setMasterVol;
   const onTotalMeasuresChange = setTotalMeasures;
-  const onReverbTypeChange = setReverbType;
 
   // --- ECO MODE ---
   const [ecoMode, setEcoMode] = useState<boolean>(() => {
@@ -211,12 +202,17 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                 </div>
               )}
 
-              {/* 🔑 AUTHENTIFICATION */}
+              {/* 👤 PERFIL */}
               <div className="flex flex-col gap-2 border-b border-[var(--cordel-border)]/30 pb-3">
                 <span className="text-[10px] font-bold text-[var(--cordel-wood)] uppercase tracking-wide flex items-center gap-1">
-                  🔑 {lang === 'pt' ? 'Autenticação' : 'Authentification'}
+                  👤 {lang === 'pt' ? 'Perfil' : 'Profil'}
                 </span>
-                <GoogleLoginButton className="w-full justify-center" lang={lang} />
+                <div className="flex items-center gap-2">
+                  <GoogleLoginButton lang={lang} />
+                  <button onClick={() => { sequencer.setIsLeftHanded(!sequencer.isLeftHanded); setMobileMenuOpen(false); }} className={`px-2 py-1.5 cordel-border-sm text-xs font-bold font-cactus cursor-pointer flex-1 ${sequencer.isLeftHanded ? 'bg-[var(--cordel-wood)] text-[#f4ecd8]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'}`}>
+                    🫲 {lang === 'pt' ? 'Canhoto' : 'Gaucher'}
+                  </button>
+                </div>
               </div>
               
               {/* 📂 PROJET */}
@@ -348,21 +344,6 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                   />
                 </div>
 
-                {viewMode === 'console' && (
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs font-cactus font-bold text-[var(--cordel-text)]">Reverb</span>
-                    <select
-                      value={reverbType}
-                      onChange={(e) => onReverbTypeChange(e.target.value as any)}
-                      className="bg-transparent text-[var(--cordel-text)] font-cactus text-xs font-bold outline-none cursor-pointer cordel-border-sm px-1.5 py-0.5"
-                    >
-                      <option value="room" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Sala (Room)' : 'Sala'}</option>
-                      <option value="studio" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Studio' : 'Estúdio'}</option>
-                      <option value="hall" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'fr' ? 'Cathédrale (Hall)' : 'Catedral'}</option>
-                    </select>
-                  </div>
-                )}
-
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-cactus font-bold text-[var(--cordel-text)]">
                     {lang === 'pt' ? 'Suingue Maracatu' : 'Swing Maracatu'}
@@ -397,9 +378,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                   <button onClick={() => { onToggleRightPanel('letras'); setMobileMenuOpen(false); }} className={`px-2 py-1.5 cordel-border-sm text-xs font-bold font-cactus cursor-pointer ${activeRightPanel === 'letras' ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]'}`}>
                     📝 TOADA
                   </button>
-                  <button onClick={() => { sequencer.setIsLeftHanded(!sequencer.isLeftHanded); setMobileMenuOpen(false); }} className={`px-2 py-1.5 cordel-border-sm text-xs font-bold font-cactus cursor-pointer md:hidden ${sequencer.isLeftHanded ? 'bg-[var(--cordel-wood)] text-[#f4ecd8]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]'}`}>
-                    🫲 {lang === 'pt' ? 'Canhoto' : 'Gaucher'}
-                  </button>
+
                 </div>
               </div>
 
@@ -568,39 +547,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Add Instrument Dropdown */}
-          <div className="relative" ref={addDropRef}>
-            <button
-              onClick={() => setAddDropOpen(!addDropOpen)}
-              className="w-9 h-9 bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm cordel-button flex items-center justify-center font-bold text-lg hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] cursor-pointer"
-            >
-              ➕
-            </button>
-            {addDropOpen && (
-              <div className="absolute top-10 right-0 bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] shadow-[4px_4px_0_var(--cordel-border)] min-w-[185px] max-h-none z-[999]">
-                {instrumentsConfig.map((inst, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      onAddInstrument(idx);
-                      setAddDropOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] border-b border-[var(--cordel-border)] cursor-pointer"
-                  >
-                    <img
-                      src={`${ASSETS_BASE_URL}${inst.iconImg}`}
-                      alt={inst.name}
-                      className="w-4 h-4 object-contain filter invert opacity-80"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                    <span>{inst.name}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+
         </div>
 
       </div>
@@ -616,15 +563,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
       className="w-full min-h-[70px] bg-[var(--cordel-bg)] border-b-2 border-[var(--cordel-border)] flex flex-wrap items-center justify-between px-5 py-2.5 gap-2 z-50 relative select-none shrink-0"
     >
       <div className="flex items-center gap-3">
-        {isLeftPanelCollapsed && (
-          <button
-            onClick={onToggleLeftPanel}
-            className="flex items-center justify-center p-2 text-[var(--cordel-bg)] bg-[var(--cordel-text)] cordel-border cordel-button cursor-pointer"
-            title={t('toggleBtn')}
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-          </button>
-        )}
+
         <span
           id="header-title-text"
           className="font-cactus text-[var(--cordel-text)] text-3xl font-medium tracking-widest uppercase select-none cursor-default drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
@@ -637,45 +576,104 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             onClick={() => setProjectDropOpen(!projectDropOpen)}
             className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border cordel-button px-3 py-1.5 font-bold font-cactus uppercase cursor-pointer flex items-center gap-2"
           >
-            {lang === 'pt' ? 'Projeto' : 'Projet'} <span className="text-[10px]">▼</span>
+            {lang === 'pt' ? 'Menu' : 'Menu'} <span className="text-[10px]">▼</span>
           </button>
           
           {projectDropOpen && (
-            <div className="absolute top-10 left-0 bg-[var(--cordel-bg)] cordel-border shadow-[4px_4px_0_var(--cordel-border)] min-w-[200px] z-[100] flex flex-col py-1">
-              <button onClick={() => { onClear(); setProjectDropOpen(false); }} className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full transition-colors text-[var(--cordel-text)] cursor-pointer">
-                <Trash2 className="w-4 h-4" /> {t('clear')}
-              </button>
-              <button onClick={() => { onSave(); setProjectDropOpen(false); }} className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full transition-colors text-[var(--cordel-text)] cursor-pointer">
-                <Download className="w-4 h-4" /> {lang === 'pt' ? 'Exportar (.json)' : 'Exporter (.json)'}
-              </button>
-              <button onClick={() => { fileInputRef.current?.click(); setProjectDropOpen(false); }} className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full transition-colors border-b-2 border-[var(--cordel-border)] text-[var(--cordel-text)] cursor-pointer">
-                <Upload className="w-4 h-4" /> {lang === 'pt' ? 'Importar (.json)' : 'Importer (.json)'}
-              </button>
-
-
-              {localPresets.length > 0 && (
-                <>
-                  <div className="px-4 py-2 text-sm font-cactus font-bold text-[var(--cordel-wood)]">{t('catPersonal')}</div>
-                  {localPresets.map((name) => (
-                    <button key={`local_${name}`} onClick={() => { onLoadLocalPreset(name); setProjectDropOpen(false); }} className="px-4 py-1.5 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full text-sm transition-colors text-[var(--cordel-text)] cursor-pointer">
-                      {name}
-                    </button>
-                  ))}
-                  <div className="border-t-2 border-[var(--cordel-border)] mt-1 mb-1"></div>
-                </>
-              )}
-
-              <div className="px-4 py-2 text-sm font-cactus font-bold text-[var(--cordel-wood)]">{t('catDefault')}</div>
-              {presetFiles.map((file) => {
-                let label = file.replace(/\.json$/, '');
-                if (label.startsWith('_')) label = label.substring(1);
-                label = label.replace(/_/g, ' ');
-                return (
-                  <button key={file} onClick={() => { onPresetChange(file); setProjectDropOpen(false); }} className="px-4 py-1.5 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full text-sm transition-colors text-[var(--cordel-text)] cursor-pointer">
-                    {label}
+            <div className="absolute top-10 left-0 bg-[var(--cordel-bg)] cordel-border shadow-[4px_4px_0_var(--cordel-border)] min-w-[250px] z-[100] flex flex-col p-2 gap-3">
+              {/* 👤 PERFIL */}
+              <div className="flex flex-col gap-2 border-b border-[var(--cordel-border)]/30 pb-2">
+                <span className="text-[10px] font-bold text-[var(--cordel-wood)] uppercase tracking-wide flex items-center gap-1">
+                  👤 {lang === 'pt' ? 'Perfil' : 'Profil'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <GoogleLoginButton lang={lang} />
+                  <button onClick={() => { sequencer.setIsLeftHanded(!sequencer.isLeftHanded); setProjectDropOpen(false); }} className={`px-2 py-1.5 cordel-border-sm text-xs font-bold font-cactus cursor-pointer flex-1 ${sequencer.isLeftHanded ? 'bg-[var(--cordel-wood)] text-[#f4ecd8]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'}`}>
+                    🫲 {lang === 'pt' ? 'Canhoto' : 'Gaucher'}
                   </button>
-                );
-              })}
+                </div>
+              </div>
+              
+              {/* PROJET */}
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-bold text-[var(--cordel-wood)] uppercase tracking-wide flex items-center gap-1">
+                  📂 {lang === 'pt' ? 'Projeto' : 'Projet'}
+                </span>
+                
+                {/* Presets Selector */}
+                <select
+                  value={preset}
+                  onChange={(e) => { onPresetChange(e.target.value); setProjectDropOpen(false); }}
+                  className="w-full bg-[var(--cordel-bg)] text-[var(--cordel-text)] font-cactus text-xs font-bold p-1.5 cordel-border-sm outline-none cursor-pointer mb-1"
+                >
+                  <option value="" disabled>{lang === 'pt' ? 'Escolha um ritmo' : 'Choisir un rythme'}</option>
+                  {presetFiles.map((file) => {
+                    let label = file.replace(/\.json$/, '');
+                    if (label.startsWith('_')) label = label.substring(1);
+                    label = label.replace(/_/g, ' ');
+                    return (
+                      <option key={file} value={file} className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button onClick={() => { onClear(); setProjectDropOpen(false); }} className="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm text-[10px] font-bold font-cactus hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] cursor-pointer w-full">
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" /> {t('clear')}
+                  </button>
+                  <button onClick={() => { if (onShare) onShare(); setProjectDropOpen(false); }} className="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[#2980b9] text-[#1a1a1a] cordel-border-sm text-[10px] font-bold font-cactus hover:opacity-90 cursor-pointer w-full border-none">
+                    <Share2 className="w-3.5 h-3.5 shrink-0" /> {lang === 'pt' ? 'Compartilhar' : 'Partager'}
+                  </button>
+                  <button onClick={() => { fileInputRef.current?.click(); setProjectDropOpen(false); }} className="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm text-[10px] font-bold font-cactus hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] cursor-pointer w-full">
+                    <Upload className="w-3.5 h-3.5 shrink-0" /> {lang === 'pt' ? 'Importar' : 'Importer'}
+                  </button>
+                  <button onClick={() => { onSave(); setProjectDropOpen(false); }} className="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm text-[10px] font-bold font-cactus hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] cursor-pointer w-full">
+                    <Download className="w-3.5 h-3.5 shrink-0" /> {lang === 'pt' ? 'Exportar' : 'Exporter'}
+                  </button>
+                  <button onClick={() => { onExportTablature?.(); setProjectDropOpen(false); }} className="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border-sm text-[10px] font-bold font-cactus hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] cursor-pointer w-full col-span-2">
+                    <FileText className="w-3.5 h-3.5 shrink-0" /> {lang === 'pt' ? 'Exportar Partitura (TAB)' : 'Exporter Partition (TAB)'}
+                  </button>
+                </div>
+              </div>
+
+              {/* AIDE & COMMUNAUTÉ */}
+              <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-[var(--cordel-border)]/30">
+                <span className="text-[10px] font-bold text-[var(--cordel-wood)] uppercase tracking-wide flex items-center gap-1">
+                  ❓ {lang === 'pt' ? 'Ajuda & Comunidade' : 'Aide & Communauté'}
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button onClick={() => { window.open('https://youtube.com/playlist?list=PLBaYhFEJG6PwhFTn0mbfkdejwOrphZRu1&si=p80nNE9lcbzij4Eo', '_blank'); setProjectDropOpen(false); }} className="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[#e67e22] text-[#1a1a1a] cordel-border-sm text-[10px] font-bold font-cactus hover:opacity-90 cursor-pointer w-full">
+                    <Video className="w-3.5 h-3.5 shrink-0" /> Tuto
+                  </button>
+                  <button onClick={() => { window.open('tutorial.html', '_blank'); setProjectDropOpen(false); }} className="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[#8e44ad] text-[#1a1a1a] cordel-border-sm text-[10px] font-bold font-cactus hover:opacity-90 cursor-pointer w-full">
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" /> Guide
+                  </button>
+                  <button onClick={() => { window.open('https://github.com/JulianBiblocq/o-girador/issues', '_blank'); setProjectDropOpen(false); }} className="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[#27ae60] text-[#1a1a1a] cordel-border-sm text-[10px] font-bold font-cactus hover:opacity-90 cursor-pointer w-full col-span-2">
+                    <MessageSquare className="w-3.5 h-3.5 shrink-0" /> {t('feedbackBtn')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Eco Mode Toggle */}
+              <div className="flex flex-col gap-1 border-t border-[var(--cordel-border)]/30 pt-2 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none font-bold text-[var(--cordel-text)]">
+                  <input
+                    type="checkbox"
+                    checked={ecoMode}
+                    onChange={toggleEcoMode}
+                    className="accent-[var(--cordel-text)] w-4 h-4 cursor-pointer"
+                  />
+                  🌱 Mode Éco {ecoMode ? '(On)' : '(Off)'}
+                </label>
+                <div className="text-[10px] opacity-80 leading-tight text-[var(--cordel-text)] font-sans">
+                  {lang === 'fr' 
+                    ? 'Désactive les animations pour soulager le PC.'
+                    : 'Desativa animações para aliviar o PC.'}
+                </div>
+              </div>
+
             </div>
           )}
         </div>
@@ -683,39 +681,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
         {/* File input always in DOM so fileInputRef.current is never null */}
         <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onLoadRef.current(f); e.target.value = ''; }} />
 
-        <div className="relative ml-2" ref={addDropRef}>
-          <button
-            onClick={() => setAddDropOpen(!addDropOpen)}
-            className="bg-[var(--cordel-bg)] text-[var(--cordel-text)] cordel-border cordel-button px-3 h-[34px] text-xs font-bold font-cactus uppercase transition-all duration-200 cursor-pointer"
-          >
-            + {t('addInst')}
-          </button>
-          
-          {addDropOpen && (
-            <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] shadow-[4px_4px_0_var(--cordel-border)] min-w-[200px] max-h-none z-[100]">
-              {instrumentsConfig.map((inst, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    onAddInstrument(idx);
-                    setAddDropOpen(false);
-                  }}
-                  className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] border-b border-[var(--cordel-border)] cursor-pointer"
-                >
-                  <img
-                    src={`${ASSETS_BASE_URL}${inst.iconImg}`}
-                    alt={inst.name}
-                    className="w-5 h-5 object-contain filter invert opacity-80"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                  <span>{inst.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+
 
         <button
           onClick={onUndo}
@@ -855,29 +821,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        <button
-          onClick={() => onToggleRightPanel('letras')}
-          className={`flex items-center justify-center gap-1.5 h-[36px] px-4 font-cactus uppercase font-bold cordel-border cordel-button cursor-pointer ${
-            activeRightPanel === 'letras'
-              ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
-              : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'
-          }`}
-          title={t('toggleLetrasBtn')}
-        >
-          <FileText className="w-4 h-4" /> TOADA
-        </button>
 
-        <button
-          onClick={() => onToggleRightPanel('legend')}
-          className={`flex items-center justify-center h-[36px] w-[36px] cordel-border cordel-button cursor-pointer ${
-            activeRightPanel === 'legend'
-              ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
-              : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'
-          }`}
-          title={lang === 'fr' ? 'Afficher / Masquer la légende' : 'Ocultar / Mostrar legenda'}
-        >
-          <BookOpen className="w-4.5 h-4.5" />
-        </button>
       </div>
 
       {/* RIGHT: Auxiliary */}
@@ -891,7 +835,6 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             <Download className="w-4 h-4" /> {lang === 'pt' ? 'Instalar' : 'Installer'}
           </button>
         )}
-        <GoogleLoginButton lang={lang} />
         <button
           onClick={onToggleDarkMode}
           className="bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] text-[var(--cordel-text)] cordel-button text-xl px-2 py-1 w-12 text-center cursor-pointer flex justify-center items-center"
@@ -901,55 +844,11 @@ const HeaderComponent: React.FC<HeaderProps> = ({
         </button>
 
         <button
-          onClick={toggleEcoMode}
-          className={`border-2 border-[var(--cordel-border)] cordel-button text-xl px-2 py-1 w-12 text-center cursor-pointer flex justify-center items-center ${ecoMode ? 'bg-[#27ae60] text-[#1a1a1a]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]'}`}
-          title={lang === 'fr' ? 'Mode Éco (désactive les animations)' : 'Modo Eco (desativa animações)'}
-        >
-          🌱
-        </button>
-
-        <button
           onClick={onLangToggle}
           className="bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] text-[var(--cordel-text)] cordel-button text-sm py-1.5 w-12 text-center font-bold cursor-pointer"
           title="Changer de langue / Mudar idioma"
         >
           {lang === 'pt' ? 'FR' : 'PT'}
-        </button>
-
-        <button
-          onClick={() => window.open('https://youtube.com/playlist?list=PLBaYhFEJG6PwhFTn0mbfkdejwOrphZRu1&si=p80nNE9lcbzij4Eo', '_blank')}
-          className="bg-[#e67e22] text-[#1a1a1a] hover:opacity-90 px-3 py-1.5 text-sm font-bold cordel-border-sm flex items-center justify-center cursor-pointer"
-          title={t('tutorialBtn')}
-        >
-          <Video className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => window.open('tutorial.html', '_blank')}
-          className="bg-[#8e44ad] text-[#1a1a1a] hover:opacity-90 px-3 py-1.5 text-sm font-bold cordel-border-sm flex items-center justify-center cursor-pointer"
-          title="Guide / Tutorial"
-        >
-          <BookOpen className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => {
-            if (onShare) {
-              onShare();
-            }
-          }}
-          className="bg-[#2980b9] text-[#1a1a1a] hover:opacity-90 px-3 py-1.5 text-sm font-bold cordel-border-sm flex items-center justify-center cursor-pointer"
-          title={lang === 'pt' ? 'Compartilhar' : 'Partager'}
-        >
-          <Share2 className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => window.open('https://github.com/JulianBiblocq/o-girador/issues', '_blank')}
-          className="bg-[#27ae60] text-[#1a1a1a] hover:opacity-90 px-3 py-1.5 text-sm font-bold cordel-border-sm flex items-center justify-center cursor-pointer"
-          title={t('feedbackBtn')}
-        >
-          <MessageSquare className="w-4 h-4" />
         </button>
       </div>
     </div>

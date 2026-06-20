@@ -26,8 +26,6 @@ const TransportBarComponent: React.FC<TransportBarProps> = ({ viewMode }) => {
     setIsMetroOn,
     isSwingOn,
     setIsSwingOn,
-    reverbType,
-    setReverbType,
     handleTogglePlay,
     handleStop,
     handleAudioRecordingToggle,
@@ -109,16 +107,7 @@ const TransportBarComponent: React.FC<TransportBarProps> = ({ viewMode }) => {
           <span className="hidden lg:inline">{t('swingBtn')}</span>
         </button>
 
-        <button
-          onClick={() => setIsLeftHanded(!isLeftHanded)}
-          className={`px-3 py-1 font-cactus font-bold text-sm hidden md:flex items-center gap-1.5 cordel-border-sm cordel-button ${
-            isLeftHanded ? 'bg-[var(--cordel-wood)] text-[#f4ecd8]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]'
-          }`}
-          title={lang === 'fr' ? 'Contrôles pour gaucher' : lang === 'pt' ? 'Controles para canhoto' : 'Left-handed controls'}
-        >
-          <span className="text-base font-bold leading-none">🫲</span>
-          <span className="hidden lg:inline">{lang === 'fr' ? 'Gaucher' : 'Canhoto'}</span>
-        </button>
+
 
         <div className="flex items-center gap-1.5 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)]">
           <Gauge className="w-4 h-4 text-[var(--cordel-text)] md:hidden" />
@@ -149,20 +138,6 @@ const TransportBarComponent: React.FC<TransportBarProps> = ({ viewMode }) => {
               +
             </button>
           </div>
-        </div>
-
-        {/* Reverb Type Dropdown */}
-        <div className={`flex items-center gap-2 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)] ${viewMode === 'console' ? 'hidden md:flex' : 'hidden'}`}>
-          <span className="font-cactus font-bold text-[var(--cordel-text)] text-xs uppercase">Reverb</span>
-          <select
-            value={reverbType}
-            onChange={(e) => setReverbType(e.target.value as any)}
-            className="bg-transparent text-[var(--cordel-text)] font-cactus text-xs font-bold outline-none cursor-pointer"
-          >
-            <option value="room" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'pt' ? 'Sala (Room)' : 'Pièce (Room)'}</option>
-            <option value="studio" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'pt' ? 'Estúdio' : 'Studio'}</option>
-            <option value="hall" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">{lang === 'pt' ? 'Catedral (Hall)' : 'Cathédrale (Hall)'}</option>
-          </select>
         </div>
       </div>
 

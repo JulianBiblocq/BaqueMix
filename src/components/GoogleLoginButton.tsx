@@ -117,18 +117,20 @@ const GoogleLoginButtonActive: React.FC<GoogleLoginButtonProps> = ({
       <div className={`relative ${className}`} ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="bg-[var(--cordel-bg)] border-2 border-[var(--cordel-border)] cordel-button w-12 h-9 p-0 cursor-pointer flex justify-center items-center hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] transition-colors"
+          className="cursor-pointer flex justify-center items-center rounded-full hover:opacity-80 transition-opacity"
           title={profile.name || 'Profil'}
         >
           {profile.picture ? (
             <img
               src={profile.picture}
               alt={profile.name || 'User'}
-              className="w-6 h-6 rounded-full border border-[var(--cordel-border)] object-cover"
+              className="w-8 h-8 rounded-full border-2 border-[var(--cordel-border)] object-cover"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <User className="w-5 h-5 text-current" />
+            <div className="w-8 h-8 rounded-full border-2 border-[var(--cordel-border)] bg-[var(--cordel-bg)] flex justify-center items-center text-[var(--cordel-text)]">
+              <User className="w-5 h-5" />
+            </div>
           )}
         </button>
 

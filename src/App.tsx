@@ -58,13 +58,12 @@ export default function App() {
   // Local Layout / UI States
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
-  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 1024);
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
   const [selectedExportTracks, setSelectedExportTracks] = useState<Set<number>>(new Set());
   const [selectedAnnexTracks, setSelectedAnnexTracks] = useState<Set<number>>(new Set());
-  const [activeRightPanel, setActiveRightPanel] = useState<'legend' | 'letras' | null>(
-    window.innerWidth < 1024 ? 'letras' : 'letras'
+  const [activeRightPanel, setActiveRightPanel] = useState<'legend' | 'letras' | 'info' | null>(
+    window.innerWidth < 1024 ? 'letras' : 'info'
   );
   const [viewMode, setViewMode] = useState<'home' | 'roda' | 'console' | 'timeline' | 'quiz' | 'dictee' | 'inspecteur' | 'mestre' | 'rythmelive' | 'varal' | 'studio'>('home');
   const [unlockedFolhetos, setUnlockedFolhetos] = useState<string[]>(() => {
@@ -304,9 +303,7 @@ export default function App() {
   }, [viewMode, activeRightPanel]);
 
   useEffect(() => {
-    if (window.innerWidth <= 1000) {
-      setIsLeftPanelCollapsed(true);
-    }
+
   }, []);
 
   // Sync theme
@@ -774,8 +771,6 @@ export default function App() {
         localPresets={localPresets}
         activeRightPanel={activeRightPanel}
         onToggleRightPanel={(p) => setActiveRightPanel(activeRightPanel === p ? null : p)}
-        isLeftPanelCollapsed={isLeftPanelCollapsed}
-        onToggleLeftPanel={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
         viewMode={viewMode}
         onViewModeToggle={(mode) => {
           setViewMode(mode);
@@ -798,8 +793,6 @@ export default function App() {
             {/* Left column tracks mixers */}
             {(!isMobile || mobileTab === 'mixer') && (
               <Mixer
-                isLeftPanelCollapsed={isMobile ? false : isLeftPanelCollapsed}
-                onToggleLeftPanel={() => setIsLeftPanelCollapsed(true)}
                 onStepTouchStart={handleStepTouchStart}
                 onCopyPattern={handleCopyPattern}
                 onPastePattern={handlePastePattern}
@@ -894,16 +887,17 @@ export default function App() {
         )}
 
         {/* Right drawer sidebar context panel */}
-        {viewMode !== 'quiz' && viewMode !== 'dictee' && viewMode !== 'inspecteur' && viewMode !== 'mestre' && viewMode !== 'rythmelive' && viewMode !== 'varal' && viewMode !== 'studio' && (!isMobile || (viewMode === 'roda' && mobileTab === 'toada')) && (
+        {viewMode === 'roda' && (!isMobile || mobileTab === 'toada') && (
           <RightSidebar
-            activePanel={isMobile ? (activeRightPanel || 'letras') : activeRightPanel}
+            activePanel={isMobile ? (activeRightPanel || 'letras') : 'info'}
             onTogglePanel={(p) => {
               if (isMobile) {
                 setActiveRightPanel(activeRightPanel === 'letras' ? 'legend' : 'letras');
               } else {
-                setActiveRightPanel(activeRightPanel === p ? null : p);
+                // On PC, the right panel handles its own tabs now, but we'll leave this empty just in case.
               }
             }}
+            isMobile={isMobile}
           />
         )}
       </div>

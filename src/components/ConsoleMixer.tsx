@@ -115,7 +115,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
     activeKeyboardInstrumentId,
     setActiveKeyboardInstrumentId,
     handleTimeSigChange,
-    masterVol, setMasterVol, masterEQ, setMasterEQ, masterCompressor, setMasterCompressor, reverbType,
+    masterVol, setMasterVol, masterEQ, setMasterEQ, masterCompressor, setMasterCompressor, reverbType, setReverbType,
     metroVolume, setMetroVolume, metroSound, setMetroSound, isMetroOn, setIsMetroOn, isSwingOn
   } = audio;
 
@@ -560,6 +560,22 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
                     className="w-full accent-green-700 h-1 bg-[#1a1a1a]/10 cursor-pointer"
                   />
                 </div>
+              </div>
+
+              {/* REVERB */}
+              <div className="flex flex-col gap-1.5 border-t border-[var(--cordel-border)]/20 pt-2">
+                <span className="text-[10px] font-cactus font-bold tracking-wider text-[var(--cordel-text)] opacity-80">
+                  ⛪ Reverb
+                </span>
+                <select
+                  value={reverbType}
+                  onChange={(e) => setReverbType(e.target.value as any)}
+                  className="bg-[#1a1a1a]/10 border border-[var(--cordel-border)]/20 text-[var(--cordel-text)] font-bold text-[10px] uppercase outline-none cursor-pointer w-full p-1"
+                >
+                  <option value="room" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">Sala (Room)</option>
+                  <option value="studio" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">Estúdio (Studio)</option>
+                  <option value="hall" className="bg-[var(--cordel-bg)] text-[var(--cordel-text)]">Catedral (Hall)</option>
+                </select>
               </div>
             </div>
 
