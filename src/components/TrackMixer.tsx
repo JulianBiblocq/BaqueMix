@@ -642,12 +642,12 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
       } as React.CSSProperties}
     >
 
-      <div className={`flex justify-between items-center ${isCollapsed ? '' : 'mb-2'} relative ${instDropdownOpen ? 'z-[9999]' : 'z-[2]'}`}>
-        <div className="flex items-center gap-2">
+      <div className={`flex justify-between items-start ${isCollapsed ? '' : 'mb-2'} relative ${instDropdownOpen ? 'z-[9999]' : 'z-[2]'}`}>
+        <div className="flex items-start gap-2">
           <div
             {...(inst.id !== 'apito' ? attributes : {})}
             {...(inst.id !== 'apito' ? listeners : {})}
-            className={`mr-2 transition-colors p-1 touch-none flex-shrink-0 ${
+            className={`mr-2 transition-colors p-1 touch-none flex-shrink-0 mt-1 ${
               inst.id === 'apito' 
                 ? 'opacity-0 pointer-events-none' 
                 : 'cursor-grab active:cursor-grabbing text-[var(--cordel-text)]/60 hover:text-[var(--cordel-text)]'
@@ -769,6 +769,13 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
             >
               {track.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
+          )}
+
+          {inst.id === 'apito' && (
+            <>
+              <div className="w-6 h-6 pointer-events-none"></div>
+              <div className="w-6 h-6 pointer-events-none"></div>
+            </>
           )}
         </div>
       </div>
