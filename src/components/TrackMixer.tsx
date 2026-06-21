@@ -882,7 +882,7 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
                 id={`step-boxes-${track.id}`}
                 onTouchMove={handleGridTouchMove}
                 onTouchEnd={handleGridTouchEnd}
-                className="w-full"
+                className="w-full step-boxes"
               >
                 <CompactPatternRenderer
                   pattern={{...activePattern, activeSteps: activePlayingSteps}}
@@ -1065,7 +1065,7 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
                 id={`step-boxes-${track.id}`}
                 onTouchMove={handleGridTouchMove}
                 onTouchEnd={handleGridTouchEnd}
-                className="w-full flex-grow"
+                className="w-full flex-grow step-boxes"
               >
                 <CompactPatternRenderer
                   pattern={{...activePattern, activeSteps: activePlayingSteps}}
