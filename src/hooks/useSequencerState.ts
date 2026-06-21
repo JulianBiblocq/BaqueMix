@@ -8,8 +8,10 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { TrackGroup, TimeSignature, SongSection, Pattern, PresetMetadata, Language } from '../types';
 import { instrumentsConfig, getVisualStrokeSymbol, getMaxTicks } from '../data';
 import { audioEngine } from './useAudioSync';
+import { useAuth } from '../contexts/AuthContext';
 
 export function useSequencerState() {
+  const { userProfile, updateUserPreference } = useAuth();
   const [tracks, setTracks] = useState<TrackGroup[]>([]);
   const [bpm, setBpm] = useState<number>(83);
   const [totalMeasures, setTotalMeasures] = useState<number>(8);
@@ -32,7 +34,7 @@ export function useSequencerState() {
   const [letras, setLetras] = useState<string>('');
   const [metadata, setMetadata] = useState<PresetMetadata>({ toada: '', nacao: '', compositor: '', ritmo: '', rhythmSignals: [] });
   const activeVariationsRef = useRef<Record<number, (string | number)[]>>({});
-  const [isLeftHanded, setIsLeftHanded] = useState<boolean>(() => localStorage.getItem('o_girador_left_handed') === 'true');
+  const [isLeftHanded, _setIsLeftHanded] = useState<boolean>(() => localStorage.getItem('o_girador_left_handed') === 'true');
   const [lang, setLang] = useState<Language>('pt');
   const [copiedPattern, setCopiedPattern] = useState<Pattern | null>(null);
   const [copiedSection, setCopiedSection] = useState<any>(null);
@@ -40,8 +42,19 @@ export function useSequencerState() {
   const [activeAoVivoTrackId, setActiveAoVivoTrackId] = useState<number | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('o_girador_left_handed', String(isLeftHanded));
-  }, [isLeftHanded]);
+    if (userProfile && userProfile.isLeftHanded !== undefined) {
+      _setIsLeftHanded(userProfile.isLeftHanded);
+      localStorage.setItem('o_girador_left_handed', String(userProfile.isLeftHanded));
+    }
+  }, [userProfile?.isLeftHanded]);
+
+  const setIsLeftHanded = (val: boolean) => {
+    _setIsLeftHanded(val);
+    localStorage.setItem('o_girador_left_handed', String(val));
+    if (userProfile) {
+      updateUserPreference('isLeftHanded', val);
+    }
+  };
 
   // History states
   const [tracksHistory, setTracksHistory] = useState<TrackGroup[][]>([]);

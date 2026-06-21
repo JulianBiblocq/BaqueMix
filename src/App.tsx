@@ -56,7 +56,7 @@ export default function App() {
   // Consume contexts
   const sequencer = useSequencer();
   const audio = useAudio();
-  const { hasAccess } = useAuth();
+  const { hasAccess, userProfile, updateUserPreference } = useAuth();
 
   // Local Layout / UI States
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -123,6 +123,21 @@ export default function App() {
       setViewMode('roda');
     }
   }, [viewMode, hasAccess]);
+
+  // Cloud sync for Dark Mode
+  useEffect(() => {
+    if (userProfile && userProfile.isDarkMode !== undefined) {
+      setIsDarkMode(userProfile.isDarkMode);
+    }
+  }, [userProfile?.isDarkMode]);
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (userProfile) {
+      updateUserPreference('isDarkMode', newMode);
+    }
+  };
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -781,7 +796,7 @@ export default function App() {
         showInstallButton={!!deferredPrompt}
         onInstallClick={handleInstallClick}
         isDarkMode={isDarkMode}
-        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        onToggleDarkMode={toggleDarkMode}
         onExportTablature={handleExportTablature}
         onAdminClick={() => setViewMode('admin')}
         presetFiles={presetFiles}
@@ -964,6 +979,10 @@ export default function App() {
       {viewMode !== 'quiz' && viewMode !== 'dictee' && viewMode !== 'inspecteur' && viewMode !== 'mestre' && viewMode !== 'rythmelive' && viewMode !== 'varal' && viewMode !== 'studio' && viewMode !== 'admin' && (
         <TransportBar
           viewMode={viewMode as any}
+          onViewModeToggle={(mode) => setViewMode(mode)}
+          isMobile={isMobile}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={toggleDarkMode}
         />
       )}
       {touchSelector && (

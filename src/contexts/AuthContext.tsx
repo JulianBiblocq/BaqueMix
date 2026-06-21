@@ -12,6 +12,8 @@ export interface UserProfile {
   photoURL: string | null;
   role: UserRole;
   createdAt: number;
+  isDarkMode?: boolean;
+  isLeftHanded?: boolean;
 }
 
 interface AuthContextType {
@@ -21,6 +23,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   hasAccess: (requiredRole: UserRole) => boolean;
+  updateUserPreference: (key: 'isDarkMode' | 'isLeftHanded', value: boolean) => Promise<void>;
 }
 
 const roleLevels: Record<UserRole, number> = {
@@ -37,6 +40,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
   logout: async () => {},
   hasAccess: () => false,
+  updateUserPreference: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -101,8 +105,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return roleLevels[userProfile.role] >= roleLevels[requiredRole];
   };
 
+  const updateUserPreference = async (key: 'isDarkMode' | 'isLeftHanded', value: boolean) => {
+    if (currentUser && userProfile) {
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await setDoc(userRef, { [key]: value }, { merge: true });
+        setUserProfile((prev) => prev ? { ...prev, [key]: value } : null);
+      } catch (error) {
+        console.error(`Error updating ${key}:`, error);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, userProfile, loading, signInWithGoogle, logout, hasAccess }}>
+    <AuthContext.Provider value={{ currentUser, userProfile, loading, signInWithGoogle, logout, hasAccess, updateUserPreference }}>
       {!loading && children}
     </AuthContext.Provider>
   );
