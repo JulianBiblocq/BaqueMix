@@ -61,9 +61,302 @@
       "keywords": "maracatu, baque virado, sequenciador, ritmo, alfaia, caixa, gonguê, agbê, mineiro, percussão brasileira"
     }
     </script>
+
+    <!-- Font for Landing Page -->
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+      /* Landing Page Styles */
+      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0a0807; }
+      
+      #landing-page {
+        position: fixed;
+        inset: 0;
+        background-color: #f4ecd8; /* Papier brut texturé */
+        color: #1a1a1a;
+        z-index: 9999;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: 2rem;
+        box-sizing: border-box;
+        transition: opacity 0.8s ease-out;
+        font-family: 'Lora', serif;
+      }
+      
+      /* Background texture simulation */
+      #landing-page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.4;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+      }
+
+      /* Top Right: Login */
+      .lp-header {
+        display: flex;
+        justify-content: flex-end;
+        position: relative;
+        z-index: 2;
+      }
+      .lp-login {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid #1a1a1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        cursor: pointer;
+        background: transparent;
+        color: #1a1a1a;
+        transition: all 0.2s;
+        font-family: 'Rye', cursive;
+      }
+      .lp-login:hover {
+        background: #1a1a1a;
+        color: #f4ecd8;
+      }
+
+      /* Center: Title Zone */
+      .lp-center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        position: relative;
+        z-index: 2;
+      }
+      
+      .lp-o-container {
+        position: relative;
+        width: clamp(150px, 25vw, 300px);
+        height: clamp(150px, 25vw, 300px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .lp-alfaia-svg {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        animation: lp-spin 40s linear infinite;
+      }
+      @keyframes lp-spin { 100% { transform: rotate(360deg); } }
+
+      .lp-entra-btn {
+        position: relative;
+        z-index: 10;
+        background: #f4ecd8;
+        border: 2px solid #1a1a1a;
+        border-radius: 50%;
+        width: 50%;
+        height: 50%;
+        font-family: 'Rye', cursive;
+        font-size: clamp(0.7rem, 2vw, 1.2rem);
+        color: #1a1a1a;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.1;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+      }
+      .lp-entra-btn:hover {
+        background: #b33939; /* Ocre / Brique */
+        color: #f4ecd8;
+        border-color: #b33939;
+        transform: scale(1.05);
+      }
+
+      .lp-title {
+        font-family: 'Rye', cursive;
+        font-size: clamp(4rem, 10vw, 12rem);
+        line-height: 1;
+        margin: 0;
+        color: #1a1a1a;
+        letter-spacing: -0.05em;
+      }
+
+      /* Bottom: Text & Bandeira */
+      .lp-footer {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 2rem;
+        align-items: end;
+        position: relative;
+        z-index: 2;
+      }
+
+      .lp-text {
+        max-width: 600px;
+        font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+        line-height: 1.6;
+        color: #1a1a1a;
+      }
+
+      .lp-bandeira {
+        background: #b33939;
+        color: #f4ecd8;
+        padding: 2rem 1.5rem 3rem 1.5rem;
+        text-align: center;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 85%, 0 100%);
+        width: clamp(200px, 20vw, 300px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        position: relative;
+        transform: translateY(2rem); /* Descend un peu pour toucher le bas */
+      }
+      .lp-bandeira h2 {
+        font-family: 'Rye', cursive;
+        font-size: clamp(1rem, 1.2vw, 1.2rem);
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+      }
+      .lp-bandeira .year {
+        font-family: monospace;
+        font-size: 1rem;
+        opacity: 0.8;
+      }
+      .lp-bandeira .slogan {
+        font-style: italic;
+        margin-top: 1rem;
+        font-size: 1.1rem;
+      }
+      .lp-motifs {
+        display: flex;
+        justify-content: center;
+        gap: 0.8rem;
+        margin-top: 1rem;
+      }
+      .lp-motifs svg {
+        width: 16px;
+        height: 16px;
+        fill: #f4ecd8;
+      }
+      
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
+      }
+
+      @media (max-width: 768px) {
+        .lp-center { flex-direction: column; text-align: center; gap: 1rem; }
+        .lp-footer { grid-template-columns: 1fr; gap: 2rem; }
+        .lp-bandeira { width: 100%; margin: 0 auto; max-width: 300px; transform: none; }
+        .lp-title { font-size: 4rem; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Landing Page -->
+    <div id="landing-page">
+      <header class="lp-header">
+        <button class="lp-login" aria-label="Login Google" onclick="alert('La connexion se fera dans l\'application.')">G</button>
+      </header>
+      
+      <main class="lp-center">
+        <div class="lp-o-container">
+          <!-- Alfaia SVG -->
+          <svg class="lp-alfaia-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="48" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#1a1a1a" stroke-width="1" stroke-dasharray="2 2"/>
+            <!-- Ropes -->
+            <path d="M 50 2 L 65 12 L 50 22 L 35 12 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5" />
+            <path d="M 84 16 L 90 30 L 78 38 L 70 24 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5" />
+            <path d="M 98 50 L 88 65 L 78 50 L 88 35 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5" />
+            <path d="M 84 84 L 70 90 L 60 78 L 74 70 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5" />
+            <path d="M 50 98 L 35 88 L 50 78 L 65 88 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5" />
+            <path d="M 16 84 L 10 70 L 22 62 L 30 76 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5" />
+            <path d="M 2 50 L 12 35 L 22 50 L 12 65 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5" />
+            <path d="M 16 16 L 30 10 L 40 22 L 26 30 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5" />
+          </svg>
+          <button id="entra-btn" class="lp-entra-btn">ENTRA<br>NA RODA</button>
+        </div>
+        <h1 class="sr-only">O Girador - Séquenceur de Maracatu de Baque Virado</h1>
+        <div class="lp-title">GIRADOR</div>
+      </main>
+      
+      <footer class="lp-footer">
+        <div class="lp-text" id="lp-desc">
+          <!-- Text updated via JS -->
+        </div>
+        <div class="lp-bandeira">
+          <h2>MARACATU<br>DE BAQUE VIRADO</h2>
+          <div class="year">2024</div>
+          <div class="slogan">Bate forte</div>
+          <div class="lp-motifs">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24"><polygon points="12,2 22,20 2,20" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" fill="currentColor"/></svg>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- React App Container -->
+    <div id="app-container" style="display: none; opacity: 0; width: 100%; height: 100%; transition: opacity 0.5s ease-in;">
+      <div id="root"></div>
+    </div>
+
+    <!-- Landing Page Logic -->
+    <script>
+      (function() {
+        const frText = "Le Maracatu de Baque Virado est une musique qui s'apprend au cœur de la roda, par la transmission orale. Aucune machine ne remplacera l'enseignement des mestres. O Girador a été pensé avec humilité pour s'y ajouter : c'est un carnet de notes sonore, un séquenceur interactif pour expérimenter vos baques et entrevoir les relations qu'il y a entre les alfaias, la caixa, le tarol, le gonguê, l'agbê, le mineiro et les toadas, en attendant le prochain enseignement vivant.";
+        const ptText = "O Maracatu de Baque Virado é uma música que se aprende no coração da roda, por transmissão oral. Nenhuma máquina substituirá os ensinamentos dos mestres. O Girador foi pensado com humildade para se somar a isso: é um caderno sonoro, um sequenciador interativo para experimentar seus baques e vislumbrar as relações entre as alfaias, a caixa, o tarol, o gonguê, o agbê, o mineiro e as toadas, aguardando o próximo ensinamento vivo.";
+        
+        const isFr = navigator.language.startsWith('fr');
+        document.getElementById('lp-desc').innerText = isFr ? frText : ptText;
+
+        // Prefetch dummy audio
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(() => {
+            const files = ['1_T.ogg', '1_P.ogg', '2_S.ogg'];
+            files.forEach(f => {
+              fetch('/Mixdown/' + f).then(r => r.arrayBuffer()).catch(()=>null);
+            });
+          });
+        }
+
+        const btn = document.getElementById('entra-btn');
+        let audioCtx = null;
+        
+        btn.addEventListener('mouseenter', () => {
+          if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+          }
+        });
+
+        btn.addEventListener('click', () => {
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          } else if (!audioCtx) {
+            try {
+              audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+              audioCtx.resume();
+            } catch(e) {}
+          }
+
+          const lp = document.getElementById('landing-page');
+          const appContainer = document.getElementById('app-container');
+          
+          lp.style.opacity = '0';
+          setTimeout(() => {
+            lp.style.display = 'none';
+            appContainer.style.display = 'block';
+            
+            requestAnimationFrame(() => {
+              appContainer.style.opacity = '1';
+              document.body.style.overflow = 'auto';
+              document.documentElement.style.overflow = 'auto';
+            });
+          }, 800);
+        });
+      })();
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
