@@ -3,6 +3,7 @@ import * as Tone from 'tone';
 import { ASSETS_BASE_URL } from '../data';
 import { audioEngine } from '../hooks/useAudioSync';
 import { GoogleLoginButton } from './GoogleLoginButton';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HomeProps {
   onEnter: (mode: string) => void;
@@ -10,6 +11,7 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ onEnter, lang }) => {
+  const { hasAccess } = useAuth();
 
   const handleEnter = async (mode: string) => {
     // Unlock Audio Context (Autoplay Policy)
@@ -62,32 +64,36 @@ export const Home: React.FC<HomeProps> = ({ onEnter, lang }) => {
           </button>
 
           {/* Jeux */}
-          <button
-            onClick={() => handleEnter('quiz')}
-            className="bg-[#2980b9] text-[#1a1a1a] cordel-border flex flex-col items-center justify-center py-6 px-4 cursor-pointer hover:-translate-y-1 transition-transform"
-          >
-            <span className="text-3xl mb-2">🎮</span>
-            <span className="font-cactus font-bold text-xl uppercase tracking-wider">
-              {isFr ? 'Jeux & Quiz' : 'Jogos e Quiz'}
-            </span>
-            <span className="text-xs font-bold opacity-80 mt-1 text-center">
-              {isFr ? 'Entraînement de l\'oreille' : 'Treinamento auditivo'}
-            </span>
-          </button>
+          {hasAccess('eleve') && (
+            <button
+              onClick={() => handleEnter('quiz')}
+              className="bg-[#2980b9] text-[#1a1a1a] cordel-border flex flex-col items-center justify-center py-6 px-4 cursor-pointer hover:-translate-y-1 transition-transform"
+            >
+              <span className="text-3xl mb-2">🎮</span>
+              <span className="font-cactus font-bold text-xl uppercase tracking-wider">
+                {isFr ? 'Jeux & Quiz' : 'Jogos e Quiz'}
+              </span>
+              <span className="text-xs font-bold opacity-80 mt-1 text-center">
+                {isFr ? 'Entraînement de l\'oreille' : 'Treinamento auditivo'}
+              </span>
+            </button>
+          )}
 
           {/* Studio */}
-          <button
-            onClick={() => handleEnter('studio')}
-            className="bg-[#8e44ad] text-[#1a1a1a] cordel-border flex flex-col items-center justify-center py-6 px-4 cursor-pointer hover:-translate-y-1 transition-transform"
-          >
-            <span className="text-3xl mb-2">👑</span>
-            <span className="font-cactus font-bold text-xl uppercase tracking-wider">
-              {isFr ? 'Mestre Studio' : 'Mestre Studio'}
-            </span>
-            <span className="text-xs font-bold opacity-80 mt-1 text-center">
-              {isFr ? 'Arrangements avancés' : 'Arranjos avançados'}
-            </span>
-          </button>
+          {hasAccess('mestre') && (
+            <button
+              onClick={() => handleEnter('studio')}
+              className="bg-[#8e44ad] text-[#1a1a1a] cordel-border flex flex-col items-center justify-center py-6 px-4 cursor-pointer hover:-translate-y-1 transition-transform"
+            >
+              <span className="text-3xl mb-2">👑</span>
+              <span className="font-cactus font-bold text-xl uppercase tracking-wider">
+                {isFr ? 'Mestre Studio' : 'Mestre Studio'}
+              </span>
+              <span className="text-xs font-bold opacity-80 mt-1 text-center">
+                {isFr ? 'Arrangements avancés' : 'Arranjos avançados'}
+              </span>
+            </button>
+          )}
 
         </div>
 

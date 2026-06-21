@@ -17,6 +17,7 @@ import { i18n, instrumentsConfig, ASSETS_BASE_URL } from '../data';
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { useSequencer } from '../contexts/SequencerContext';
 import { useAudio } from '../contexts/AudioContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   presetFiles: string[];
@@ -55,6 +56,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
 }) => {
   const sequencer = useSequencer();
   const audio = useAudio();
+  const { hasAccess } = useAuth();
 
   const {
     lang,
@@ -537,14 +539,16 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                   🪢 {lang === 'pt' ? 'Varal (Progresso)' : 'Varal (Progression)'}
                 </button>
                 <div className="border-t border-dashed border-[var(--cordel-border)]/30 my-1"></div>
-                <button
-                  onClick={() => { onViewModeToggle('studio'); setJogoDropOpen(false); }}
-                  className={`flex items-center gap-2 px-3 py-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full transition-colors cursor-pointer text-xs ${
-                    viewMode === 'studio' ? 'bg-[var(--cordel-text)]/10 text-[var(--cordel-wood)] font-black' : 'text-[var(--cordel-text)]'
-                  }`}
-                >
-                  👑 {lang === 'pt' ? 'Estúdio do Mestre' : 'Studio du Mestre'}
-                </button>
+                {hasAccess('mestre') && (
+                  <button
+                    onClick={() => { onViewModeToggle('studio'); setJogoDropOpen(false); }}
+                    className={`flex items-center gap-2 px-3 py-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full transition-colors cursor-pointer text-xs ${
+                      viewMode === 'studio' ? 'bg-[var(--cordel-text)]/10 text-[var(--cordel-wood)] font-black' : 'text-[var(--cordel-text)]'
+                    }`}
+                  >
+                    👑 {lang === 'pt' ? 'Estúdio do Mestre' : 'Studio du Mestre'}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -756,19 +760,21 @@ const HeaderComponent: React.FC<HeaderProps> = ({
 
         {/* JOGOS DROPDOWN (DESKTOP) */}
         <div className="relative font-sans" ref={jogoDropRef}>
-          <button
-            onClick={() => setJogoDropOpen(!jogoDropOpen)}
-            className={`flex items-center justify-center gap-1.5 h-[36px] px-4 font-cactus uppercase font-bold cordel-border cordel-button cursor-pointer ${
-              viewMode === 'quiz' || viewMode === 'dictee' || viewMode === 'inspecteur' || viewMode === 'mestre' || viewMode === 'rythmelive'
-                ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
-                : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'
-            }`}
-            title={lang === 'pt' ? 'Jogos' : 'Jeux'}
-          >
-            🎮 {lang === 'pt' ? 'JOGOS' : 'JEUX'} <span className="text-[10px]">▼</span>
-          </button>
+          {hasAccess('eleve') && (
+            <button
+              onClick={() => setJogoDropOpen(!jogoDropOpen)}
+              className={`flex items-center justify-center gap-1.5 h-[36px] px-4 font-cactus uppercase font-bold cordel-border cordel-button cursor-pointer ${
+                viewMode === 'quiz' || viewMode === 'dictee' || viewMode === 'inspecteur' || viewMode === 'mestre' || viewMode === 'rythmelive'
+                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
+                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'
+              }`}
+              title={lang === 'pt' ? 'Jogos' : 'Jeux'}
+            >
+              🎮 {lang === 'pt' ? 'JOGOS' : 'JEUX'} <span className="text-[10px]">▼</span>
+            </button>
+          )}
           
-          {jogoDropOpen && (
+          {jogoDropOpen && hasAccess('eleve') && (
             <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-[var(--cordel-bg)] cordel-border shadow-[4px_4px_0_var(--cordel-border)] min-w-[200px] z-[100] flex flex-col py-1">
               <button
                 onClick={() => { onViewModeToggle('quiz'); setJogoDropOpen(false); }}
@@ -820,14 +826,16 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                 🪢 {lang === 'pt' ? 'Varal (Progresso)' : 'Varal (Progression)'}
               </button>
               <div className="border-t border-dashed border-[var(--cordel-border)]/30 my-1"></div>
-              <button
-                onClick={() => { onViewModeToggle('studio'); setJogoDropOpen(false); }}
-                className={`flex items-center gap-2 px-4 py-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full transition-colors cursor-pointer text-xs ${
-                  viewMode === 'studio' ? 'bg-[var(--cordel-text)]/10 text-[var(--cordel-wood)] font-black' : 'text-[var(--cordel-text)]'
-                }`}
-              >
-                👑 {lang === 'pt' ? 'Estúdio do Mestre' : 'Studio du Mestre'}
-              </button>
+              {hasAccess('mestre') && (
+                <button
+                  onClick={() => { onViewModeToggle('studio'); setJogoDropOpen(false); }}
+                  className={`flex items-center gap-2 px-4 py-2 hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)] font-bold text-left w-full transition-colors cursor-pointer text-xs ${
+                    viewMode === 'studio' ? 'bg-[var(--cordel-text)]/10 text-[var(--cordel-wood)] font-black' : 'text-[var(--cordel-text)]'
+                  }`}
+                >
+                  👑 {lang === 'pt' ? 'Estúdio do Mestre' : 'Studio du Mestre'}
+                </button>
+              )}
             </div>
           )}
         </div>

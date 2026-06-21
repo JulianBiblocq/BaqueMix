@@ -20,7 +20,15 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  hasAccess: (requiredRole: UserRole) => boolean;
 }
+
+const roleLevels: Record<UserRole, number> = {
+  visiteur: 0,
+  eleve: 1,
+  mestre: 2,
+  admin: 3
+};
 
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
@@ -28,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signInWithGoogle: async () => {},
   logout: async () => {},
+  hasAccess: () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -87,8 +96,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const hasAccess = (requiredRole: UserRole): boolean => {
+    if (!userProfile) return requiredRole === 'visiteur';
+    return roleLevels[userProfile.role] >= roleLevels[requiredRole];
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, userProfile, loading, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ currentUser, userProfile, loading, signInWithGoogle, logout, hasAccess }}>
       {!loading && children}
     </AuthContext.Provider>
   );

@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'rea
 import * as Tone from 'tone';
 import { useSequencer } from './contexts/SequencerContext';
 import { useAudio } from './contexts/AudioContext';
+import { useAuth } from './contexts/AuthContext';
 import LZString from 'lz-string';
 import {
   audioEngine,
@@ -55,6 +56,7 @@ export default function App() {
   // Consume contexts
   const sequencer = useSequencer();
   const audio = useAudio();
+  const { hasAccess } = useAuth();
 
   // Local Layout / UI States
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -108,6 +110,19 @@ export default function App() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
+
+  // Security route protection
+  useEffect(() => {
+    if (['quiz', 'dictee', 'inspecteur', 'rythmelive'].includes(viewMode) && !hasAccess('eleve')) {
+      setViewMode('roda');
+    }
+    if (viewMode === 'studio' && !hasAccess('mestre')) {
+      setViewMode('roda');
+    }
+    if (viewMode === 'admin' && !hasAccess('admin')) {
+      setViewMode('roda');
+    }
+  }, [viewMode, hasAccess]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
