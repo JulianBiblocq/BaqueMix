@@ -219,19 +219,31 @@
         color: #1a1a1a;
       }
 
-      /* Mestre Message Box - Styled as a Post-it */
+      /* Mestre Message Box - Styled as Cordel Woodcut */
       .lp-mestre-message {
         width: clamp(200px, 25vw, 300px);
-        background-color: #fdf6c6; /* Classic yellow post-it */
+        background-color: #f4ecd8; /* Papier brut */
+        border: 3px solid #1a1a1a;
+        box-shadow: 6px 6px 0px #1a1a1a;
         padding: 1.5rem;
-        box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.15);
         font-family: 'Lora', serif;
-        transform: rotate(-2deg);
-        margin-bottom: clamp(3rem, 12vh, 6rem); /* Un peu plus haut pour le décaler joliment */
-        transition: transform 0.2s ease;
+        font-style: italic;
+        transform: rotate(-1deg);
+        margin-bottom: clamp(3rem, 12vh, 6rem);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+      }
+      .lp-mestre-message::before {
+        content: "";
+        position: absolute;
+        top: 4px; left: 4px; right: 4px; bottom: 4px;
+        border: 1px dashed #1a1a1a;
+        pointer-events: none;
+        opacity: 0.3;
       }
       .lp-mestre-message:hover {
         transform: rotate(0deg) scale(1.02);
+        box-shadow: 8px 8px 0px #1a1a1a;
       }
       .lp-message-header {
         display: flex;
@@ -242,9 +254,15 @@
       .lp-message-title {
         font-family: 'Cactus', sans-serif;
         font-weight: bold;
-        color: #8b2a1a;
-        font-size: 1.1rem;
+        font-style: normal;
+        color: #1a1a1a;
+        font-size: 1.2rem;
         letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border-bottom: 2px solid #1a1a1a;
+        padding-bottom: 0.2rem;
+        margin-bottom: 0.5rem;
+        display: inline-block;
       }
       .lp-edit-btn {
         background: transparent;
