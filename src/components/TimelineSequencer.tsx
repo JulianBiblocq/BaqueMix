@@ -2069,7 +2069,7 @@ const MemoizedTimelineTrackRow = React.memo(({
                             )}
 
                             {/* Mini-beats density dots or Compact geometric shapes */}
-                            <div className={`flex items-center opacity-90 overflow-hidden`}>
+                            <div className={`flex items-center opacity-90 overflow-hidden w-full h-full pb-0.5`}>
                               {isMinZoom ? (
                                 <div className="flex flex-wrap gap-[2px] justify-center w-full">
                                   {activePattern.activeSteps.map((val, sIdx) => {
@@ -2092,7 +2092,7 @@ const MemoizedTimelineTrackRow = React.memo(({
                                   inst={inst}
                                   isLeftHanded={false}
                                   isEditable={false}
-                                  className="scale-50 origin-left"
+                                  isFluid={true}
                                 />
                               )}
                             </div>

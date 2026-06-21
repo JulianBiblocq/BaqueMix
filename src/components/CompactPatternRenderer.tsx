@@ -13,6 +13,7 @@ interface CompactPatternRendererProps {
   currentStep?: number | null;
   className?: string;
   style?: React.CSSProperties;
+  isFluid?: boolean;
 }
 
 export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
@@ -25,7 +26,8 @@ export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
   onStepShiftClick,
   currentStep,
   className = '',
-  style = {}
+  style = {},
+  isFluid = false
 }) => {
   const defaultBeats = 4;
   const beatRes = pattern.beatResolutions || Array(Math.ceil(pattern.steps / defaultBeats)).fill(defaultBeats);
@@ -45,7 +47,7 @@ export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
   }
 
   return (
-    <div className={`flex flex-wrap gap-x-1 gap-y-1 ${className}`} style={style}>
+    <div className={`grid grid-cols-2 gap-x-1 gap-y-1 ${isFluid ? 'w-full h-full' : 'w-max'} ${className}`} style={style}>
       {groups.map((group, groupIdx) => {
         const isTriplet = group.length === 3;
         const isSextuplet = group.length === 6;
@@ -53,8 +55,8 @@ export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
         return (
           <div 
             key={groupIdx} 
-            className={`flex relative ${isSextuplet ? 'h-[24px]' : isTriplet ? 'justify-between' : 'gap-0.5'}`} 
-            style={{ width: '64px', flexShrink: 0 }}
+            className={`flex relative ${isFluid ? 'w-full h-full min-h-[12px]' : isSextuplet ? 'h-[24px]' : ''} ${isTriplet ? 'justify-between' : 'gap-0.5'}`} 
+            style={isFluid ? undefined : { width: '64px', flexShrink: 0 }}
           >
             {group.map((stepIdx, indexInGroup) => {
               const val = pattern.activeSteps[stepIdx];
@@ -88,12 +90,15 @@ export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
               
               if (isSextuplet) {
                 wrapperClasses = "absolute flex items-center justify-center top-0 bottom-0";
-                wrapperStyle = { 
+                wrapperStyle = isFluid ? { 
+                  width: '31.25%', 
+                  left: `${indexInGroup * 13.75}%`
+                } : { 
                   width: '20px', 
                   left: `${indexInGroup * 8.8}px`
                 };
               } else if (isTriplet) {
-                wrapperStyle = { width: '18px' };
+                wrapperStyle = isFluid ? { width: '28.125%' } : { width: '18px' };
               } else {
                 wrapperStyle = { flex: 1 };
               }
