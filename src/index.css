@@ -52,6 +52,7 @@ body {
 
 /* Brazilian Cordel and Cactus display visual typography (only for strict targets, others fallback to system font) */
 #header-title-text,
+#header-title-text-mobile,
 .panel-title {
   font-family: "Cactus", "Cinzel Decorative", "Courier New", Georgia, serif !important;
   letter-spacing: 2px;

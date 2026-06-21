@@ -451,7 +451,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
         </div>
 
         {/* Center: App Title */}
-        <span className="font-cactus text-[var(--cordel-text)] text-base font-bold tracking-wide uppercase select-none cursor-default whitespace-nowrap">
+        <span id="header-title-text-mobile" className="font-cactus text-[var(--cordel-text)] text-base font-bold tracking-wide uppercase select-none cursor-default whitespace-nowrap">
           O Girador
         </span>
 
