@@ -208,6 +208,7 @@
         flex-direction: column;
         gap: clamp(1rem, 3vh, 2rem);
         margin-left: clamp(1rem, 4vw, 6rem);
+        margin-bottom: clamp(2rem, 10vh, 5rem);
       }
 
       .lp-text {
@@ -225,7 +226,7 @@
         box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.15);
         font-family: 'Lora', serif;
         transform: rotate(-2deg);
-        margin-bottom: clamp(1rem, 5vh, 3rem);
+        margin-bottom: clamp(3rem, 12vh, 6rem); /* Un peu plus haut pour le décaler joliment */
         transition: transform 0.2s ease;
       }
       .lp-mestre-message:hover {
@@ -334,7 +335,7 @@
       @media (max-width: 1024px) {
         .lp-center { flex-direction: column; text-align: center; gap: 1rem; padding-left: 0; }
         .lp-footer { grid-template-columns: 1fr; gap: 2rem; justify-items: center; margin-top: 0; }
-        .lp-text-container { margin-left: 0; text-align: center; align-items: center; }
+        .lp-text-container { margin-left: 0; margin-bottom: 0; text-align: center; align-items: center; }
         .lp-text { text-align: center; margin-left: 0; }
         .lp-mestre-message { transform: none; width: 90%; max-width: 400px; margin-bottom: 0; margin-top: 1rem; }
         .lp-mestre-message:hover { transform: none; }

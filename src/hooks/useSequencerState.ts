@@ -35,7 +35,16 @@ export function useSequencerState() {
   const [metadata, setMetadata] = useState<PresetMetadata>({ toada: '', nacao: '', compositor: '', ritmo: '', rhythmSignals: [] });
   const activeVariationsRef = useRef<Record<number, (string | number)[]>>({});
   const [isLeftHanded, _setIsLeftHanded] = useState<boolean>(() => localStorage.getItem('o_girador_left_handed') === 'true');
-  const [lang, setLang] = useState<Language>('pt');
+  const [lang, _setLang] = useState<Language>(() => {
+    const saved = localStorage.getItem('o_girador_lang');
+    if (saved === 'fr' || saved === 'pt') return saved;
+    return 'pt';
+  });
+
+  const setLang = useCallback((newLang: Language) => {
+    _setLang(newLang);
+    localStorage.setItem('o_girador_lang', newLang);
+  }, []);
   const [copiedPattern, setCopiedPattern] = useState<Pattern | null>(null);
   const [copiedSection, setCopiedSection] = useState<any>(null);
 

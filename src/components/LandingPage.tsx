@@ -19,7 +19,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, lang }) => {
   const [editMsgContent, setEditMsgContent] = useState('');
   const [isSavingMsg, setIsSavingMsg] = useState(false);
 
-  const isFr = lang === 'fr';
+  // Détermine la langue du texte de présentation
+  const hasSavedLang = localStorage.getItem('o_girador_lang') !== null;
+  const isBrowserFr = typeof navigator !== 'undefined' && navigator.language.startsWith('fr');
+  const displayFr = hasSavedLang ? (lang === 'fr') : isBrowserFr;
 
   useEffect(() => {
     const fetchMestreData = async () => {
@@ -103,7 +106,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, lang }) => {
       <footer className="lp-footer">
         <div className="lp-text-container">
           <div className="lp-text" id="lp-desc">
-            {isFr ? frText : ptText}
+            {displayFr ? frText : ptText}
           </div>
         </div>
         
