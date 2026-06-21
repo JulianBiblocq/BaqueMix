@@ -63,8 +63,15 @@
     </script>
 
     <!-- Font for Landing Page -->
-    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
+      @font-face {
+        font-family: 'Cactus';
+        src: url('/fonts/Cactus Regular.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
       /* Landing Page Styles */
       body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0a0807; }
       
@@ -112,7 +119,7 @@
         background: transparent;
         color: #1a1a1a;
         transition: all 0.2s;
-        font-family: 'Rye', cursive;
+        font-family: 'Cactus', sans-serif;
       }
       .lp-login:hover {
         background: #1a1a1a;
@@ -154,7 +161,7 @@
         border-radius: 50%;
         width: 50%;
         height: 50%;
-        font-family: 'Rye', cursive;
+        font-family: 'Cactus', sans-serif;
         font-size: clamp(0.7rem, 2vw, 1.2rem);
         color: #1a1a1a;
         cursor: pointer;
@@ -174,7 +181,7 @@
       }
 
       .lp-title {
-        font-family: 'Rye', cursive;
+        font-family: 'Cactus', sans-serif;
         font-size: clamp(4rem, 10vw, 12rem);
         line-height: 1;
         margin: 0;
@@ -193,14 +200,16 @@
       }
 
       .lp-text {
-        max-width: 600px;
-        font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+        max-width: 650px;
+        font-size: clamp(1rem, 1.6vw, 1.25rem);
         line-height: 1.6;
         color: #1a1a1a;
+        margin-left: clamp(1rem, 5vw, 4rem);
+        margin-bottom: clamp(1rem, 5vh, 3rem);
       }
 
       .lp-bandeira {
-        width: clamp(220px, 25vw, 320px);
+        width: clamp(250px, 30vw, 380px);
         position: relative;
       }
       .lp-bandeira svg {
@@ -209,6 +218,14 @@
         display: block;
         overflow: visible;
       }
+      .lp-fringes {
+        transform-origin: 100px 220px;
+        animation: lp-wind 3s ease-in-out infinite alternate;
+      }
+      @keyframes lp-wind {
+        0% { transform: skewX(2deg) scaleY(1); }
+        100% { transform: skewX(-6deg) scaleY(1.05); }
+      }
       
       .sr-only {
         position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
@@ -216,7 +233,8 @@
 
       @media (max-width: 768px) {
         .lp-center { flex-direction: column; text-align: center; gap: 1rem; }
-        .lp-footer { grid-template-columns: 1fr; gap: 2rem; }
+        .lp-footer { grid-template-columns: 1fr; gap: 2rem; justify-items: center; }
+        .lp-text { margin-left: 0; margin-bottom: 0; text-align: center; }
         .lp-bandeira { width: 100%; margin: 0 auto; max-width: 300px; transform: none; }
         .lp-title { font-size: 4rem; }
       }
@@ -275,14 +293,16 @@
             <path d="M 40 70 L 160 70 L 175 220 L 25 220 Z" fill="#f4ecd8" stroke="#1a1a1a" stroke-width="2" stroke-linejoin="round"/>
             
             <!-- Fringes -->
-            <path d="M 25 220 l 1.5 24.6 l 1.5 -18.6 l 1.5 23.2 l 1.5 -18.5 l 1.5 16.4 l 1.5 -20.5 l 1.5 24.9 l 1.5 -19.5 l 1.5 23.5 l 1.5 -22.8 l 1.5 21.1 l 1.5 -20.3 l 1.5 23.2 l 1.5 -16.2 l 1.5 19.0 l 1.5 -21.6 l 1.5 22.8 l 1.5 -17.1 l 1.5 16.2 l 1.5 -23.0 l 1.5 22.5 l 1.5 -18.3 l 1.5 22.3 l 1.5 -15.6 l 1.5 24.2 l 1.5 -20.2 l 1.5 18.8 l 1.5 -17.4 l 1.5 21.2 l 1.5 -17.8 l 1.5 20.2 l 1.5 -19.3 l 1.5 16.5 l 1.5 -18.5 l 1.5 22.3 l 1.5 -22.9 l 1.5 19.7 l 1.5 -23.2 l 1.5 21.9 l 1.5 -22.8 l 1.5 18.6 l 1.5 -17.2 l 1.5 15.0 l 1.5 -23.8 l 1.5 17.8 l 1.5 -20.2 l 1.5 16.8 l 1.5 -17.7 l 1.5 15.3 l 1.5 -16.5 l 1.5 24.5 l 1.5 -15.4 l 1.5 23.5 l 1.5 -22.8 l 1.5 17.7 l 1.5 -18.0 l 1.5 16.6 l 1.5 -22.0 l 1.5 23.5 l 1.5 -17.6 l 1.5 17.8 l 1.5 -15.7 l 1.5 15.3 l 1.5 -23.2 l 1.5 17.9 l 1.5 -24.3 l 1.5 20.5 l 1.5 -18.2 l 1.5 18.4 l 1.5 -18.9 l 1.5 15.7 l 1.5 -21.4 l 1.5 15.7 l 1.5 -21.2 l 1.5 23.3 l 1.5 -24.0 l 1.5 20.2 l 1.5 -15.8 l 1.5 22.3 l 1.5 -20.2 l 1.5 16.3 l 1.5 -18.5 l 1.5 18.2 l 1.5 -22.3 l 1.5 20.2 l 1.5 -17.5 l 1.5 18.0 l 1.5 -21.0 l 1.5 22.9 l 1.5 -20.2 l 1.5 22.6 l 1.5 -17.1 l 1.5 24.3 l 1.5 -22.9 l 1.5 18.0 l 1.5 -19.0 l 1.5 20.0 l 1.5 -16.0 l 1.5 17.0 l 1.5 -21.0" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>
+            <g class="lp-fringes">
+              <path d="M 25 220 l 1.5 24.6 l 1.5 -18.6 l 1.5 23.2 l 1.5 -18.5 l 1.5 16.4 l 1.5 -20.5 l 1.5 24.9 l 1.5 -19.5 l 1.5 23.5 l 1.5 -22.8 l 1.5 21.1 l 1.5 -20.3 l 1.5 23.2 l 1.5 -16.2 l 1.5 19.0 l 1.5 -21.6 l 1.5 22.8 l 1.5 -17.1 l 1.5 16.2 l 1.5 -23.0 l 1.5 22.5 l 1.5 -18.3 l 1.5 22.3 l 1.5 -15.6 l 1.5 24.2 l 1.5 -20.2 l 1.5 18.8 l 1.5 -17.4 l 1.5 21.2 l 1.5 -17.8 l 1.5 20.2 l 1.5 -19.3 l 1.5 16.5 l 1.5 -18.5 l 1.5 22.3 l 1.5 -22.9 l 1.5 19.7 l 1.5 -23.2 l 1.5 21.9 l 1.5 -22.8 l 1.5 18.6 l 1.5 -17.2 l 1.5 15.0 l 1.5 -23.8 l 1.5 17.8 l 1.5 -20.2 l 1.5 16.8 l 1.5 -17.7 l 1.5 15.3 l 1.5 -16.5 l 1.5 24.5 l 1.5 -15.4 l 1.5 23.5 l 1.5 -22.8 l 1.5 17.7 l 1.5 -18.0 l 1.5 16.6 l 1.5 -22.0 l 1.5 23.5 l 1.5 -17.6 l 1.5 17.8 l 1.5 -15.7 l 1.5 15.3 l 1.5 -23.2 l 1.5 17.9 l 1.5 -24.3 l 1.5 20.5 l 1.5 -18.2 l 1.5 18.4 l 1.5 -18.9 l 1.5 15.7 l 1.5 -21.4 l 1.5 15.7 l 1.5 -21.2 l 1.5 23.3 l 1.5 -24.0 l 1.5 20.2 l 1.5 -15.8 l 1.5 22.3 l 1.5 -20.2 l 1.5 16.3 l 1.5 -18.5 l 1.5 18.2 l 1.5 -22.3 l 1.5 20.2 l 1.5 -17.5 l 1.5 18.0 l 1.5 -21.0 l 1.5 22.9 l 1.5 -20.2 l 1.5 22.6 l 1.5 -17.1 l 1.5 24.3 l 1.5 -22.9 l 1.5 18.0 l 1.5 -19.0 l 1.5 20.0 l 1.5 -16.0 l 1.5 17.0 l 1.5 -21.0" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>
+            </g>
             
             <!-- Text inside SVG -->
-            <text x="100" y="110" font-family="'Rye', cursive" font-size="20" fill="#1a1a1a" text-anchor="middle">MARACATU</text>
+            <text x="100" y="110" font-family="'Cactus', sans-serif" font-size="22" fill="#1a1a1a" text-anchor="middle">MARACATU</text>
             <text x="100" y="135" font-family="'Lora', serif" font-weight="bold" font-size="12" fill="#1a1a1a" text-anchor="middle">DE BAQUE VIRADO</text>
             
             <!-- 2026 -->
-            <text x="155" y="200" font-family="'Rye', cursive" font-size="16" fill="#1a1a1a" text-anchor="end" transform="rotate(-5 155 200)">2026</text>
+            <text x="155" y="200" font-family="'Cactus', sans-serif" font-size="20" fill="#1a1a1a" text-anchor="end" transform="rotate(-5 155 200)">2026</text>
           </svg>
         </div>
       </footer>
@@ -296,8 +316,8 @@
     <!-- Landing Page Logic -->
     <script>
       (function() {
-        const frText = "Le Maracatu de Baque Virado est une musique qui s'apprend au cœur de la roda, par la transmission orale. Aucune machine ne remplacera l'enseignement des mestres. O Girador a été pensé avec humilité pour s'y ajouter : c'est un carnet de notes sonore, un séquenceur interactif pour expérimenter vos baques et entrevoir les relations qu'il y a entre les alfaias, la caixa, le tarol, le gonguê, l'agbê, le mineiro et les toadas, en attendant le prochain enseignement vivant.";
-        const ptText = "O Maracatu de Baque Virado é uma música que se aprende no coração da roda, por transmissão oral. Nenhuma máquina substituirá os ensinamentos dos mestres. O Girador foi pensado com humildade para se somar a isso: é um caderno sonoro, um sequenciador interativo para experimentar seus baques e vislumbrar as relações entre as alfaias, a caixa, o tarol, o gonguê, o agbê, o mineiro e as toadas, aguardando o próximo ensinamento vivo.";
+        const frText = "Le Maracatu de Baque Virado, puissante percussion brésilienne originaire de Recife (Pernambouc), s'apprend au cœur de la roda par la transmission orale des Nações. Aucune machine ne remplacera l'enseignement des mestres. O Girador a été pensé avec humilité pour s'y ajouter : c'est un carnet de notes sonore gratuit, un séquenceur interactif et une boîte à rythmes en ligne pour créer, expérimenter vos baques et entrevoir les polyrythmies secrètes entre les alfaias, la caixa, le tarol, le gonguê, l'agbê, le mineiro et les toadas, en attendant le prochain enseignement vivant.";
+        const ptText = "O Maracatu de Baque Virado, poderosa percussão brasileira originária do Recife (Pernambuco), aprende-se no coração da roda pela transmissão oral das Nações. Nenhuma máquina substituirá os ensinamentos dos mestres. O Girador foi pensado com humildade para se somar a isso: é um caderno sonoro gratuito, um sequenciador interativo e uma bateria eletrônica online para criar, experimentar seus baques e vislumbrar as polirritmias secretas entre as alfaias, a caixa, o tarol, o gonguê, o agbê, o mineiro e as toadas, aguardando o próximo ensinamento vivo.";
         
         const isFr = navigator.language.startsWith('fr');
         document.getElementById('lp-desc').innerText = isFr ? frText : ptText;
