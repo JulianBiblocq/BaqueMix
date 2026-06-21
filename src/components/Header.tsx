@@ -522,20 +522,21 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           </button>
 
           {/* JOGO DROPDOWN (MOBILE) */}
-          <div className="relative font-sans" ref={jogoDropRef}>
-            <button
-              onClick={() => setJogoDropOpen(!jogoDropOpen)}
-              className={`w-9 h-9 flex items-center justify-center font-bold text-base cordel-border-sm cordel-button cursor-pointer ${
-                viewMode === 'quiz' || viewMode === 'dictee' || viewMode === 'inspecteur' || viewMode === 'mestre' || viewMode === 'rythmelive'
-                  ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
-                  : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'
-              }`}
-              title={lang === 'pt' ? 'Jogos' : 'Jeux'}
-            >
-              🎮
-            </button>
-            
-            {jogoDropOpen && (
+          {hasAccess('eleve') && (
+            <div className="relative font-sans" ref={jogoDropRef}>
+              <button
+                onClick={() => setJogoDropOpen(!jogoDropOpen)}
+                className={`w-9 h-9 flex items-center justify-center font-bold text-base cordel-border-sm cordel-button cursor-pointer ${
+                  viewMode === 'quiz' || viewMode === 'dictee' || viewMode === 'inspecteur' || viewMode === 'mestre' || viewMode === 'rythmelive'
+                    ? 'bg-[var(--cordel-text)] text-[var(--cordel-bg)]'
+                    : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'
+                }`}
+                title={lang === 'pt' ? 'Jogos' : 'Jeux'}
+              >
+                🎮
+              </button>
+              
+              {jogoDropOpen && (
               <div className="absolute top-10 right-0 bg-[var(--cordel-bg)] cordel-border shadow-[4px_4px_0_var(--cordel-border)] min-w-[160px] z-[100] flex flex-col py-1">
                 <button
                   onClick={() => { onViewModeToggle('quiz'); setJogoDropOpen(false); }}
@@ -600,6 +601,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
+        )}
 
 
         </div>
