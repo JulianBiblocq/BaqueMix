@@ -24,7 +24,7 @@ export const Home: React.FC<HomeProps> = ({ onEnter, lang }) => {
   const isFr = lang === 'fr';
 
   return (
-    <div className="w-full min-h-screen bg-[var(--cordel-bg)] text-[var(--cordel-text)] font-sans flex flex-col items-center justify-center relative overflow-hidden px-4 py-8">
+    <div className="w-full min-h-screen bg-[var(--cordel-bg)] text-[var(--cordel-text)] font-sans flex flex-col items-center justify-center relative overflow-y-auto overflow-x-hidden px-4 py-8">
       
       {/* Top Right Actions */}
       <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
