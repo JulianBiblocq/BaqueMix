@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LogOut, User, Shield, Image as ImageIcon, Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
-import { storage, db } from '../firebase/config';
+import { db } from '../firebase/config';
 
 interface GoogleLoginButtonProps {
   className?: string;
@@ -45,18 +44,64 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 
     try {
       setIsUploading(true);
-      const storageRef = ref(storage, `logos/${currentUser.uid}_${Date.now()}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
       
-      const userDocRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userDocRef, { groupLogoUrl: downloadUrl });
+      // Read file and resize via Canvas to keep it small for Firestore (Base64)
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Compress to webp or jpeg
+          const dataUrl = canvas.toDataURL('image/webp', 0.8);
+          
+          // Verify size (Firestore limit is 1MB per document)
+          if (dataUrl.length > 800000) {
+            alert("L'image est trop volumineuse même après compression.");
+            setIsUploading(false);
+            return;
+          }
+
+          try {
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userDocRef, { groupLogoUrl: dataUrl });
+            alert("Votre logo a été mis à jour avec succès ! Rechargez la page pour voir les changements.");
+          } catch (err) {
+            console.error("Erreur Firestore:", err);
+            alert("Erreur lors de la sauvegarde.");
+          } finally {
+            setIsUploading(false);
+            setDropdownOpen(false);
+          }
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
       
-      alert("Votre logo a été mis à jour avec succès ! Rechargez la page pour voir les changements.");
     } catch (error) {
-      console.error("Erreur lors de l'upload:", error);
-      alert("Une erreur est survenue lors du téléchargement de l'image.");
-    } finally {
+      console.error("Erreur générale:", error);
+      alert("Une erreur est survenue.");
       setIsUploading(false);
       setDropdownOpen(false);
     }
