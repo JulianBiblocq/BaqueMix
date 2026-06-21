@@ -27,6 +27,14 @@ const hasGoogleClientId = isValidGoogleClientId(googleClientId);
 if (!hasGoogleClientId) {
   console.warn("La sauvegarde Cloud (Google Auth/Drive) est désactivée faute de clé client ID valide (VITE_GOOGLE_CLIENT_ID). L'application fonctionne en mode Offline-First.");
 }
+// Capture invite code from URL if present
+const urlParams = new URLSearchParams(window.location.search);
+const inviteCode = urlParams.get('invite');
+if (inviteCode) {
+  sessionStorage.setItem('o-girador-invite', inviteCode);
+  // Optional: clear the URL so it looks cleaner
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LogOut, User, Shield, Image as ImageIcon, Upload } from 'lucide-react';
+import { LogOut, User, Shield, Image as ImageIcon, Upload, Link } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -164,6 +164,18 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 
             {(userProfile.role === 'mestre' || userProfile.role === 'admin') && (
               <>
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}${window.location.pathname}?invite=${currentUser.uid}`;
+                    navigator.clipboard.writeText(url);
+                    alert("Lien d'invitation copié ! Envoyez-le à vos élèves pour qu'ils rejoignent votre groupe.");
+                    setDropdownOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-2 w-full px-3 py-1.5 bg-[var(--cordel-bg)] text-[#27ae60] border border-[#27ae60] font-cactus font-bold text-xs hover:bg-[#27ae60] hover:text-[var(--cordel-bg)] transition-colors cursor-pointer"
+                >
+                  <Link className="w-3.5 h-3.5" />
+                  <span>Inviter Élèves</span>
+                </button>
                 <input 
                   type="file" 
                   accept="image/*" 

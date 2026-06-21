@@ -59,6 +59,20 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  const handleMaxElevesChange = async (uid: string, maxEleves: number) => {
+    try {
+      const userRef = doc(db, 'users', uid);
+      await updateDoc(userRef, { maxEleves });
+      
+      setUsers(prev => prev.map(user => 
+        user.uid === uid ? { ...user, maxEleves } : user
+      ));
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la limite:", error);
+      alert("Erreur lors de la mise à jour de la limite d'élèves.");
+    }
+  };
+
   const mestres = users.filter(u => u.role === 'mestre');
 
   const filteredUsers = users.filter(user => 
@@ -165,6 +179,19 @@ export const AdminPanel: React.FC = () => {
                               <option key={m.uid} value={m.uid}>{m.displayName || m.email}</option>
                             ))}
                           </select>
+                        )}
+                        {user.role === 'mestre' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold opacity-70">Max Élèves:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={user.maxEleves || 0}
+                              onChange={(e) => handleMaxElevesChange(user.uid, parseInt(e.target.value) || 0)}
+                              className="w-16 px-2 py-1 cordel-border-sm bg-transparent text-sm focus:outline-none focus:ring-1 ring-black"
+                              title="0 = illimité"
+                            />
+                          </div>
                         )}
                       </td>
                     </tr>

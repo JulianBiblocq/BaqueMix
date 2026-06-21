@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
 export type UserRole = 'visiteur' | 'eleve' | 'mestre' | 'admin';
@@ -16,6 +16,7 @@ export interface UserProfile {
   isLeftHanded?: boolean;
   mestreId?: string | null;
   groupLogoUrl?: string | null;
+  maxEleves?: number;
 }
 
 interface AuthContextType {
@@ -60,16 +61,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Fetch or create user profile in Firestore
         const userRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(userRef);
-        
         if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
+          const profile = docSnap.data() as UserProfile;
+          
+          // Check for pending invite if they are a 'visiteur'
+          const pendingInvite = sessionStorage.getItem('o-girador-invite');
+          if (pendingInvite && profile.role === 'visiteur') {
+            const mestreRef = doc(db, 'users', pendingInvite);
+            const mestreSnap = await getDoc(mestreRef);
+            if (mestreSnap.exists()) {
+              const mestreData = mestreSnap.data() as UserProfile;
+              let canJoin = true;
+              if (mestreData.maxEleves && mestreData.maxEleves > 0) {
+                const elevesQuery = query(collection(db, 'users'), where('mestreId', '==', pendingInvite));
+                const elevesSnapshot = await getDocs(elevesQuery);
+                if (elevesSnapshot.size >= mestreData.maxEleves) {
+                  canJoin = false;
+                  alert(`Le Mestre ${mestreData.displayName || ''} a atteint sa limite maximale d'élèves.`);
+                }
+              }
+              if (canJoin) {
+                profile.role = 'eleve';
+                profile.mestreId = pendingInvite;
+                await updateDoc(userRef, { role: 'eleve', mestreId: pendingInvite });
+                alert(`Vous êtes maintenant élève du Mestre ${mestreData.displayName || ''} !`);
+              }
+            }
+            sessionStorage.removeItem('o-girador-invite');
+          }
+          
+          setUserProfile(profile);
         } else {
+          let initialRole: UserRole = 'visiteur';
+          let initialMestreId: string | undefined = undefined;
+          
+          // Check for pending invite
+          const pendingInvite = sessionStorage.getItem('o-girador-invite');
+          if (pendingInvite) {
+            const mestreRef = doc(db, 'users', pendingInvite);
+            const mestreSnap = await getDoc(mestreRef);
+            if (mestreSnap.exists()) {
+              const mestreData = mestreSnap.data() as UserProfile;
+              let canJoin = true;
+              if (mestreData.maxEleves && mestreData.maxEleves > 0) {
+                const elevesQuery = query(collection(db, 'users'), where('mestreId', '==', pendingInvite));
+                const elevesSnapshot = await getDocs(elevesQuery);
+                if (elevesSnapshot.size >= mestreData.maxEleves) {
+                  canJoin = false;
+                  alert(`Le Mestre ${mestreData.displayName || ''} a atteint sa limite maximale d'élèves.`);
+                }
+              }
+              if (canJoin) {
+                initialRole = 'eleve';
+                initialMestreId = pendingInvite;
+                alert(`Bienvenue ! Vous avez été ajouté comme élève du Mestre ${mestreData.displayName || ''}.`);
+              }
+            }
+            sessionStorage.removeItem('o-girador-invite');
+          }
+
           const newProfile: UserProfile = {
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
             photoURL: user.photoURL,
-            role: 'visiteur', // Default role
+            role: initialRole,
+            mestreId: initialMestreId,
             createdAt: Date.now(),
           };
           await setDoc(userRef, newProfile);
