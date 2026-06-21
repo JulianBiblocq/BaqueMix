@@ -929,10 +929,10 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
       posInGroup = Math.round(posInBeat) % 4;
     }
 
-    if (posInGroup === 0) return 5;
-    if (posInGroup === 1) return 15;
-    if (posInGroup === 2) return 2;
-    if (posInGroup === 3) return -10;
+    if (posInGroup === 0) return 0;
+    if (posInGroup === 1) return 8;
+    if (posInGroup === 2) return -29;
+    if (posInGroup === 3) return -58;
     return 0;
   };
 
@@ -1505,8 +1505,8 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                               // Calculate total micro-timing shift (manual + global swing)
                               const manualMicro = ptn.microtimings?.[i] ?? 0;
                               const swingOffset = getStepSwingPercent(i, ptn.steps, ptn.beatResolutions);
-                              const totalShift = manualMicro + swingOffset;
-                              const shiftPx = (totalShift / 50) * 8; // Max 8px shift
+                              const totalShift = Math.max(-100, Math.min(100, manualMicro + swingOffset));
+                              const shiftPx = (totalShift / 100) * 8; // Max 8px shift
 
                               return (
                                 <div key={i} className="relative" style={{ width: '56px' }}>
@@ -1626,7 +1626,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                                             style={{
                                               left: totalShift > 0 ? '50%' : 'auto',
                                               right: totalShift < 0 ? '50%' : 'auto',
-                                              width: `${Math.min(50, (Math.abs(totalShift) / 50) * 50)}%`
+                                              width: `${Math.min(50, Math.abs(totalShift) / 2)}%`
                                             }}
                                           />
                                         )}
@@ -1710,8 +1710,8 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                               // Calculate total micro-timing shift (manual + global swing)
                               const manualMicro = ptn.microtimings?.[i] ?? 0;
                               const swingOffset = getStepSwingPercent(i, ptn.steps, ptn.beatResolutions);
-                              const totalShift = manualMicro + swingOffset;
-                              const shiftPx = (totalShift / 50) * 8; // Max 8px shift
+                              const totalShift = Math.max(-100, Math.min(100, manualMicro + swingOffset));
+                              const shiftPx = (totalShift / 100) * 8; // Max 8px shift
 
                               const isMultiSelected = ptn.id === selectedPatternId && selectedStepIndices.includes(i) && selectedStepIndices.length > 1;
 
@@ -1931,7 +1931,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                                           style={{
                                             left: totalShift > 0 ? '50%' : 'auto',
                                             right: totalShift < 0 ? '50%' : 'auto',
-                                            width: `${Math.min(50, (Math.abs(totalShift) / 50) * 50)}%`
+                                            width: `${Math.min(50, Math.abs(totalShift) / 2)}%`
                                           }}
                                         />
                                       )}
@@ -2162,7 +2162,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                                             {(() => {
                                               const manualVal = variation.microtimings?.[i] ?? 0;
                                               const swingOffset = getStepSwingPercent(i, variation.steps.length, ptn.beatResolutions);
-                                              const totalShift = Math.max(-50, Math.min(50, manualVal + swingOffset));
+                                              const totalShift = Math.max(-100, Math.min(100, manualVal + swingOffset));
                                               return (
                                                 <div className="h-[3px] bg-[#1a1a1a]/15 w-full relative overflow-hidden">
                                                   <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[#1a1a1a]/30" />
@@ -2172,7 +2172,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                                                       style={{
                                                         left: totalShift > 0 ? '50%' : 'auto',
                                                         right: totalShift < 0 ? '50%' : 'auto',
-                                                        width: `${Math.min(50, (Math.abs(totalShift) / 50) * 50)}%`
+                                                        width: `${Math.min(50, Math.abs(totalShift) / 2)}%`
                                                       }}
                                                     />
                                                   )}
@@ -2319,7 +2319,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                             const manualVal = effectiveMicros?.[selectedStepIdx] ?? 0;
                             const swingOffset = getStepSwingPercent(selectedStepIdx, ptn.steps, ptn.beatResolutions);
                             const totalVal = manualVal + swingOffset;
-                            const clampedTotalVal = Math.max(-50, Math.min(50, totalVal));
+                            const clampedTotalVal = Math.max(-100, Math.min(100, totalVal));
 
                             return (
                               <>
@@ -2330,7 +2330,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 relative h-6">
-                                  <span className="text-[8px] font-bold opacity-60 shrink-0">-50%</span>
+                                  <span className="text-[8px] font-bold opacity-60 shrink-0">-100%</span>
                                   <div className="flex-grow h-2 relative flex items-center">
                                     {/* Background track with a center notch */}
                                     <div className="absolute inset-x-0 h-1 bg-[#1a1a1a]/15 rounded" />
@@ -2338,7 +2338,7 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
                                     
                                     {/* Bi-directional Blue track representing offset from center */}
                                     {totalVal !== 0 && (() => {
-                                      const widthPercent = Math.min(50, Math.abs(totalVal)); // half-width is 50%
+                                      const widthPercent = Math.min(50, Math.abs(totalVal) / 2); // half-width is 50%, range is 100
                                       return (
                                         <div
                                           className="absolute h-1 bg-[#2980b9]"
@@ -2353,13 +2353,13 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
 
                                     <input
                                       type="range"
-                                      min="-50"
-                                      max="50"
+                                      min="-100"
+                                      max="100"
                                       value={clampedTotalVal}
                                       onChange={(e) => {
                                         const newTotal = parseInt(e.target.value);
                                         const newManual = newTotal - swingOffset;
-                                        const clampedManual = Math.max(-50, Math.min(50, newManual));
+                                        const clampedManual = Math.max(-100, Math.min(100, newManual));
                                         const targets = selectedStepIndices.length > 0 ? selectedStepIndices : [selectedStepIdx];
                                         if (selectedVariationId && onVariationStepMicrotimingChange) {
                                           onVariationStepMicrotimingChange(ptn.id, selectedVariationId, targets, clampedManual);

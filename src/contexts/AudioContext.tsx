@@ -414,11 +414,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setReverbType('room');
       }
 
-      if (p.isSwingOn !== undefined) {
-        audioSync.setIsSwingOn(p.isSwingOn);
-      } else {
-        audioSync.setIsSwingOn(false);
-      }
+      audioSync.setIsSwingOn(true);
 
       // Sync refs
       sequencer.tracksRef.current = loadedTracks;

@@ -936,14 +936,14 @@ export function useAudioSync({
             swingJitter = (nextRandom() * 0.06 - 0.03) * stepDurationSec;
 
             if (posInGroup === 0) {
-              swingOffset = (0.05 * swingIntensity * stepDurationSec) + swingJitter;
+              swingOffset = swingJitter;
             } else if (posInGroup === 1) {
-              swingOffset = (0.15 * swingIntensity * stepDurationSec) + swingJitter;
+              swingOffset = (0.04 * swingIntensity * stepDurationSec) + swingJitter;
             } else if (posInGroup === 2) {
               const minimalJitter = (nextRandom() * 0.02 - 0.01) * stepDurationSec;
-              swingOffset = (0.02 * swingIntensity * stepDurationSec) + minimalJitter;
+              swingOffset = (-0.144 * swingIntensity * stepDurationSec) + minimalJitter;
             } else if (posInGroup === 3) {
-              swingOffset = (-0.10 * swingIntensity * stepDurationSec) + swingJitter;
+              swingOffset = (-0.292 * swingIntensity * stepDurationSec) + swingJitter;
             }
           }
           const swingTime = time + swingOffset;

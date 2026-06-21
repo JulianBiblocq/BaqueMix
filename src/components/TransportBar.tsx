@@ -96,19 +96,6 @@ const TransportBarComponent: React.FC<TransportBarProps> = ({ viewMode }) => {
           <span className="hidden lg:inline">{lang === 'pt' ? 'Metrônomo' : 'Métronome'}</span>
         </button>
 
-        <button
-          onClick={() => setIsSwingOn(!isSwingOn)}
-          className={`px-3 py-1 font-cactus font-bold text-sm flex items-center gap-1.5 cordel-border-sm cordel-button hidden md:flex ${
-            isSwingOn ? 'bg-[var(--cordel-wood)] text-[#f4ecd8]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]'
-          }`}
-          title={lang === 'pt' ? 'Suingue Maracatu' : 'Swing Maracatu'}
-        >
-          <span className="text-base font-bold leading-none">≈</span>
-          <span className="hidden lg:inline">{t('swingBtn')}</span>
-        </button>
-
-
-
         <div className="flex items-center gap-1.5 bg-[var(--cordel-bg)] px-2 py-1 cordel-border-sm border-[var(--cordel-border)]">
           <Gauge className="w-4 h-4 text-[var(--cordel-text)] md:hidden" />
           <span className="font-cactus font-bold text-[var(--cordel-text)] text-sm select-none hidden md:inline">

@@ -217,6 +217,15 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                     🫲 {lang === 'pt' ? 'Canhoto' : 'Gaucher'}
                   </button>
                 </div>
+                <button 
+                  onClick={() => { setIsSwingOn(!isSwingOn); setMobileMenuOpen(false); }} 
+                  className={`px-2 py-1.5 cordel-border-sm text-xs font-bold font-cactus cursor-pointer flex justify-between items-center w-full mt-1 ${isSwingOn ? 'bg-[var(--cordel-wood)] text-[#f4ecd8]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'}`}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-[14px] leading-none">〰️</span> {lang === 'pt' ? 'Balanço' : 'Swing'}
+                  </div>
+                  <span>{isSwingOn ? 'ON' : 'OFF'}</span>
+                </button>
               </div>
               
               {/* 📂 PROJET */}
@@ -348,20 +357,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-cactus font-bold text-[var(--cordel-text)]">
-                    {lang === 'pt' ? 'Suingue Maracatu' : 'Swing Maracatu'}
-                  </span>
-                  <button
-                    onClick={onSwingToggle}
-                    className={`px-2 py-0.5 font-cactus font-bold text-xs cordel-border-sm cordel-button cursor-pointer ${
-                      isSwingOn ? 'bg-[var(--cordel-wood)] text-[#f4ecd8]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]'
-                    }`}
-                  >
-                    {isSwingOn ? 'ON' : 'OFF'}
-                  </button>
                 </div>
-              </div>
 
               {/* 👁️ AFFICHAGE & LANGUE */}
               <div className="flex flex-col gap-2 border-b border-[var(--cordel-border)]/30 pb-3">
@@ -596,6 +592,15 @@ const HeaderComponent: React.FC<HeaderProps> = ({
                     🫲 {lang === 'pt' ? 'Canhoto' : 'Gaucher'}
                   </button>
                 </div>
+                <button 
+                  onClick={() => { setIsSwingOn(!isSwingOn); setProjectDropOpen(false); }} 
+                  className={`px-2 py-1.5 cordel-border-sm text-xs font-bold font-cactus cursor-pointer flex justify-between items-center w-full mt-1 ${isSwingOn ? 'bg-[var(--cordel-wood)] text-[#f4ecd8]' : 'bg-[var(--cordel-bg)] text-[var(--cordel-text)] hover:bg-[var(--cordel-text)] hover:text-[var(--cordel-bg)]'}`}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-[14px] leading-none">〰️</span> {lang === 'pt' ? 'Balanço' : 'Swing'}
+                  </div>
+                  <span>{isSwingOn ? 'ON' : 'OFF'}</span>
+                </button>
               </div>
               
               {/* PROJET */}
