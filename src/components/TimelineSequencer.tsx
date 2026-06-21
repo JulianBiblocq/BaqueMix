@@ -6,7 +6,8 @@
 import React, { useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import { TrackGroup, Language, TimeSignature, SongSection, PresetMetadata, RhythmSignal } from '../types';
-import { ASSETS_BASE_URL, instrumentsConfig, getMaxTicks, getMarkers, isDarkText } from '../data';
+import { ASSETS_BASE_URL, instrumentsConfig, getMaxTicks, getMarkers, isDarkText, getVisualStrokeSymbol } from '../data';
+import { CompactPatternRenderer } from './CompactPatternRenderer';
 
 import { useSequencer } from '../contexts/SequencerContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -2067,23 +2068,33 @@ const MemoizedTimelineTrackRow = React.memo(({
                               </span>
                             )}
 
-                            {/* Mini-beats density dots */}
-                            <div className={`flex flex-wrap gap-[2px] items-center opacity-90 ${
-                              isMinZoom ? 'justify-center max-h-none' : 'max-h-[12px] overflow-hidden'
-                            }`}>
-                              {activePattern.activeSteps.map((val, sIdx) => {
-                                const isActive = val !== 0 && val !== '';
-                                if (!isActive) return null;
-                                const bg = inst.colors[val as string] || '#111';
-                                return (
-                                  <span
-                                    key={sIdx}
-                                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                    style={{ backgroundColor: bg }}
-                                    title={String(val)}
-                                  />
-                                );
-                              })}
+                            {/* Mini-beats density dots or Compact geometric shapes */}
+                            <div className={`flex items-center opacity-90 overflow-hidden`}>
+                              {isMinZoom ? (
+                                <div className="flex flex-wrap gap-[2px] justify-center w-full">
+                                  {activePattern.activeSteps.map((val, sIdx) => {
+                                    const isActive = val !== 0 && val !== '';
+                                    if (!isActive) return null;
+                                    const bg = inst.colors[val as string] || '#111';
+                                    return (
+                                      <span
+                                        key={sIdx}
+                                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                        style={{ backgroundColor: bg }}
+                                        title={String(val)}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <CompactPatternRenderer
+                                  pattern={activePattern}
+                                  inst={inst}
+                                  isLeftHanded={false}
+                                  isEditable={false}
+                                  className="scale-50 origin-left"
+                                />
+                              )}
                             </div>
                           </div>
                         )}

@@ -7,6 +7,7 @@ import { TrackGroup, Language } from '../types';
 import { i18n, instrumentsConfig, ASSETS_BASE_URL, isDarkText, getVisualStrokeSymbol } from '../data';
 import { PanKnob } from './PanKnob';
 import { getNextStepValue } from './InstrumentDetailEditor';
+import { CompactPatternRenderer } from './CompactPatternRenderer';
 
 const SortablePatternWrapper = ({ id, children, className, style: propStyle }: any) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -535,93 +536,29 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
                 })}
               </div>
             ) : (
-              <div className="grid gap-y-2 gap-x-1 w-full justify-start step-boxes" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) 8px repeat(4, minmax(0, 1fr))' }}>
-                {Array.from({ length: activePattern.steps }).reduce((acc: React.ReactNode[], _, i) => {
-                  if (i > 0 && i % 4 === 0 && i % 8 !== 0) acc.push(<div key={`spacer-${i}`} />);
-                  const val = activePlayingSteps[i];
-                  const visualVal = getVisualStrokeSymbol(val, isLeftHanded, inst.id);
-                  let displayVal = visualVal === 0 ? '' : String(visualVal);
-
-                  let isBeatBound = false;
-                  if (timeSig === '6/8' || timeSig === '12/8') { if ((i + 1) % 3 === 0) isBeatBound = true; }
-                  else if (timeSig === '3/4') { if ((i + 1) % 2 === 0) isBeatBound = true; }
-                  else { if ((i + 1) % 4 === 0) isBeatBound = true; }
-
-                  const isActive = visualVal !== 0;
-                  const stepColor = isActive ? (inst.colors[visualVal as any] || 'var(--cordel-text)') : 'transparent';
-                  let textColor = isActive ? (inst.colors.text || 'var(--cordel-bg)') : 'var(--cordel-text)';
-                  if (isActive && isDarkText(inst.id, String(visualVal))) {
-                    textColor = '#1a1a1a';
+              <CompactPatternRenderer
+                pattern={{...activePattern, activeSteps: activePlayingSteps}}
+                inst={inst}
+                isLeftHanded={isLeftHanded}
+                isEditable={true}
+                currentStep={currentStep}
+                onStepValueChange={(stepIdx, val) => onStepValueChange(activePattern.id, stepIdx, val)}
+                onStepClick={(e, stepIdx, val) => {
+                  if (e.type === 'touchstart') {
+                    handleStart(e as React.TouchEvent, stepIdx, val);
+                  } else {
+                    handleStart(e as React.MouseEvent, stepIdx, val);
                   }
-
-                  acc.push(
-                    <input
-                      key={i}
-                      type="text"
-                      maxLength={['caixa', 'tarol'].includes(inst.id) ? 2 : 1}
-                      value={displayVal}
-                      readOnly={isTouchDevice}
-                      inputMode={isTouchDevice ? 'none' : undefined}
-                      onFocus={(e) => {
-                        if (!isTouchDevice) {
-                          e.target.select();
-                        }
-                      }}
-                      onMouseDown={(e) => {
-                        if (e.button !== 0) return;
-                        if (e.shiftKey) {
-                          isMouseDownRef.current = true;
-                          const visualVal = getVisualStrokeSymbol(val, isLeftHanded, inst.id);
-                          const nextVisualVal = getNextStepValue(inst.id, inst.type, visualVal);
-                          const nextSemanticVal = getVisualStrokeSymbol(nextVisualVal, isLeftHanded, inst.id);
-                          paintValueRef.current = nextSemanticVal;
-                          onStepValueChange(activePattern.id, i, String(nextSemanticVal));
-                        } else {
-                          handleStart(e, i, val);
-                        }
-                      }}
-                      onMouseEnter={() => {
-                        if (isMouseDownRef.current) {
-                          onStepValueChange(activePattern.id, i, String(paintValueRef.current));
-                        }
-                      }}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        handleStart(e, i, val);
-                      }}
-                      onChange={(e) => onStepValueChange(activePattern.id, i, e.target.value)}
-                      onKeyDown={(e) => {
-                        const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-                        if (isCtrlOrMeta && e.key.toLowerCase() === 'c') {
-                          e.preventDefault();
-                          onCopyPattern && onCopyPattern(activePattern);
-                          return;
-                        }
-                        if (isCtrlOrMeta && e.key.toLowerCase() === 'v') {
-                          e.preventDefault();
-                          if (canPaste) {
-                            onPastePattern && onPastePattern(track.id, activePattern.id);
-                          }
-                          return;
-                        }
-                        if (e.key === 'Delete' || e.key === 'Backspace') {
-                          e.preventDefault();
-                          onStepValueChange(activePattern.id, i, '0');
-                          if (e.key === 'Backspace') {
-                            const inputEl = e.currentTarget as HTMLInputElement;
-                            onStepKeyDown(activePattern.id, i, e.key, '', inputEl);
-                          }
-                          return;
-                        }
-                        onStepKeyDown(activePattern.id, i, e.key, displayVal, e.target as HTMLInputElement);
-                      }}
-                      style={{ backgroundColor: isActive ? stepColor : undefined, color: isActive ? textColor : undefined }}
-                      className={`w-6 h-6 text-center text-xs font-bold font-sans cordel-border-sm outline-none transition-colors border-[2px] ${currentStep === i ? 'border-[#f1c40f] scale-110 shadow-[0_0_8px_#f1c40f] z-10 relative' : 'border-[var(--cordel-border)]'} ${!isActive ? 'bg-[var(--cordel-bg)] text-[var(--cordel-text)]' : ''} ${isBeatBound ? 'mr-1' : ''}`}
-                    />
-                  );
-                  return acc;
-                }, [] as React.ReactNode[])}
-              </div>
+                }}
+                onStepShiftClick={(e, stepIdx, val) => {
+                  isMouseDownRef.current = true;
+                  const visualVal = getVisualStrokeSymbol(val, isLeftHanded, inst.id);
+                  const nextVisualVal = getNextStepValue(inst.id, inst.type, visualVal);
+                  const nextSemanticVal = getVisualStrokeSymbol(nextVisualVal, isLeftHanded, inst.id);
+                  paintValueRef.current = nextSemanticVal;
+                  onStepValueChange(activePattern.id, stepIdx, String(nextSemanticVal));
+                }}
+              />
             );
             })()}
           </div>
