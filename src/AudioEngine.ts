@@ -259,6 +259,40 @@ export class AudioEngine {
     await Promise.all(pathsArray.map(p => this.loadPath(p)));
   }
 
+  /**
+   * Dynamically unloads unused instrument buffers to save RAM.
+   * Useful for mobile devices where holding all samples in memory can cause crashes.
+   */
+  public async syncActiveInstrumentsMemory(activeIndexes: number[]): Promise<void> {
+    const requiredPaths = new Set<string>();
+
+    for (const index of activeIndexes) {
+      if (instrumentAudioConfigs[index]) {
+        for (const stroke of instrumentAudioConfigs[index].strokes) {
+          for (const file of stroke.files) {
+            requiredPaths.add(file);
+          }
+        }
+      }
+    }
+
+    // Unload buffers that are no longer needed
+    const keysToDelete: string[] = [];
+    for (const [path, buffer] of this.bufferPool.entries()) {
+      if (!requiredPaths.has(path)) {
+        buffer.dispose(); // Free up memory in Tone.js/WebAudio
+        keysToDelete.push(path);
+      }
+    }
+    keysToDelete.forEach(k => {
+      this.bufferPool.delete(k);
+    });
+
+    // Load missing buffers in parallel
+    const pathsToLoad = Array.from(requiredPaths).filter(p => !this.bufferPool.has(p));
+    await Promise.all(pathsToLoad.map(p => this.loadPath(p)));
+  }
+
   public async loadInstrumentSamples(instrumentIndex: number): Promise<void> {
     const pathsArray: string[] = [];
     if (instrumentAudioConfigs[instrumentIndex]) {

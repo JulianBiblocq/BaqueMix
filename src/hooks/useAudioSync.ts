@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import * as Tone from 'tone';
+import { isMobile } from 'react-device-detect';
 import { AudioEngine } from '../AudioEngine';
 import { InputManager } from '../InputManager';
 import { TrackGroup, TimeSignature, HitTrigger, SongSection } from '../types';
@@ -1133,7 +1134,9 @@ export function useAudioSync({
         console.error("❌ Critical error during initAudio:", err);
       } finally {
         if (audioEngine) {
-          audioEngine.loadAllSamples().catch(e => console.warn("Background load samples failed:", e));
+          if (!isMobile) {
+            audioEngine.loadAllSamples().catch(e => console.warn("Background load samples failed:", e));
+          }
         }
         // ALWAYS unblock the UI.
         setIsLoading(false);
@@ -1142,6 +1145,24 @@ export function useAudioSync({
 
     initAudio();
   }, []);
+
+  // Dynamic RAM Management for Mobile
+  useEffect(() => {
+    if (!audioEngine || !isMobile || tracks.length === 0) return;
+
+    const hasSolo = tracks.some(t => t.isSolo);
+    const activeIndexes = new Set<number>();
+    
+    tracks.forEach(t => {
+      const isMuted = t.isMute || (hasSolo && !t.isSolo);
+      if (!isMuted && !t.isHidden) {
+        activeIndexes.add(t.instrumentIdx);
+      }
+    });
+
+    audioEngine.syncActiveInstrumentsMemory(Array.from(activeIndexes))
+      .catch(e => console.warn("Dynamic RAM sync failed:", e));
+  }, [tracks, audioEngine]);
 
   const handleTogglePlay = async () => {
     if (import.meta.env.DEV) {
