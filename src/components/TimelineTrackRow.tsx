@@ -20,8 +20,8 @@ const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId })
   if (!uiContext) return null;
   const { MEASURE_W, HEADER_W, totalContentW, isMobile, isMacro, isMinZoom, isPanningActive, lang } = uiContext;
 
-  // 2. Audio Context
-  const { isPlaying, currentMeasure, tickPos, handleTimelineNavigate: onNavigate } = useAudio();
+  // 2. Audio Context (Uniquement actions, AUCUN état lié au tick pour préserver le React.memo)
+  const { handleTimelineNavigate: onNavigate } = useAudio();
 
   // 3. Zustand Selectors (Granulaires)
   const track = useSequencerStore(state => state.tracks.find(t => t.id === trackId));
@@ -246,14 +246,10 @@ const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId })
                       accumulatedTicks += ticksPerBeat;
                     }
 
-                    const isCurrent =
-                      isPlaying &&
-                      currentMeasure === mIdx &&
-                      tickPos >= currentTickIdx && tickPos < currentTickIdx + (ticksPerBeat / currentStepRes);
-
                     let style: React.CSSProperties = {
                       width: `${stepWidth}px`,
                     };
+
                     if (isActive) {
                       const bg = inst.colors[val as string] || '#111';
                       let fg = inst.colors.text || '#f4ecd8';
@@ -266,11 +262,7 @@ const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId })
                     return (
                       <div
                         key={sIdx}
-                        className={`h-full border-r border-[var(--cordel-border)]/10 flex flex-col items-center justify-center text-center ${
-                          isCurrent
-                            ? 'outline outline-2 outline-amber-500 z-10 bg-[var(--cordel-text)]/15'
-                            : ''
-                        }`}
+                        className="h-full border-r border-[var(--cordel-border)]/10 flex flex-col items-center justify-center text-center"
                         style={style}
                       >
                         {inst.type === 'voice' ? (

@@ -9,6 +9,7 @@ import { TrackGroup, Language, TimeSignature, SongSection, PresetMetadata, Rhyth
 import { ASSETS_BASE_URL, instrumentsConfig, getMaxTicks, getMarkers, isDarkText, getVisualStrokeSymbol } from '../data';
 import { CompactPatternRenderer } from './CompactPatternRenderer';
 import { TimelineTrackRow } from './TimelineTrackRow';
+import { TimelinePlayhead } from './TimelinePlayhead';
 
 import { useSequencer } from '../contexts/SequencerContext';
 
@@ -107,8 +108,6 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
   ];
 
   const {
-    isPlaying,
-    currentStepIndex,
     currentMeasure,
     maxTicksRef,
     handleTimelineNavigate: onNavigate,
@@ -131,7 +130,6 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
   const HEADER_W = isMobile ? 80 : (isMacro ? 150 : 180);
   const MEASURE_W = measureWidth;
   const scrollRef = useRef<HTMLDivElement>(null);
-  const playheadRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -337,10 +335,7 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
     e.preventDefault();
   };
 
-  const currentMeasureSig = measureTimeSigs[currentMeasure] || '4/4';
-  const currentMeasureTicks = getMaxTicks(currentMeasureSig);
-  const tickPos = currentStepIndex >= 0 ? currentStepIndex : 0;
-  const playheadX = currentMeasure * MEASURE_W + (tickPos / currentMeasureTicks) * MEASURE_W;
+
 
   // Total scrollable content width (excluding sticky header column)
   const totalContentW = totalMeasures * MEASURE_W;
@@ -441,54 +436,7 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
     };
   }, []);
 
-  // Listen to CustomEvent 'o-girador-tick' to move playhead and handle auto-scroll (Bypass React)
-  React.useEffect(() => {
-    const handleTick = (e: Event) => {
-      const customEvent = e as CustomEvent<{ step: number; measure: number; maxTicks: number; ratio?: number; time?: number }>;
-      const { step, measure, maxTicks, ratio = step / maxTicks } = customEvent.detail;
-      
-      const el = playheadRef.current;
-      if (!el) return;
 
-      if (step < 0) {
-        el.style.display = 'none';
-        return;
-      }
-
-      // Calculate position using pre-calculated ratio
-      const playheadX = measure * MEASURE_W + ratio * MEASURE_W;
-      
-      // Direct DOM manipulation
-      el.style.transform = `translateX(${HEADER_W + playheadX}px)`;
-      el.style.display = 'block';
-
-      // Auto-scroll logic inside custom event listener
-      const scrollEl = scrollRef.current;
-      if (scrollEl && isPlaying) {
-        const vw = scrollEl.clientWidth - HEADER_W;
-        if (vw > 0) {
-          scrollEl.scrollLeft = Math.max(0, playheadX - vw * 0.4);
-        }
-      }
-    };
-
-    window.addEventListener('o-girador-tick', handleTick);
-    return () => {
-      window.removeEventListener('o-girador-tick', handleTick);
-    };
-  }, [isPlaying, MEASURE_W, HEADER_W]);
-
-  // Handle resetting scroll and hiding playhead when play stops/rewinds
-  React.useEffect(() => {
-    if (!isPlaying && currentStepIndex === -1) {
-      const el = scrollRef.current;
-      if (el) el.scrollLeft = 0;
-      
-      if (playheadRef.current) {
-        playheadRef.current.style.display = 'none';
-      }
-    }
-  }, [isPlaying, currentStepIndex]);
 
   // Viewport Panning logic
   const handleViewportPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -957,6 +905,7 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
       </div>
 
       <div
+        id="timeline-scroll-container"
         ref={scrollRef}
         onPointerDown={handleViewportPointerDown}
         onPointerMove={handleViewportPointerMove}
@@ -1598,16 +1547,7 @@ export const TimelineSequencer: React.FC<TimelineSequencerProps> = ({
             />
           ))}
           {/* ══════════ PLAYHEAD (Bypass React via Ref) ══════════ */}
-          <div
-            ref={playheadRef}
-            className="absolute top-0 bottom-0 border-l-2 border-red-600 pointer-events-none z-30 shadow-[0_0_10px_rgba(220,38,38,0.7)]"
-            style={{
-              left: 0,
-              transform: `translateX(${HEADER_W + (currentStepIndex >= 0 ? currentMeasure * MEASURE_W + (tickPos / currentMeasureTicks) * MEASURE_W : 0)}px)`,
-              display: currentStepIndex >= 0 ? 'block' : 'none',
-              willChange: 'transform',
-            }}
-          />
+          <TimelinePlayhead />
 
           {/* ══════════ SNAP GUIDE (📍 NEW) ══════════ */}
           {snapGuideX !== null && (
