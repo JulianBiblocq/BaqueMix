@@ -53,10 +53,10 @@ export const instrumentAudioConfigs: InstrumentAudioConfig[] = [
         symbol: 'e', // Faible Gauche
         keys: ['e'],
         files: [
-          "Mixdown/Agbe f 1.ogg",
-          "Mixdown/Agbe f 2.ogg",
-          "Mixdown/Agbe f 3.ogg",
-          "Mixdown/Agbe f 4.ogg"
+          "Mixdown/agbe faible e1.ogg",
+          "Mixdown/agbe faible e2.ogg",
+          "Mixdown/agbe faible e3.ogg",
+          "Mixdown/agbe faible e4.ogg"
         ],
         caseSensitive: true
       },
@@ -64,10 +64,10 @@ export const instrumentAudioConfigs: InstrumentAudioConfig[] = [
         symbol: 'd', // Faible Droite
         keys: ['d'],
         files: [
-          "Mixdown/Agbe f 1.ogg",
-          "Mixdown/Agbe f 2.ogg",
-          "Mixdown/Agbe f 3.ogg",
-          "Mixdown/Agbe f 4.ogg"
+          "Mixdown/agbe faible e1.ogg",
+          "Mixdown/agbe faible e2.ogg",
+          "Mixdown/agbe faible e3.ogg",
+          "Mixdown/agbe faible e4.ogg"
         ],
         caseSensitive: true
       },
@@ -103,7 +103,7 @@ export const instrumentAudioConfigs: InstrumentAudioConfig[] = [
     name: 'Alfaia Marcante',
     uiOrder: ['D', 'E', 'd', 'e', 'X', 'C', 'B', 'I'],
     leftHandedSupport: true,
-    macroPitch: Math.pow(2, -2/12), // -2 semitones (Fundamental)
+    macroPitch: Math.pow(2, -3/12), // -3 semitones
     strokes: getAlfaiaStrokes()
   },
   {
@@ -111,7 +111,7 @@ export const instrumentAudioConfigs: InstrumentAudioConfig[] = [
     name: 'Alfaia Meião',
     uiOrder: ['D', 'E', 'd', 'e', 'X', 'C', 'B', 'I'],
     leftHandedSupport: true,
-    macroPitch: Math.pow(2, 5/12), // +5 semitones (Perfect Fifth)
+    macroPitch: 1.0, // 0 semitones
     strokes: getAlfaiaStrokes()
   },
   {
@@ -119,7 +119,7 @@ export const instrumentAudioConfigs: InstrumentAudioConfig[] = [
     name: 'Alfaia Repique',
     uiOrder: ['D', 'E', 'd', 'e', 'X', 'C', 'B', 'I'],
     leftHandedSupport: true,
-    macroPitch: Math.pow(2, 10/12), // +10 semitones (Octave relative toMarcante)
+    macroPitch: Math.pow(2, 4/12), // +4 semitones
     strokes: getAlfaiaStrokes()
   },
   {
@@ -550,11 +550,12 @@ function getAlfaiaStrokes(): StrokeMapping[] {
       caseSensitive: false
     },
     {
-      symbol: 'C', // Click (C/c)
+      symbol: 'C', // Click / Aro (Insensitive)
       keys: ['C', 'c'],
       files: [
         "Mixdown/Alfaia meiao C 1.ogg",
-        "Mixdown/Alfaia meiao C 2.ogg"
+        "Mixdown/Alfaia meiao C 2.ogg",
+        "Mixdown/Alfaia meiao C 3.ogg"
       ],
       caseSensitive: false
     },
