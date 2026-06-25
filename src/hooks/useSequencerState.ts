@@ -29,7 +29,8 @@ export function useSequencerState() {
   const [measureVols, setMeasureVols] = useState<number[]>(() => Array(8).fill(100));
   const [measureVolTransitions, setMeasureVolTransitions] = useState<('immediate' | 'ramp')[]>(() => Array(8).fill('immediate'));
   const setSongSections = (useSequencerStore as any)(state => state.setSongSections) as any;
-  const [measureSignals, setMeasureSignals] = useState<(string | null)[]>(() => Array(8).fill(null));
+  const measureSignals = useSequencerStore(state => state.measureSignals);
+  const setMeasureSignals = (useSequencerStore as any)(state => state.setMeasureSignals) as any;
 
   const setLoopStartMeasure = (useSequencerStore as any)(state => state.setLoopStartMeasure) as any;
   const setLoopEndMeasure = (useSequencerStore as any)(state => state.setLoopEndMeasure) as any;
