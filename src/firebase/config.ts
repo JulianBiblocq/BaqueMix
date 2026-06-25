@@ -3,8 +3,14 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+if (!apiKey) {
+  // 🛡️ FIX (Audit): Warns if API key is missing to allow offline mode
+  console.warn("VITE_FIREBASE_API_KEY is missing from environment variables. Running in offline mode.");
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCTvRPj2p3zdIfEjftXoSvRJ43Uy0EfPMY",
+  apiKey: apiKey || "offline-api-key",
   authDomain: "o-girador-7828c.firebaseapp.com",
   projectId: "o-girador-7828c",
   storageBucket: "o-girador-7828c.firebasestorage.app",

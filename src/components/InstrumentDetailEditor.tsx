@@ -1,3 +1,4 @@
+import { useSequencerStore } from '../stores/useSequencerStore';
 import React, { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Play, Square, GripVertical } from 'lucide-react';
@@ -38,7 +39,7 @@ const getGlobalClipboard = () => {
 interface InstrumentDetailEditorProps {
   lang: Language;
   isLeftHanded?: boolean;
-  track: TrackGroup;
+  trackId: number;
   onClose: () => void;
   onStepValueChange: (
     patternId: number,
@@ -324,7 +325,7 @@ export function getNextStepValue(instId: string, instType: string, currentVal: s
 
 const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = ({
   lang,
-  track,
+  trackId,
   onClose,
   onStepValueChange,
   onStepKeyDown,
@@ -388,7 +389,10 @@ const InstrumentDetailEditorComponent: React.FC<InstrumentDetailEditorProps> = (
   onNavigatePrev,
   onNavigateNext,
 }) => {
-  const inst = instrumentsConfig[track.instrumentIdx];
+  const track = useSequencerStore(state => state.tracks.find(t => t.id === trackId));
+  const hasSolo = useSequencerStore(state => state.tracks.some(t => t.isSolo));
+  const inst = track ? instrumentsConfig[track.instrumentIdx] : { id: '', name: '', type: 'percussion', iconImg: '', colors: { text: '' }, mixerBg: '' };
+  if (!track) return null;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingPatternId, setEditingPatternId] = useState<number | null>(null);
   const [editName, setEditName] = useState<string>('');
@@ -2769,13 +2773,13 @@ export const InstrumentDetailEditor = React.memo(InstrumentDetailEditorComponent
   }
 
   // CORRECTION FADERS : Forcer la mise à jour si le parent a muté les volumes/décays
-  if (JSON.stringify(prevProps.track) !== JSON.stringify(nextProps.track)) {
+  if (prevProps.trackId !== nextProps.trackId) {
     return false;
   }
 
   const keys = Object.keys(prevProps) as Array<keyof InstrumentDetailEditorProps>;
   for (const key of keys) {
-    if (key === 'track') continue;
+    if (key === 'trackId') continue;
     if (key === 'currentStepIndex' || key === 'currentMeasure') continue;
 
     if (prevProps[key] !== nextProps[key]) {

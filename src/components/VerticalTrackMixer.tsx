@@ -18,7 +18,7 @@ const SortablePatternWrapper = ({ id, children, className, style: propStyle }: a
 interface VerticalTrackMixerProps {
   lang: Language;
   isLeftHanded?: boolean;
-  track: TrackGroup;
+  trackId: number;
   index: number;
   totalTracks: number;
   onInstrumentChange: (instIdx: number) => void;
@@ -73,7 +73,7 @@ interface VerticalTrackMixerProps {
 const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
   lang,
   isLeftHanded = false,
-  track,
+  trackId,
   index,
   totalTracks,
   onInstrumentChange,
@@ -117,6 +117,8 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
   const loopEndMeasure = useSequencerStore(state => state.loopEndMeasure);
   const hasSolo = useSequencerStore(state => state.tracks.some(t => t.isSolo));
   const currentMeasure = useSequencerStore(state => state.currentMeasure);
+  const track = useSequencerStore(state => state.tracks.find(t => t.id === trackId));
+  if (!track || !instrumentsConfig[track.instrumentIdx]) return null;
   const [instDropdownOpen, setInstDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [editingPatternId, setEditingPatternId] = useState<number | null>(null);
@@ -652,29 +654,16 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
 };
 
 export const VerticalTrackMixer = React.memo(VerticalTrackMixerComponent, (prevProps, nextProps) => {
-  const prevActivePattern = prevProps.track.patterns.find(p => p.id === prevProps.track.selectedPatternId) || prevProps.track.patterns[0];
-  const nextActivePattern = nextProps.track.patterns.find(p => p.id === nextProps.track.selectedPatternId) || nextProps.track.patterns[0];
-  
-  const prevStep = (prevProps.isPlaying && prevProps.currentStepIndex >= 0)
-    ? Math.floor((prevProps.currentStepIndex / prevProps.maxTicks) * prevActivePattern.steps)
-    : -1;
-  const nextStep = (nextProps.isPlaying && nextProps.currentStepIndex >= 0)
-    ? Math.floor((nextProps.currentStepIndex / nextProps.maxTicks) * nextActivePattern.steps)
-    : -1;
 
-  if (prevStep !== nextStep) {
-    return false;
-  }
-
-  if (JSON.stringify(prevProps.track) !== JSON.stringify(nextProps.track)) {
+  if (prevProps.trackId !== nextProps.trackId) {
     return false;
   }
 
   const keys = Object.keys(prevProps) as Array<keyof VerticalTrackMixerProps>;
   for (const key of keys) {
     if (typeof prevProps[key] === 'function') continue;
-    if (key === 'track') continue;
-    if (key === 'currentStepIndex' || key === 'currentMeasure') continue;
+    if (key === 'trackId') continue;
+    if (key === 'currentStepIndex') continue;
 
     if (prevProps[key] !== nextProps[key]) {
       return false;

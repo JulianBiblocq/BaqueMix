@@ -20,7 +20,7 @@ const getGlobalClipboard = () => {
 interface TrackMixerProps {
   lang: Language;
   isLeftHanded?: boolean;
-  track: TrackGroup;
+  trackId: number;
   index: number;
   totalTracks: number;
   onInstrumentChange: (instIdx: number) => void;
@@ -75,7 +75,7 @@ interface TrackMixerProps {
 const TrackMixerComponent: React.FC<TrackMixerProps> = ({
   lang,
   isLeftHanded = false,
-  track,
+  trackId,
   index,
   totalTracks,
   onInstrumentChange,
@@ -119,7 +119,9 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
   setActiveAoVivoTrackId,
   activeVariationsRef,
 }) => {
+  const track = useSequencerStore(state => state.tracks.find(t => t.id === trackId));
   const hasSolo = useSequencerStore(state => state.tracks.some(t => t.isSolo));
+  if (!track || !instrumentsConfig[track.instrumentIdx]) return null;
   const [instDropdownOpen, setInstDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -1161,27 +1163,14 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
 };
 
 export const TrackMixer = React.memo(TrackMixerComponent, (prevProps, nextProps) => {
-  const prevActivePattern = prevProps.track.patterns.find(p => p.id === prevProps.track.selectedPatternId) || prevProps.track.patterns[0];
-  const nextActivePattern = nextProps.track.patterns.find(p => p.id === nextProps.track.selectedPatternId) || nextProps.track.patterns[0];
-  
-  const prevStep = (prevProps.isPlaying && prevProps.currentStepIndex >= 0)
-    ? Math.floor((prevProps.currentStepIndex / prevProps.maxTicks) * prevActivePattern.steps)
-    : -1;
-  const nextStep = (nextProps.isPlaying && nextProps.currentStepIndex >= 0)
-    ? Math.floor((nextProps.currentStepIndex / nextProps.maxTicks) * nextActivePattern.steps)
-    : -1;
 
-  if (prevStep !== nextStep) {
-    return false;
-  }
-
-  if (JSON.stringify(prevProps.track) !== JSON.stringify(nextProps.track)) {
+  if (prevProps.trackId !== nextProps.trackId) {
     return false;
   }
 
   const keys = Object.keys(prevProps) as Array<keyof TrackMixerProps>;
   for (const key of keys) {
-    if (key === 'track') continue;
+    if (key === 'trackId') continue;
     if (key === 'currentStepIndex') continue;
 
     if (prevProps[key] !== nextProps[key]) {

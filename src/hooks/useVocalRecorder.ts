@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useSequencerStore } from '../stores/useSequencerStore';
 import React, { useState, useRef, useEffect } from 'react';
 import * as Tone from 'tone';
 import { saveVocalRecording, getVocalRecording, deleteVocalRecording } from '../db';
@@ -12,8 +13,6 @@ import { instrumentsConfig } from '../data';
 const VOCAL_RECORDING_ARM_DELAY_MS = 300;
 
 interface UseVocalRecorderProps {
-  tracks: TrackGroup[];
-  setTracks: React.Dispatch<React.SetStateAction<TrackGroup[]>>;
   pushUndoState: () => void;
   bpm: number;
   measureBpms: number[];
@@ -30,8 +29,6 @@ interface UseVocalRecorderProps {
 }
 
 export function useVocalRecorder({
-  tracks,
-  setTracks,
   pushUndoState,
   bpm,
   measureBpms,
@@ -45,6 +42,8 @@ export function useVocalRecorder({
   currentStepIndexRef,
   lastPlayedSignalIdRef
 }: UseVocalRecorderProps) {
+  const tracks = useSequencerStore(state => state.tracks);
+  const setTracks = useSequencerStore(state => state.setTracks);
   const recordingDurationMeasuresRef = useRef<number>(1);
   const recordedMeasuresCountRef = useRef<number>(0);
   const vocalRecordArmTimeoutRef = useRef<any>(null);
@@ -73,6 +72,22 @@ export function useVocalRecorder({
   useEffect(() => {
     isVocalGuideEnabledRef.current = isVocalGuideEnabled;
   }, [isVocalGuideEnabled]);
+
+  // Cleanup effect for GrainPlayers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(vocalPlayersRef.current).forEach((player: any) => {
+        if (player && typeof player.dispose === 'function') {
+          try {
+            player.dispose();
+          } catch (e) {
+            console.warn("Error disposing vocal player on unmount:", e);
+          }
+        }
+      });
+      vocalPlayersRef.current = {};
+    };
+  }, []);
 
   const updateAudioDevices = async () => {
     try {

@@ -8,8 +8,7 @@ import { RhythmSignal, TrackGroup, Language } from '../types';
 import DOMPurify from 'dompurify';
 import { i18n, instrumentsConfig, getMaxTicks } from '../data';
 import { AudioTrackRecorder } from './AudioTrackRecorder';
-import gifshot from 'gifshot';
-import { parseCordelFormatting } from '../utils/cordelFormatter';
+// import { parseCordelFormatting } from '../utils/cordelFormatter';
 import { useSequencerStore } from '../stores/useSequencerStore';
 import { useSequencer } from '../contexts/SequencerContext';
 import { useAudio } from '../contexts/AudioContext';
@@ -37,17 +36,31 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
   onToggleHideGlobalSignals,
 }) => {
   const sequencer = useSequencer();
+  const tracks = useSequencerStore(state => state.tracks);
   const { userProfile } = useAuth();
   const [isUploadingSignal, setIsUploadingSignal] = React.useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = React.useState<number>(0);
+  const lastTickTime = React.useRef<number>(0);
+  React.useEffect(() => {
+    const handleTick = (e: Event) => {
+      const now = performance.now();
+      if (now - lastTickTime.current > 50) { // ~20fps
+        const customEvent = e as CustomEvent<{ step: number }>;
+        setCurrentStepIndex(customEvent.detail.step);
+        lastTickTime.current = now;
+      }
+    };
+    window.addEventListener('o-girador-tick', handleTick);
+    return () => window.removeEventListener('o-girador-tick', handleTick);
+  }, []);
   const audio = useAudio();
 
   const {
     lang,
-    tracks,
+    
     letras,
     setLetras: onLetrasChange,
     metadata,
-    totalMeasures,
     bpm = 120,
     timeSig,
     handleExtractLyrics: onExtractLyrics,
@@ -56,11 +69,12 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
 
   const {
     isPlaying = false,
-    currentStepIndex,
+    
     handleTogglePlay: onTogglePlay,
   } = audio;
 
   const currentMeasure = useSequencerStore(state => state.currentMeasure);
+  const totalMeasures = useSequencerStore(state => state.totalMeasures);
 
   const beatsPerMeasure = parseInt(timeSig.split('/')[0]) || 4;
 
@@ -201,7 +215,7 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
       const totalFrames = 4;
       const intervalMs = 1000; // 4 frames over 3 seconds (t=0s, t=1s, t=2s, t=3s)
 
-      const captureFrame = (frameIndex: number) => {
+      const captureFrame = async (frameIndex: number) => {
         if (!signalStreamRef.current) {
           setIsCapturingBurst(false);
           return;
@@ -234,26 +248,35 @@ const RightSidebarComponent: React.FC<RightSidebarProps> = ({
           setIsCapturingBurst(false);
           setIsProcessingGif(true);
 
-          gifshot.createGIF({
-            images: frames,
-            gifWidth: 160, // highly optimized size
-            gifHeight: 160,
-            numFrames: totalFrames,
-            frameDuration: 7.5, // 750ms per frame = 3s total loop duration
-            sampleInterval: 12, // strong compression
-            numWorkers: 2,
-          }, (obj) => {
+          try {
+            const gifshot = (await import('gifshot')).default;
+            gifshot.createGIF({
+              images: frames,
+              gifWidth: 160, // highly optimized size
+              gifHeight: 160,
+              numFrames: totalFrames,
+              frameDuration: 7.5, // 750ms per frame = 3s total loop duration
+              sampleInterval: 12, // strong compression
+              numWorkers: 2,
+            }, (obj: any) => {
+              setIsProcessingGif(false);
+              if (!obj.error) {
+                setPendingSignalImage(obj.image);
+                stopSignalCamera();
+              } else {
+                console.error('GIF creation error:', obj.errorMsg);
+                window.alert(lang === 'fr' 
+                  ? "Erreur lors de la génération du GIF." 
+                  : "Erro ao gerar o GIF.");
+              }
+            });
+          } catch (err) {
+            console.error('Failed to load gifshot:', err);
             setIsProcessingGif(false);
-            if (!obj.error) {
-              setPendingSignalImage(obj.image);
-              stopSignalCamera();
-            } else {
-              console.error('GIF creation error:', obj.errorMsg);
-              window.alert(lang === 'fr' 
-                ? "Erreur lors de la génération du GIF." 
-                : "Erro ao gerar o GIF.");
-            }
-          });
+            window.alert(lang === 'fr' 
+              ? "Erreur de chargement du module GIF." 
+              : "Erro ao carregar o módulo GIF.");
+          }
         } else {
           setTimeout(() => {
             captureFrame(frameIndex + 1);

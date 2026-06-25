@@ -19,6 +19,7 @@ interface CompactPatternRendererProps {
   registerStepRef?: (stepIdx: number, el: HTMLInputElement | null) => void;
   onStepMouseEnter?: (stepIdx: number) => void;
   selectedStepIndices?: number[];
+  trackId?: string;
 }
 
 export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
@@ -37,7 +38,8 @@ export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
   onStepKeyDown,
   registerStepRef,
   onStepMouseEnter,
-  selectedStepIndices = []
+  selectedStepIndices = [],
+  trackId
 }) => {
   const defaultBeats = 4;
   const beatRes = pattern.beatResolutions || Array(Math.ceil(pattern.steps / defaultBeats)).fill(defaultBeats);
@@ -74,8 +76,9 @@ export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
               let displayVal = visualVal === 0 ? '' : String(visualVal);
 
               const isActive = val !== 0 && val !== '';
-              const isCurrentStep = currentStep === stepIdx;
               const isSelected = selectedStepIndices.includes(stepIdx);
+              const cellId = trackId ? `step-cell-${trackId}-${pattern.id}-${stepIdx}` : undefined;
+
 
               let colorStyle: React.CSSProperties = {};
               if (isActive) {
@@ -136,15 +139,13 @@ export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
 
               if (isEditable) {
                 return (
-                  <div key={stepIdx} className={wrapperClasses} style={wrapperStyle}>
+                  <div key={stepIdx} id={cellId} className={`${wrapperClasses} ${isSelected ? 'shadow-[0_0_8px_#f1c40f]' : ''}`} style={wrapperStyle}>
                     <input
                       type="text"
                       maxLength={['caixa', 'tarol'].includes(inst.id) ? 2 : 1}
                       value={displayVal}
                       readOnly={readOnly}
                       className={`w-full h-full text-center text-[9px] font-bold outline-none m-0 p-0 transition-all ${
-                        isCurrentStep ? 'scale-110 shadow-[0_0_4px_rgba(139,42,26,0.5)] z-20' : ''
-                      } ${
                         isSelected ? '!border-[2px] !border-[#8b2a1a] shadow-[0_0_8px_rgba(139,42,26,0.6)] scale-105 z-10' : ''
                       } ${!isActive ? 'text-[var(--cordel-text)] opacity-50' : ''}`}
                       style={{
@@ -166,9 +167,7 @@ export const CompactPatternRenderer: React.FC<CompactPatternRendererProps> = ({
                 return (
                   <div key={stepIdx} className={wrapperClasses} style={wrapperStyle}>
                     <div
-                      className={`w-full h-full flex items-center justify-center text-[9px] font-bold ${
-                        isCurrentStep ? 'scale-110 shadow-[0_0_4px_rgba(139,42,26,0.5)] z-20' : ''
-                      } ${!isActive ? 'text-[var(--cordel-text)] opacity-20' : ''}`}
+                      className={`w-full h-full flex items-center justify-center text-[9px] font-bold ${!isActive ? 'text-[var(--cordel-text)] opacity-20' : ''}`}
                       style={{
                         ...colorStyle,
                         clipPath: clipPathStyle,

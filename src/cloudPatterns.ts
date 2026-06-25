@@ -1,5 +1,5 @@
 import { db } from './firebase/config';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc , query, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc , query, limit, where, orderBy, or } from 'firebase/firestore';
 import { CloudPattern, CatalogVisibility, SavedPattern } from './types';
 import LZString from 'lz-string';
 
@@ -39,35 +39,35 @@ export async function fetchCloudPatterns(
   mestreId: string | null
 ): Promise<CloudPattern[]> {
   const patterns: CloudPattern[] = [];
+  if (!userUid) return patterns;
   const patternsRef = collection(db, CLOUD_PATTERNS_COLLECTION);
   
   try {
-    const snapshot = await getDocs(query(patternsRef, limit(50)));
+    // 🛡️ FIX (Audit): Secure query with where and orderBy, remove JS filtering
+    const q = query(
+      patternsRef,
+      or(
+        where('ownerId', '==', userUid),
+        where('visibility', '==', 'public'),
+        where('targetUserId', '==', userUid)
+      ),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+    const snapshot = await getDocs(q);
     
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
-      let canSee = false;
-      
-      if (userRole === 'admin' || data.visibility === 'admin_global') {
-        canSee = true;
-      } else if (data.visibility === 'private') {
-        canSee = userUid === data.ownerId;
-      } else if (data.visibility === 'mestre_group') {
-        canSee = (userUid === data.ownerId) || (mestreId === data.ownerId) || (data.mestreId && data.mestreId === mestreId);
-      }
-      
-      if (canSee) {
-        const jsonStr = LZString.decompressFromBase64(data.data);
-        if (jsonStr) {
-          const parsedPattern = JSON.parse(jsonStr) as SavedPattern;
-          patterns.push({
-            ...parsedPattern,
-            id: docSnap.id, // override with cloud ID
-            ownerId: data.ownerId,
-            visibility: data.visibility,
-            mestreId: data.mestreId
-          });
-        }
+      const jsonStr = LZString.decompressFromBase64(data.data);
+      if (jsonStr) {
+        const parsedPattern = JSON.parse(jsonStr) as SavedPattern;
+        patterns.push({
+          ...parsedPattern,
+          id: docSnap.id,
+          ownerId: data.ownerId,
+          visibility: data.visibility,
+          mestreId: data.mestreId
+        });
       }
     });
     
@@ -75,7 +75,7 @@ export async function fetchCloudPatterns(
     console.error("Error fetching cloud patterns:", err);
   }
   
-  return patterns.sort((a, b) => a.name.localeCompare(b.name));
+  return patterns;
 }
 
 export async function deleteCloudPattern(patternId: string): Promise<void> {

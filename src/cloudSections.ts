@@ -1,5 +1,5 @@
 import { db } from './firebase/config';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc , query, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc , query, limit, where, orderBy, or } from 'firebase/firestore';
 import { CloudSection, CatalogVisibility, SavedSectionData } from './types';
 import LZString from 'lz-string';
 
@@ -38,41 +38,41 @@ export async function fetchCloudSections(
   mestreId: string | null
 ): Promise<CloudSection[]> {
   const sections: CloudSection[] = [];
+  if (!userUid) return sections;
   const sectionsRef = collection(db, CLOUD_SECTIONS_COLLECTION);
   
   try {
-    const snapshot = await getDocs(query(sectionsRef, limit(50)));
+    // 🛡️ FIX (Audit): Secure query with where and orderBy, remove JS filtering
+    const q = query(
+      sectionsRef,
+      or(
+        where('ownerId', '==', userUid),
+        where('visibility', '==', 'public'),
+        where('targetUserId', '==', userUid)
+      ),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+    const snapshot = await getDocs(q);
     
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
-      let canSee = false;
-      
-      if (userRole === 'admin' || data.visibility === 'admin_global') {
-        canSee = true;
-      } else if (data.visibility === 'private') {
-        canSee = userUid === data.ownerId;
-      } else if (data.visibility === 'mestre_group') {
-        canSee = (userUid === data.ownerId) || (mestreId === data.ownerId) || (data.mestreId && data.mestreId === mestreId);
-      }
-      
-      if (canSee) {
-        sections.push({
-          id: docSnap.id,
-          name: data.name,
-          ownerId: data.ownerId,
-          visibility: data.visibility,
-          mestreId: data.mestreId,
-          createdAt: data.createdAt,
-          data: data.data // Keep compressed
-        });
-      }
+      sections.push({
+        id: docSnap.id,
+        name: data.name,
+        ownerId: data.ownerId,
+        visibility: data.visibility,
+        mestreId: data.mestreId,
+        createdAt: data.createdAt,
+        data: data.data // Keep compressed
+      });
     });
     
   } catch (err) {
     console.error("Error fetching cloud sections:", err);
   }
   
-  return sections.sort((a, b) => a.name.localeCompare(b.name));
+  return sections;
 }
 
 export async function deleteCloudSection(sectionId: string): Promise<void> {

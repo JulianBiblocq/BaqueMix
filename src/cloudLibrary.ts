@@ -1,5 +1,5 @@
 import { db } from './firebase/config';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc , query, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc , query, limit, where, orderBy, or } from 'firebase/firestore';
 import { CloudPreset, Preset, CatalogVisibility } from './types';
 import LZString from 'lz-string';
 
@@ -42,35 +42,33 @@ export async function fetchCloudPresets(
   mestreId: string | null
 ): Promise<CloudPreset[]> {
   const presets: CloudPreset[] = [];
+  if (!userUid) return presets;
   const presetsRef = collection(db, CLOUD_PRESETS_COLLECTION);
   
   try {
-    const snapshot = await getDocs(query(presetsRef, limit(50))); // Client-side filtering for simplicity due to multiple OR conditions
+    // 🛡️ FIX (Audit): Secure query with where and orderBy, remove JS filtering
+    const q = query(
+      presetsRef,
+      or(
+        where('ownerId', '==', userUid),
+        where('visibility', '==', 'public'),
+        where('targetUserId', '==', userUid)
+      ),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+    const snapshot = await getDocs(q);
     
     snapshot.forEach(doc => {
       const data = doc.data() as Omit<CloudPreset, 'id'>;
-      let canSee = false;
-      
-      if (data.visibility === 'admin_global') {
-        canSee = true;
-      } else if (data.visibility === 'private') {
-        canSee = userUid === data.ownerId;
-      } else if (data.visibility === 'mestre_group') {
-        canSee = (userUid === data.ownerId) || (mestreId === data.ownerId);
-      } else if (data.visibility === 'specific_user') {
-        canSee = (userUid === data.ownerId) || (userUid === data.targetUserId);
-      }
-      
-      if (canSee) {
-        presets.push({ id: doc.id, ...data });
-      }
+      presets.push({ id: doc.id, ...data });
     });
     
   } catch (err) {
     console.error("Error fetching cloud presets:", err);
   }
   
-  return presets.sort((a, b) => a.name.localeCompare(b.name));
+  return presets;
 }
 
 export async function getCloudPreset(presetId: string): Promise<Preset | null> {

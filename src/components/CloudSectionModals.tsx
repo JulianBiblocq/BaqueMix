@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSequencer } from '../contexts/SequencerContext';
+import { useSequencerStore } from '../stores/useSequencerStore';
 import { SongSection, SavedSectionData, CatalogVisibility, CloudSection, TrackGroup, Pattern } from '../types';
 import { saveSectionToCloud, fetchCloudSections, deleteCloudSection, getCloudSectionData } from '../cloudSections';
 import { SubscriptionModal } from './SubscriptionModal';
@@ -29,12 +30,13 @@ export const SaveSectionModal: React.FC<SaveSectionModalProps> = ({ section, onC
       const end = section.endMeasure;
 
       // Extract section data
-      const timeSigs = sequencer.measureTimeSigs.slice(start, end + 1);
-      const vols = sequencer.measureVols.slice(start, end + 1);
-      const volTransitions = sequencer.measureVolTransitions.slice(start, end + 1);
-      const signals = sequencer.measureSignals.slice(start, end + 1);
+      const storeState = useSequencerStore.getState();
+      const timeSigs = storeState.measureTimeSigs.slice(start, end + 1);
+      const vols = storeState.measureVols.slice(start, end + 1);
+      const volTransitions = storeState.measureVolTransitions.slice(start, end + 1);
+      const signals = storeState.measureSignals.slice(start, end + 1);
 
-      const sectionTracks = sequencer.tracks.map(t => {
+      const sectionTracks = useSequencerStore.getState().tracks.map(t => {
         // Filter patterns that overlap with [start, end]
         const sectionPatterns = t.patterns.map(p => {
           if (!p.measureAssignments) return null;

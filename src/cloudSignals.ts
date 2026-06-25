@@ -1,22 +1,29 @@
-import { collection, doc, setDoc, getDocs, deleteDoc, query, where, limit } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, query, where, limit, startAfter, orderBy } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from './firebase/config';
 import { CloudRhythmSignal } from './types';
 
-export const fetchMestreSignals = async (mestreId: string): Promise<CloudRhythmSignal[]> => {
-  if (!mestreId) return [];
+export const fetchMestreSignals = async (mestreId: string, lastVisibleDoc?: any): Promise<{ signals: CloudRhythmSignal[], lastDoc: any }> => {
+  if (!mestreId) return { signals: [], lastDoc: null };
   try {
     const mestreIdsToFetch = mestreId === 'global' ? ['global'] : ['global', mestreId];
-    const q = query(collection(db, 'mestre_signals'), where('mestreId', 'in', mestreIdsToFetch));
+    // 🛡️ FIX (Audit): Added pagination support with startAfter
+    let q = query(collection(db, 'mestre_signals'), where('mestreId', 'in', mestreIdsToFetch), orderBy('createdAt', 'desc'));
+    if (lastVisibleDoc) {
+      q = query(q, startAfter(lastVisibleDoc));
+    }
     const querySnapshot = await getDocs(query(q, limit(50)));
     const signals: CloudRhythmSignal[] = [];
     querySnapshot.forEach((doc) => {
       signals.push(doc.data() as CloudRhythmSignal);
     });
-    return signals;
+    return {
+      signals,
+      lastDoc: querySnapshot.docs[querySnapshot.docs.length - 1] || null
+    };
   } catch (err) {
     console.error('Error fetching mestre signals:', err);
-    return [];
+    return { signals: [], lastDoc: null };
   }
 };
 
@@ -27,7 +34,8 @@ export const uploadMestreSignal = async (
 ): Promise<CloudRhythmSignal | null> => {
   if (!mestreId || !base64Image) return null;
   try {
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    // 🛡️ FIX (Audit): Secure ID generation
+    const id = doc(collection(db, 'mestre_signals')).id;
     
     // Upload image to Storage
     const storageRef = ref(storage, `sinais/${mestreId}/${id}`);

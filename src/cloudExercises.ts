@@ -1,5 +1,5 @@
 import { db } from './firebase/config';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, limit, orderBy, runTransaction, startAfter } from 'firebase/firestore';
 import LZString from 'lz-string';
 
 export type GameType = 'quiz' | 'dictee' | 'sablier' | 'inspecteur';
@@ -50,55 +50,77 @@ export async function saveExerciseToCloud(
   exerciseData: any,
   ownerId: string
 ): Promise<string> {
-  const exists = await checkExerciseNameExists(ownerId, gameType, name);
-  if (exists) {
-    throw new Error('NAME_EXISTS');
-  }
+  // 🛡️ FIX (Audit): Wrap check and creation in runTransaction to avoid race condition
+  return await runTransaction(db, async (transaction) => {
+    const docId = `${ownerId}_${name}`;
+    const newDocRef = doc(collection(db, EXERCISES_COLLECTION), docId);
+    
+    const docSnap = await transaction.get(newDocRef);
+    if (docSnap.exists()) {
+      throw new Error('NAME_EXISTS');
+    }
 
-  const dataString = LZString.compressToBase64(JSON.stringify(exerciseData));
-  
-  const docRef = await addDoc(collection(db, EXERCISES_COLLECTION), {
-    name,
-    gameType,
-    data: dataString,
-    ownerId,
-    createdAt: Date.now()
+    const dataString = LZString.compressToBase64(JSON.stringify(exerciseData));
+    
+    transaction.set(newDocRef, {
+      name,
+      gameType,
+      data: dataString,
+      ownerId,
+      createdAt: Date.now()
+    });
+    
+    return newDocRef.id;
   });
-  
-  return docRef.id;
 }
 
 /**
  * Fetches all exercises for a specific mestre and gameType.
  */
-export async function fetchMestreExercises(ownerId: string, gameType: GameType): Promise<CloudExercise[]> {
-  const q = query(
+export async function fetchMestreExercises(ownerId: string, gameType: GameType, lastVisibleDoc?: any): Promise<{ exercises: CloudExercise[], lastDoc: any }> {
+  // 🛡️ FIX (Audit): Added pagination support with startAfter
+  let q = query(
     collection(db, EXERCISES_COLLECTION),
     where('ownerId', '==', ownerId),
-    where('gameType', '==', gameType)
+    where('gameType', '==', gameType),
+    orderBy('createdAt', 'desc')
   );
+  if (lastVisibleDoc) {
+    q = query(q, startAfter(lastVisibleDoc));
+  }
   const snapshot = await getDocs(query(q, limit(50)));
   
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...(doc.data() as Omit<CloudExercise, 'id'>)
-  })).sort((a, b) => b.createdAt - a.createdAt);
+  return {
+    exercises: snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<CloudExercise, 'id'>)
+    })),
+    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null
+  };
 }
 
 /**
  * Fetches all exercises for a specific mestre, regardless of gameType.
  */
-export async function fetchAllMestreExercises(ownerId: string): Promise<CloudExercise[]> {
-  const q = query(
+export async function fetchAllMestreExercises(ownerId: string, lastVisibleDoc?: any): Promise<{ exercises: CloudExercise[], lastDoc: any }> {
+  // 🛡️ FIX (Audit): Added pagination support with startAfter
+  let q = query(
     collection(db, EXERCISES_COLLECTION),
-    where('ownerId', '==', ownerId)
+    where('ownerId', '==', ownerId),
+    orderBy('createdAt', 'desc')
   );
+  if (lastVisibleDoc) {
+    q = query(q, startAfter(lastVisibleDoc));
+  }
   const snapshot = await getDocs(query(q, limit(50)));
   
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...(doc.data() as Omit<CloudExercise, 'id'>)
-  })).sort((a, b) => b.createdAt - a.createdAt);
+  return {
+    exercises: snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<CloudExercise, 'id'>)
+    })),
+    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null
+  };
 }
 
 export async function deleteExerciseFromCloud(id: string): Promise<void> {
@@ -139,17 +161,25 @@ export async function saveProgressionToCloud(
   return docRef.id;
 }
 
-export async function fetchMestreProgressions(ownerId: string): Promise<CloudProgression[]> {
-  const q = query(
+export async function fetchMestreProgressions(ownerId: string, lastVisibleDoc?: any): Promise<{ progressions: CloudProgression[], lastDoc: any }> {
+  // 🛡️ FIX (Audit): Added pagination support with startAfter
+  let q = query(
     collection(db, PROGRESSIONS_COLLECTION),
-    where('ownerId', '==', ownerId)
+    where('ownerId', '==', ownerId),
+    orderBy('createdAt', 'desc')
   );
+  if (lastVisibleDoc) {
+    q = query(q, startAfter(lastVisibleDoc));
+  }
   const snapshot = await getDocs(query(q, limit(50)));
   
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...(doc.data() as Omit<CloudProgression, 'id'>)
-  })).sort((a, b) => b.createdAt - a.createdAt);
+  return {
+    progressions: snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<CloudProgression, 'id'>)
+    })),
+    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null
+  };
 }
 
 export async function deleteProgressionFromCloud(id: string): Promise<void> {

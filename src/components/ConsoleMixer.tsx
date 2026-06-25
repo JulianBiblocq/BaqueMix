@@ -25,6 +25,7 @@ import { useSequencer } from '../contexts/SequencerContext';
 import { useAudio } from '../contexts/AudioContext';
 import { meters, masterMeterNode } from '../hooks/useAudioSync';
 import { useSequencerStore } from '../stores/useSequencerStore';
+import { useShallow } from 'zustand/react/shallow';
 
 interface ConsoleMixerProps {
   isMobile: boolean;
@@ -48,8 +49,6 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
   const {
     lang,
     isLeftHanded = false,
-    tracks,
-    totalMeasures,
     timeSig,
     copiedPattern,
     handleCopyPattern,
@@ -104,9 +103,23 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
     activeVariationsRef,
   } = sequencer;
 
+  const tracks = useSequencerStore(state => state.tracks);
+  const setTracks = useSequencerStore(state => state.setTracks);
+  const totalMeasures = useSequencerStore(state => state.totalMeasures);
+
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  useEffect(() => {
+    const handleTick = (e: Event) => {
+      const customEvent = e as CustomEvent<{ step: number }>;
+      setCurrentStepIndex(customEvent.detail.step);
+    };
+    window.addEventListener('o-girador-tick', handleTick);
+    return () => window.removeEventListener('o-girador-tick', handleTick);
+  }, []);
+
   const {
     isPlaying,
-    currentStepIndex,
     maxTicksRef,
     soloPatternPlayId,
     soloPatternVariationId,
@@ -121,7 +134,6 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
 
 
   const maxTicks = maxTicksRef.current;
-  if (!tracks) return null;
   const onActiveInstrumentChange = setActiveKeyboardInstrumentId;
   const onMasterVolChange = setMasterVol;
   const onMasterEQChange = setMasterEQ;
@@ -230,12 +242,12 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
   }, []);
 
   const onTrackSelectPattern = (trackId: number, patternId: number) => {
-    sequencer.setTracks(prev => prev.map(t => t.id === trackId ? { ...t, selectedPatternId: patternId } : t));
+    setTracks(prev => prev.map(t => t.id === trackId ? { ...t, selectedPatternId: patternId } : t));
   };
 
   const onPatternAssign = (trackId: number, patternId: number, measureIdx: number, val: boolean) => {
     sequencer.pushUndoState();
-    sequencer.setTracks(prev => prev.map(t => {
+    setTracks(prev => prev.map(t => {
       if (t.id === trackId) {
         const nextPatterns = t.patterns.map(p => {
           if (p.id === patternId) {
@@ -253,7 +265,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
 
   const onAddPattern = (trackId: number) => {
     sequencer.pushUndoState();
-    sequencer.setTracks(prev => prev.map(t => {
+    setTracks(prev => prev.map(t => {
       if (t.id === trackId) {
         const p = t.patterns[0];
         const newPattern: Pattern = {
@@ -277,7 +289,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
 
   const onDeletePattern = (trackId: number, patternId: number) => {
     sequencer.pushUndoState();
-    sequencer.setTracks(prev => prev.map(t => {
+    setTracks(prev => prev.map(t => {
       if (t.id === trackId && t.patterns.length > 1) {
         const nextPatterns = t.patterns.filter(p => p.id !== patternId);
         const nextSelected = t.selectedPatternId === patternId ? nextPatterns[0].id : t.selectedPatternId;
@@ -307,7 +319,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
       if (activeId.startsWith('pattern-') && overId.startsWith('pattern-')) {
         const activePatternId = parseInt(activeId.replace('pattern-', ''), 10);
         const overPatternId = parseInt(overId.replace('pattern-', ''), 10);
-        const track = tracks.find(t => t.patterns.some(p => p.id === activePatternId));
+        const track = useSequencerStore.getState().tracks.find(t => t.patterns.some(p => p.id === activePatternId));
         if (track && onReorderPatternsDnd) {
           const oldIndex = track.patterns.findIndex(p => p.id === activePatternId);
           const newIndex = track.patterns.findIndex(p => p.id === overPatternId);
@@ -323,7 +335,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
     }
   };
 
-  const trackIds = useMemo(() => tracks.map(t => `track-${t.id}`), [tracks]);
+  const trackIds = useMemo(() => tracks.map(t => t.id), [tracks]);
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -335,10 +347,10 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
             key={track.id}
             lang={lang}
             isLeftHanded={isLeftHanded}
-            track={track}
+            trackId={track.id}
             index={idx}
             totalTracks={tracks.length}
-            meter={meters ? meters[instrumentsConfig[track.instrumentIdx].id] : undefined}
+            meter={meters && instrumentsConfig[track.instrumentIdx] ? meters[instrumentsConfig[track.instrumentIdx].id] : undefined}
             soloPatternPlayId={soloPatternPlayId}
             activeVariationsRef={activeVariationsRef}
             onInstrumentChange={(i) => onInstrumentChange(track.id, i)}

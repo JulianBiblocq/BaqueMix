@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useContext } from 'react';
 import { TimelineUIContext } from '../contexts/TimelineUIContext';
+import { useAudio } from '../contexts/AudioContext';
 
 const TimelinePlayheadComponent: React.FC = () => {
   const uiContext = useContext(TimelineUIContext);
+  const audio = useAudio();
   const playheadRef = useRef<HTMLDivElement>(null);
   
   // État du moteur d'extrapolation
@@ -18,8 +20,20 @@ const TimelinePlayheadComponent: React.FC = () => {
     lastScrollX: -1 
   });
 
-  if (!uiContext) return null;
-  const { MEASURE_W, HEADER_W } = uiContext;
+  const MEASURE_W = uiContext ? uiContext.MEASURE_W : 0;
+  const HEADER_W = uiContext ? uiContext.HEADER_W : 0;
+
+  // Réinitialiser la vélocité et l'extrapolateur quand on met en pause ou qu'on arrête la lecture
+  useEffect(() => {
+    if (!audio.isPlaying) {
+      engineState.current.isStopped = true;
+      engineState.current.velocity = 0;
+      const el = playheadRef.current;
+      if (el) {
+        el.style.transition = 'none';
+      }
+    }
+  }, [audio.isPlaying]);
 
   useEffect(() => {
     const scrollEl = document.getElementById('timeline-scroll-container');
@@ -86,30 +100,40 @@ const TimelinePlayheadComponent: React.FC = () => {
       // --- 3. CALCUL DE LA VÉLOCITÉ ---
       const dt = now - engineState.current.lastTime;
       
-      // Heuristique vitale : On ignore le calcul de vitesse si step === 0. 
-      // Le tick du 1er temps est souvent retardé par le gel de React. L'ignorer 
-      // permet de conserver l'élan de la mesure précédente sans fausser la moyenne.
-      if (dt > 0 && dt < 150 && step !== 0) {
-        const currentVel = dx / dt;
-        // Lissage de la vitesse (Moyenne mobile) pour absorber les micro-irrégularités du Worker
-        engineState.current.velocity = engineState.current.velocity === 0 
-          ? currentVel 
-          : engineState.current.velocity * 0.8 + currentVel * 0.2;
+      // On ignore les calculs si dt est trop petit (< 20ms) pour éviter les pics de vélocité
+      // quand plusieurs ticks sont "rattrapés" dans la même frame (très fréquent sur le step 0/1).
+      if (dt >= 20) {
+        if (dt < 2000) {
+          const currentVel = dx / dt;
+          // Sécurité supplémentaire : ignorer les vélocités absurdes (> 10 px/ms)
+          if (currentVel > 0 && currentVel < 10) {
+            engineState.current.velocity = engineState.current.velocity === 0 
+              ? currentVel 
+              : engineState.current.velocity * 0.7 + currentVel * 0.3;
+          }
+        } else {
+          // Si dt est trop grand (ex: onglet inactif), on réinitialise la vélocité
+          engineState.current.velocity = 0;
+        }
+        
+        engineState.current.lastX = exactX;
+        engineState.current.lastTime = now;
       }
-
-      engineState.current.lastX = exactX;
-      engineState.current.lastTime = now;
 
       // --- 4. DEAD RECKONING (Extrapolation 100% GPU) ---
       if (engineState.current.velocity > 0) {
-        // On demande au CSS de viser une position à 150ms dans le futur.
-        // Si React freeze le Main Thread pendant 40ms au changement de mesure, 
-        // le GPU continuera de faire glisser l'aiguille de manière fluide vers cette cible !
-        const lookAheadMs = 150;
+        // On demande au CSS de viser une position dans le futur.
+        // lookAheadMs doit être supérieur au temps entre deux ticks (dt) pour que 
+        // la transition ne s'arrête jamais avant le prochain tick.
+        const lookAheadMs = Math.max(150, dt > 0 ? dt * 1.5 : 200);
         const predictedX = exactX + (engineState.current.velocity * lookAheadMs);
 
         el.style.transition = `transform ${lookAheadMs}ms linear`;
         el.style.transform = `translate3d(${HEADER_W + predictedX}px, 0, 0)`;
+      } else {
+        // Fallback si on n'a pas encore de vélocité
+        el.style.transition = 'none';
+        el.style.transform = `translate3d(${HEADER_W + exactX}px, 0, 0)`;
       }
 
       // --- 5. AUTO-SCROLL (Pagination douce) ---
@@ -134,6 +158,8 @@ const TimelinePlayheadComponent: React.FC = () => {
       resizeObserver.disconnect();
     };
   }, [MEASURE_W, HEADER_W]);
+
+  if (!uiContext) return null;
 
   return (
     <div

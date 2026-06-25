@@ -161,6 +161,7 @@ export const DicteeEngine: React.FC<DicteeEngineProps> = ({ lang, onExit, onSucc
     sequenceAudio.forEach(track => {
       if (track.isMute || track.instrumentIdx === -1) return;
       const inst = instrumentsConfig[track.instrumentIdx];
+      if (!inst) return null;
       if (!inst) return;
 
       const activeSteps = track.patterns[0]?.activeSteps || {};

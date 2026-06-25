@@ -12,9 +12,14 @@ export default defineConfig(({ command }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'tone': ['tone'],
-            'firebase': ['firebase/app', 'firebase/firestore', 'firebase/auth']
+          manualChunks(id) {
+            // 🛡️ FIX (Audit): Isolate all firebase packages to fix chunking issues
+            if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
+              return 'firebase';
+            }
+            if (id.includes('node_modules/tone')) {
+              return 'tone';
+            }
           }
         }
       }
@@ -61,7 +66,13 @@ export default defineConfig(({ command }) => {
               
               // Check if URL matches the Mixdown folder path or files
               if (decodedUrl.includes('/Mixdown/') || decodedUrl.includes('/mixdown/')) {
-                const mixdownBaseDir = path.resolve('E:/projets/Roda de maracatu/Mixdown');
+                if (decodedUrl.includes('\0')) {
+                  res.statusCode = 400;
+                  res.end('400 Bad Request: Null byte detected');
+                  return;
+                }
+
+                const mixdownBaseDir = process.env.VITE_MIXDOWN_PATH || path.resolve(__dirname, 'public', 'Mixdown');
                 
                 // Extract relative path after Mixdown/ to support subdirectories
                 let relativePath = '';
@@ -71,36 +82,42 @@ export default defineConfig(({ command }) => {
                   relativePath = decodedUrl.split('/mixdown/')[1].split('?')[0];
                 }
                 
-                const filePath = path.join(mixdownBaseDir, relativePath);
+                const rawPath = path.join(mixdownBaseDir, relativePath);
                 
-                // Strict chroot verification
-                if (!filePath.startsWith(mixdownBaseDir)) {
-                  res.statusCode = 403;
-                  res.end('403 Forbidden: Path traversal attempt detected');
-                  return;
-                }
-                
-                // Let's check absolute path
-                if (fs.existsSync(filePath)) {
-                  res.setHeader('Content-Type', 'audio/ogg');
-                  fs.createReadStream(filePath).pipe(res);
-                  return;
-                }
-                
-                // Fallback: search in sibling Mixdown directory relative to project root
-                const relativeMixdown = path.resolve(__dirname, '..', 'Mixdown');
-                const fallbackPath = path.join(relativeMixdown, relativePath);
-                
-                // Strict chroot verification fallback
-                if (!fallbackPath.startsWith(relativeMixdown)) {
-                  res.statusCode = 403;
-                  res.end('403 Forbidden: Path traversal attempt detected');
-                  return;
+                try {
+                  if (fs.existsSync(rawPath) && fs.existsSync(mixdownBaseDir)) {
+                    const realPath = fs.realpathSync(rawPath);
+                    const realBase = fs.realpathSync(mixdownBaseDir);
+                    const baseWithTrailing = realBase.endsWith(path.sep) ? realBase : realBase + path.sep;
+                    
+                    if (!realPath.startsWith(baseWithTrailing)) {
+                      res.statusCode = 403;
+                      res.end('403 Forbidden: Path traversal attempt detected');
+                      return;
+                    }
+                    
+                    if (fs.statSync(realPath).isFile()) {
+                      res.setHeader('Content-Type', 'audio/ogg');
+                      const stream = fs.createReadStream(realPath);
+                      stream.on('error', (err) => {
+                        console.error('Stream error:', err);
+                        if (!res.headersSent) {
+                          res.statusCode = 500;
+                          res.end('500 Internal Server Error');
+                        }
+                      });
+                      stream.pipe(res);
+                      return;
+                    }
+                  }
+                } catch (err) {
+                  console.error('Error reading mixdown file:', err);
                 }
 
-                if (fs.existsSync(fallbackPath)) {
-                  res.setHeader('Content-Type', 'audio/ogg');
-                  fs.createReadStream(fallbackPath).pipe(res);
+                // 🛡️ FIX (Audit): Force 404 on missing audio files to prevent SPA fallback
+                if (/\.(ogg|wav|mp3)$/i.test(decodedUrl)) {
+                  res.statusCode = 404;
+                  res.end('404 Not Found: Audio file missing');
                   return;
                 }
               }

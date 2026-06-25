@@ -1,6 +1,5 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-import {GoogleOAuthProvider} from '@react-oauth/google';
 import {GameDataProvider} from './contexts/GameDataContext.tsx';
 import {SequencerProvider} from './contexts/SequencerContext.tsx';
 import {AudioProvider} from './contexts/AudioContext.tsx';
@@ -21,7 +20,7 @@ export function isValidGoogleClientId(id: string | undefined | null): boolean {
   );
 }
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '601273236123-e90og6lr85v5ca2lprke41igbs02alrv.apps.googleusercontent.com';
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const hasGoogleClientId = isValidGoogleClientId(googleClientId);
 
 if (!hasGoogleClientId) {
@@ -37,29 +36,13 @@ if (inviteCode) {
 }
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    {hasGoogleClientId ? (
-      <GoogleOAuthProvider clientId={googleClientId}>
-        <AuthProvider>
-          <GameDataProvider>
-            <SequencerProvider>
-              <AudioProvider>
-                <App />
-              </AudioProvider>
-            </SequencerProvider>
-          </GameDataProvider>
-        </AuthProvider>
-      </GoogleOAuthProvider>
-    ) : (
-      <AuthProvider>
-        <GameDataProvider>
-          <SequencerProvider>
-            <AudioProvider>
-              <App />
-            </AudioProvider>
-          </SequencerProvider>
-        </GameDataProvider>
-      </AuthProvider>
-    )}
-  </StrictMode>,
+  <AuthProvider>
+    <GameDataProvider>
+      <SequencerProvider>
+        <AudioProvider>
+          <App />
+        </AudioProvider>
+      </SequencerProvider>
+    </GameDataProvider>
+  </AuthProvider>
 );

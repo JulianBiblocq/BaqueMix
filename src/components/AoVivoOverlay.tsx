@@ -1,3 +1,4 @@
+import { useSequencerStore } from '../stores/useSequencerStore';
 import React, { useEffect, useState, useRef } from 'react';
 import { useSequencer } from '../contexts/SequencerContext';
 import { instrumentsConfig } from '../data';
@@ -417,7 +418,8 @@ const RimHalo = ({ show, hitTime, target, yOffset = 0 }: { show: boolean, hitTim
 };
 
 export const AoVivoOverlay: React.FC = () => {
-  const { activeAoVivoTrackId, tracks, isLeftHanded, activeVariationsRef } = useSequencer();
+  const { activeAoVivoTrackId, isLeftHanded, activeVariationsRef } = useSequencer();
+  const tracks = useSequencerStore(state => state.tracks);
   const [hitEvent, setHitEvent] = useState<HitEvent | null>(null);
   const target = useRodaTarget();
   const { width } = useWindowSize();

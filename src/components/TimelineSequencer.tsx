@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useSequencerStore } from '../stores/useSequencerStore';
 import React, { useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import { TrackGroup, Language, TimeSignature, SongSection, PresetMetadata, RhythmSignal, CloudRhythmSignal } from '../types';
@@ -26,8 +27,6 @@ interface TimelineSequencerProps {
   mestreSignals?: CloudRhythmSignal[];
   onSaveCloudSection?: (section: SongSection) => void;
   onLoadCloudSection?: (insertAtMeasure: number) => void;
-  onNavigate?: (measureIdx: number, stepIdx: number) => void;
-  maxTicksRef?: React.MutableRefObject<number>;
 }
 
 const HEADER_W = 180;
@@ -45,30 +44,29 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
   mestreSignals = [],
   onSaveCloudSection,
   onLoadCloudSection,
-  onNavigate,
-  maxTicksRef,
 }) => {
   const sequencer = useSequencer();
   const { hasAccess } = useAuth();
   const [showSubModal, setShowSubModal] = React.useState(false);
 
+  // 🛡️ FIX (Audit): Direct Zustand selectors to avoid massive cascade re-renders
+  const totalMeasures = useSequencerStore(state => state.totalMeasures);
+  const measureTimeSigs = useSequencerStore(state => state.measureTimeSigs);
+  const measureBpms = useSequencerStore(state => state.measureBpms);
+  const measureBpmTransitions = useSequencerStore(state => state.measureBpmTransitions);
+  const measureVols = useSequencerStore(state => state.measureVols);
+  const measureVolTransitions = useSequencerStore(state => state.measureVolTransitions);
+  const songSections = useSequencerStore(state => state.songSections);
+  const copiedSection = useSequencerStore(state => state.copiedSection);
+  const loopStartMeasure = useSequencerStore(state => state.loopStartMeasure);
+  const loopEndMeasure = useSequencerStore(state => state.loopEndMeasure);
+  const isLoopRegionActive = useSequencerStore(state => state.isLoopRegionActive);
+  const measureSignals = useSequencerStore(state => state.measureSignals) || [];
+
   const {
     lang,
-    tracks,
-    totalMeasures,
-    measureTimeSigs,
-    measureBpms,
-    measureBpmTransitions,
-    measureVols,
-    measureVolTransitions,
-    songSections,
-    copiedSection,
     metadata,
     letras,
-    loopStartMeasure,
-    loopEndMeasure,
-    isLoopRegionActive,
-    measureSignals = [],
     handleTrackMuteToggle: onMuteToggle,
     handleTrackSoloToggle: onSoloToggle,
     handleTimelinePatternAssign: onPatternAssignForMeasure,
@@ -91,15 +89,13 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
     handleDeleteMeasure: onDeleteMeasure,
     handleInsertMeasure: onInsertMeasure,
   } = sequencer;
+  const tracks = useSequencerStore(state => state.tracks);
 
   const localRhythmSignals = metadata?.rhythmSignals || [];
   const rhythmSignals = [
     ...mestreSignals.map(s => ({ id: s.id, name: s.name, image: s.imageUrl, isCloud: true })),
     ...localRhythmSignals.map(s => ({ id: s.id, name: s.name, image: s.image, isCloud: false }))
   ];
-
-  const maxTicks = maxTicksRef ? maxTicksRef.current : 0;
-  if (!tracks) return null;
 
   const onMeasureSignalChange = (mIdx: number, sigId: string | null) => {
     sequencer.setMeasureSignals(prev => {
@@ -115,6 +111,17 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
   const HEADER_W = isMobile ? 80 : (isMacro ? 150 : 180);
   const MEASURE_W = measureWidth;
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // 🛡️ FIX (Audit): Centralized AbortController for all drag/drop events
+  const dragAbortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dragAbortControllerRef.current) {
+        dragAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const measureWidthRef = useRef(measureWidth);
@@ -211,7 +218,7 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
 
   const isScrubbing = useRef(false);
   const pendingScrollLeft = useRef<number | null>(null);
-  const propsRef = useRef({ totalMeasures, measureTimeSigs, onNavigate });
+  const propsRef = useRef({ totalMeasures, measureTimeSigs });
   
   React.useLayoutEffect(() => {
     if (pendingScrollLeft.current !== null && scrollRef.current) {
@@ -221,17 +228,17 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
   }, [measureWidth]);
 
   useEffect(() => {
-    propsRef.current = { totalMeasures, measureTimeSigs, onNavigate };
+    propsRef.current = { totalMeasures, measureTimeSigs };
   });
 
   const handleRulerClickOrDrag = (clientX: number) => {
     if (!scrollRef.current) return;
     const rect = scrollRef.current.getBoundingClientRect();
     const relativeX = clientX - rect.left - HEADER_W + scrollRef.current.scrollLeft;
-    const { totalMeasures: tMeasures, measureTimeSigs: mSigs, onNavigate: navigateFn } = propsRef.current;
+    const { totalMeasures: tMeasures, measureTimeSigs: mSigs } = propsRef.current;
     
     if (relativeX < 0) {
-      navigateFn(0, 0, 16);
+      window.dispatchEvent(new CustomEvent('o-girador-timeline-nav', { detail: { mIdx: 0, sIdx: 0 } }));
       return;
     }
     
@@ -240,7 +247,7 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
       const lastMeasureIdx = tMeasures - 1;
       const mTimeSig = mSigs[lastMeasureIdx] || '4/4';
       const steps = mTimeSig === '6/8' || mTimeSig === '12/8' ? 24 : 16;
-      navigateFn(lastMeasureIdx, steps - 1, steps);
+      window.dispatchEvent(new CustomEvent('o-girador-timeline-nav', { detail: { mIdx: lastMeasureIdx, sIdx: steps - 1 } }));
       return;
     }
     
@@ -250,7 +257,7 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
     const ratio = Math.max(0, Math.min(1, xInMeasure / MEASURE_W));
     const stepIdx = Math.floor(ratio * steps);
     
-    navigateFn(measureIdx, stepIdx, steps);
+    window.dispatchEvent(new CustomEvent('o-girador-timeline-nav', { detail: { mIdx: measureIdx, sIdx: stepIdx } }));
   };
 
   const handleRulerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -281,15 +288,19 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
       
       const onPointerUp = () => {
         isScrubbing.current = false;
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('pointerup', onPointerUp);
+        if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
         document.body.style.cursor = 'default';
       };
       
       isScrubbing.current = true;
       handleRulerClickOrDrag(e.clientX);
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
+      
+      if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
+      dragAbortControllerRef.current = new AbortController();
+      const { signal } = dragAbortControllerRef.current;
+      
+      window.addEventListener('pointermove', onPointerMove, { signal });
+      window.addEventListener('pointerup', onPointerUp, { signal });
       document.body.style.cursor = 'ns-resize';
       e.preventDefault();
       return;
@@ -591,13 +602,16 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
     };
     
     const onPointerUp = () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
+      if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
       document.body.style.cursor = 'default';
     };
     
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
+    if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
+    dragAbortControllerRef.current = new AbortController();
+    const { signal } = dragAbortControllerRef.current;
+    
+    window.addEventListener('pointermove', onPointerMove, { signal });
+    window.addEventListener('pointerup', onPointerUp, { signal });
     document.body.style.cursor = 'ew-resize';
   };
 
@@ -628,13 +642,16 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
     };
     
     const onPointerUp = () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
+      if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
       document.body.style.cursor = 'default';
     };
     
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
+    if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
+    dragAbortControllerRef.current = new AbortController();
+    const { signal } = dragAbortControllerRef.current;
+    
+    window.addEventListener('pointermove', onPointerMove, { signal });
+    window.addEventListener('pointerup', onPointerUp, { signal });
     document.body.style.cursor = 'ew-resize';
   };
 
@@ -701,8 +718,7 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
       if (typeof el.releasePointerCapture === 'function') {
         el.releasePointerCapture(e.pointerId);
       }
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+      if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
       setSnapGuideX(null);
       
       const finalLeft = parseFloat(el.style.left) || (section.startMeasure * MEASURE_W);
@@ -716,8 +732,12 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
       }
     };
     
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+    if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
+    dragAbortControllerRef.current = new AbortController();
+    const { signal } = dragAbortControllerRef.current;
+    
+    window.addEventListener('pointermove', handlePointerMove, { signal });
+    window.addEventListener('pointerup', handlePointerUp, { signal });
     e.stopPropagation();
   };
 
@@ -765,8 +785,7 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
       if (typeof el.releasePointerCapture === 'function') {
         el.releasePointerCapture(e.pointerId);
       }
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+      if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
       setSnapGuideX(null);
       
       const finalLeft = parseFloat(el.style.left) || (section.startMeasure * MEASURE_W);
@@ -780,8 +799,12 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
       }
     };
     
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+    if (dragAbortControllerRef.current) dragAbortControllerRef.current.abort();
+    dragAbortControllerRef.current = new AbortController();
+    const { signal } = dragAbortControllerRef.current;
+    
+    window.addEventListener('pointermove', handlePointerMove, { signal });
+    window.addEventListener('pointerup', handlePointerUp, { signal });
     e.stopPropagation();
   };
 
@@ -794,6 +817,8 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
     WebkitUserSelect: 'none',
     userSelect: 'none',
   } as React.CSSProperties;
+
+  if (!tracks) return null;
 
   return (
     <TimelineUIContext.Provider value={{
@@ -843,6 +868,7 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
           <div className="absolute inset-0 flex flex-col justify-around py-0.5 pointer-events-none">
             {tracks.map((track) => {
               const inst = instrumentsConfig[track.instrumentIdx];
+              if (!inst) return null;
               return (
                 <div key={track.id} className="h-1 w-full relative">
                   {Array.from({ length: totalMeasures }).map((_, mIdx) => {
@@ -1528,7 +1554,7 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
 
           {/* ══════════ TRACK ROWS ══════════ */}
           {tracks.map(track => (
-            <TimelineTrackRow key={track.id} trackId={track.id} onNavigate={onNavigate} />
+            <TimelineTrackRow key={track.id} trackId={track.id} />
           ))}
           {/* ══════════ PLAYHEAD (Bypass React via Ref) ══════════ */}
           <TimelinePlayhead />
@@ -1726,6 +1752,5 @@ export const TimelineSequencer = React.memo<TimelineSequencerProps>(({
 }, (prev, next) => {
   return prev.isMobile === next.isMobile && 
          prev.measureWidth === next.measureWidth && 
-         prev.mestreSignals === next.mestreSignals &&
-         prev.onNavigate === next.onNavigate;
+         prev.mestreSignals === next.mestreSignals;
 });

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import * as Tone from 'tone';
 import { useSequencer } from './contexts/SequencerContext';
 import { useAudio } from './contexts/AudioContext';
@@ -25,7 +26,7 @@ import { TransportBar } from './components/TransportBar';
 import { Mixer } from './components/Mixer';
 import { RightSidebar } from './components/RightSidebar';
 import { useSequencerStore } from './stores/useSequencerStore';
-import InstrumentDetailEditor from './components/InstrumentDetailEditor';
+import { InstrumentDetailEditor } from './components/InstrumentDetailEditor';
 import { TouchStrokeSelector } from './components/TouchStrokeSelector';
 const ConsoleMixer = lazy(() => import('./components/ConsoleMixer').then(m => ({ default: m.ConsoleMixer })));
 const CircleSequencer = lazy(() => import('./components/CircleSequencer').then(m => ({ default: m.CircleSequencer })));
@@ -67,6 +68,7 @@ export default function App() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 1024);
+  const tracks = useSequencerStore(state => state.tracks);
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
   const [selectedExportTracks, setSelectedExportTracks] = useState<Set<number>>(new Set());
   const [selectedAnnexTracks, setSelectedAnnexTracks] = useState<Set<number>>(new Set());
@@ -119,7 +121,8 @@ export default function App() {
 
   // Security route protection
   useEffect(() => {
-    if (['quiz', 'dictee', 'inspecteur', 'rythmelive'].includes(viewMode) && !hasAccess('eleve')) {
+    // 🛡️ FIX (Audit): Protect 'mestre' and 'varal' views from anonymous visitors
+    if (['quiz', 'dictee', 'inspecteur', 'rythmelive', 'mestre', 'varal'].includes(viewMode) && !hasAccess('eleve')) {
       setViewMode('roda');
     }
     if (viewMode === 'studio' && !hasAccess('mestre')) {
@@ -165,11 +168,11 @@ export default function App() {
     }
 
     if (targetMestreId) {
-      const signals = await fetchMestreSignals(targetMestreId);
+      const { signals } = await fetchMestreSignals(targetMestreId);
       setMestreSignals(signals);
     } else {
       // Even if no mestre ID, we can fetch 'global' signals
-      const signals = await fetchMestreSignals('global');
+      const { signals } = await fetchMestreSignals('global');
       setMestreSignals(signals);
     }
   };
@@ -580,17 +583,25 @@ export default function App() {
   }, [audio.handleTogglePlay, sequencer.handleUndo, sequencer.handleRedo]);
 
   // Autosave
-  const isInitialMount = useRef(true);
   const [isSavedIndicatorVisible, setIsSavedIndicatorVisible] = useState<boolean>(false);
+  const lastNotesSignatureRef = useRef<string>('');
+  const lastTracksRef = useRef<any[]>([]);
+  const audioRef = useRef<any>(audio);
 
+  // Sync audio ref with the latest audio context object
+  useEffect(() => {
+    audioRef.current = audio;
+  }, [audio]);
+  
+  // Autosave to localStorage using Zustand subscription
   useEffect(() => {
     if (audio.isLoading) return;
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    const timer = setTimeout(() => {
-      const tracksCopy = sequencer.tracks.map((t: any) => ({
+    
+    let timeoutId: NodeJS.Timeout;
+
+    const performSave = () => {
+      const state = useSequencerStore.getState();
+      const tracksCopy = state.tracks.map((t: any) => ({
         ...t,
         patterns: t.patterns.map((p: any) => {
           const { vocalAudioData, ...safePattern } = p;
@@ -599,45 +610,76 @@ export default function App() {
       }));
 
       const dataToSave = {
-        bpm: sequencer.bpm,
-        timeSig: sequencer.timeSig,
-        version: 3,
-        totalMeasures: sequencer.totalMeasures,
+        version: 2,
         tracks: tracksCopy,
-        letras: sequencer.letras,
-        metadata: sequencer.metadata,
-        measureTimeSigs: sequencer.measureTimeSigs,
-        measureBpms: sequencer.measureBpms,
-        measureBpmTransitions: sequencer.measureBpmTransitions,
-        measureVols: sequencer.measureVols,
-        measureVolTransitions: sequencer.measureVolTransitions,
-        songSections: sequencer.songSections,
-        measureSignals: sequencer.measureSignals,
-        loopStartMeasure: sequencer.loopStartMeasure,
-        loopEndMeasure: sequencer.loopEndMeasure,
-        isLoopRegionActive: sequencer.isLoopRegionActive,
-        isLooping: sequencer.isLooping,
-        masterEQ: audio.masterEQ,
-        masterCompressor: audio.masterCompressor,
-        masterVol: audio.masterVol,
+        bpm: state.bpm,
+        timeSig: state.timeSig,
+        totalMeasures: state.totalMeasures,
+        measureTimeSigs: state.measureTimeSigs,
+        measureBpms: state.measureBpms,
+        measureBpmTransitions: state.measureBpmTransitions,
+        measureVols: state.measureVols,
+        measureVolTransitions: state.measureVolTransitions,
+        songSections: state.songSections,
+        measureSignals: state.measureSignals,
+        loopStartMeasure: state.loopStartMeasure,
+        loopEndMeasure: state.loopEndMeasure,
+        isLoopRegionActive: state.isLoopRegionActive,
+        isLooping: state.isLooping,
+        letras: state.letras,
+        metadata: state.metadata,
+        masterEQ: audioRef.current.masterEQ,
+        masterCompressor: audioRef.current.masterCompressor,
+        masterVol: audioRef.current.masterVol,
       };
       try {
         localStorage.setItem('o_girador_autosave', JSON.stringify(dataToSave));
-        // Clean up old hyphenated key if it exists (migration)
         localStorage.removeItem('o-girador-autosave');
         setIsSavedIndicatorVisible(true);
       } catch (err) {
         console.error('Failed to autosave state to localStorage:', err);
       }
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [
-    sequencer.tracks, sequencer.bpm, sequencer.timeSig, sequencer.totalMeasures, sequencer.letras,
-    sequencer.metadata, sequencer.measureTimeSigs, sequencer.measureBpms, sequencer.measureBpmTransitions,
-    sequencer.measureVols, sequencer.measureVolTransitions, sequencer.songSections, sequencer.measureSignals,
-    sequencer.loopStartMeasure, sequencer.loopEndMeasure, sequencer.isLoopRegionActive, sequencer.isLooping,
-    audio.masterEQ, audio.masterCompressor, audio.masterVol, audio.isLoading
-  ]);
+    };
+
+    const getNotesSignature = (tracksList: any[]) => {
+      return JSON.stringify(
+        tracksList.map((t) => ({
+          id: t.id,
+          patterns: t.patterns.map((p) => ({
+            id: p.id,
+            steps: p.steps,
+            activeSteps: p.activeSteps,
+            volumes: p.volumes,
+          })),
+        }))
+      );
+    };
+
+    // Initialize refs on mount/load
+    const currentTracks = useSequencerStore.getState().tracks;
+    lastTracksRef.current = currentTracks;
+    if (!lastNotesSignatureRef.current) {
+      lastNotesSignatureRef.current = getNotesSignature(currentTracks);
+    }
+
+    const unsub = useSequencerStore.subscribe((state) => {
+      // Early-out if tracks reference did not change (e.g. currentMeasure changed)
+      if (state.tracks === lastTracksRef.current) return;
+      lastTracksRef.current = state.tracks;
+
+      const currentSig = getNotesSignature(state.tracks);
+      if (currentSig !== lastNotesSignatureRef.current) {
+        lastNotesSignatureRef.current = currentSig;
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(performSave, 1500);
+      }
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+      unsub();
+    };
+  }, [audio.isLoading]);
 
   useEffect(() => {
     if (isSavedIndicatorVisible) {
@@ -648,18 +690,18 @@ export default function App() {
 
   // Default Instrument selection for keyboard play
   useEffect(() => {
-    if (sequencer.tracks.length > 0 && !audio.activeKeyboardInstrumentId) {
-      const firstNonVoice = sequencer.tracks.find(t => {
+    if (tracks.length > 0 && !audio.activeKeyboardInstrumentId) {
+      const firstNonVoice = tracks.find(t => {
         const conf = instrumentsConfig[t.instrumentIdx];
         return conf && conf.type !== 'voice';
       });
       if (firstNonVoice) {
         audio.setActiveKeyboardInstrumentId(instrumentsConfig[firstNonVoice.instrumentIdx].id);
       } else {
-        audio.setActiveKeyboardInstrumentId(instrumentsConfig[sequencer.tracks[0].instrumentIdx].id);
+        audio.setActiveKeyboardInstrumentId(instrumentsConfig[tracks[0].instrumentIdx].id);
       }
     }
-  }, [sequencer.tracks, audio.activeKeyboardInstrumentId]);
+  }, [tracks, audio.activeKeyboardInstrumentId]);
 
   // Touch selector Bubble states
   const [touchSelector, setTouchSelector] = useState<any | null>(null);
@@ -684,7 +726,7 @@ export default function App() {
     if (shouldResize) {
       sequencer.pushUndoState();
       sequencer.setTimeSig(selectValue);
-      audio.setCurrentStepIndex(-1);
+      audio.currentStepIndexRef.current = -1;
       audio.setCurrentMeasure(0);
       
       let targetSteps = 16;
@@ -692,7 +734,8 @@ export default function App() {
       if (selectValue === '2/4') targetSteps = 8;
       if (selectValue === '12/8') targetSteps = 24;
 
-      const resizedList = sequencer.tracks.map((t) => {
+      const tracks = useSequencerStore.getState().tracks;
+      const resizedList = tracks.map((t) => {
         const nextPatterns = t.patterns.map(p => {
           const nextStepsArr = Array(targetSteps).fill(0);
           const nextLyrics = Array(targetSteps).fill('');
@@ -724,7 +767,7 @@ export default function App() {
           patterns: nextPatterns
         };
       });
-      sequencer.setTracks(resizedList);
+      useSequencerStore.getState().setTracks(resizedList);
     }
   };
 
@@ -779,13 +822,31 @@ export default function App() {
     onSelect: (val: string) => void
   ) => {
     if ('button' in e && e.button !== 0) return;
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    
+    let clickX = 0;
+    let clickY = 0;
+    
+    const target = e.currentTarget as HTMLElement;
+    if (target && target.tagName.toLowerCase() === 'canvas') {
+      if ('clientX' in e) {
+        clickX = e.clientX;
+        clickY = e.clientY;
+      } else if ('touches' in e && e.touches.length > 0) {
+        clickX = e.touches[0].clientX;
+        clickY = e.touches[0].clientY;
+      }
+    } else {
+      const rect = target.getBoundingClientRect();
+      clickX = rect.left + rect.width / 2;
+      clickY = rect.top;
+    }
+
     setTouchSelector({
       patternId,
       stepIdx,
       instId,
-      x: rect.left + rect.width / 2,
-      y: rect.top,
+      x: clickX,
+      y: clickY,
       currentVal,
       onSelect,
       isStickyDefault: e.type !== 'touchstart'
@@ -857,30 +918,28 @@ export default function App() {
   const handleLoadLocalPreset = (name: string) => audio.handleLoadLocalPreset(name);
   const handleAddTrackInstrument = (instIdx: number) => sequencer.handleAddTrackInstrument(instIdx, useSequencerStore.getState().currentMeasure);
 
-  const handleExportTablature = () => {
+  const handleExportTablature = React.useCallback(() => {
     // By default, select all non-excluded tracks (apito, voice are excluded anyway, but we can check them or just check all)
-    const validTrackIds = sequencer.tracks
-      .filter(t => {
-        const conf = instrumentsConfig[t.instrumentIdx];
-        return conf && conf.id !== 'apito' && conf.id !== 'voice';
-      })
+    const tracks = useSequencerStore.getState().tracks;
+    const validTrackIds = tracks
+      .filter(t => instrumentsConfig[t.instrumentIdx]?.id !== 'apito' && instrumentsConfig[t.instrumentIdx]?.id !== 'voice')
       .map(t => t.id);
       
     setSelectedExportTracks(new Set(validTrackIds));
     setSelectedAnnexTracks(new Set());
     setShowExportMenu(true);
-  };
+  }, [setSelectedExportTracks, setSelectedAnnexTracks, setShowExportMenu]);
   
   const executeExport = (wantsPrint: boolean) => {
     setShowExportMenu(false);
     
     // Filter tracks based on selection
-    const tracksToExport = sequencer.tracks.filter(t => selectedExportTracks.has(t.id));
+    const tracksToExport = useSequencerStore.getState().tracks.filter(t => selectedExportTracks.has(t.id));
     
     if (wantsPrint) {
-      printTablature(tracksToExport, selectedAnnexTracks, sequencer.totalMeasures, sequencer.songSections, sequencer.metadata, sequencer.measureTimeSigs, sequencer.measureBpms, sequencer.letras);
+      printTablature(tracksToExport, selectedAnnexTracks, useSequencerStore.getState().totalMeasures, useSequencerStore.getState().songSections, sequencer.metadata, useSequencerStore.getState().measureTimeSigs, sequencer.measureBpms, sequencer.letras);
     } else {
-      exportTablatureFile(tracksToExport, selectedAnnexTracks, sequencer.totalMeasures, sequencer.songSections, sequencer.metadata, sequencer.measureTimeSigs, sequencer.measureBpms, sequencer.letras);
+      exportTablatureFile(tracksToExport, selectedAnnexTracks, useSequencerStore.getState().totalMeasures, useSequencerStore.getState().songSections, sequencer.metadata, useSequencerStore.getState().measureTimeSigs, sequencer.measureBpms, sequencer.letras);
     }
   };
 
@@ -957,6 +1016,7 @@ export default function App() {
               <CircleSequencer
                 isMobile={isMobile}
                 mestreSignals={filteredMestreSignals}
+                onStepTouchStart={handleStepTouchStart}
               />
             )}
           </>
@@ -977,8 +1037,6 @@ export default function App() {
             onExportTablature={handleExportTablature}
             onSaveCloudSection={setSectionToSave}
             onLoadCloudSection={setLoadSectionInsertMeasure}
-            onNavigate={audio.handleTimelineNavigate}
-            maxTicksRef={audio.maxTicksRef}
             mestreSignals={filteredMestreSignals}
           />
         )}
@@ -1000,13 +1058,16 @@ export default function App() {
         )}
 
         {viewMode === 'inspecteur' && (
-          <InspecteurEngine
-            lang={sequencer.lang}
-            onExit={() => setViewMode('roda')}
-            caixaParfaite={inspecteurCaixaParfaite}
-            caixaErreur={inspecteurCaixaErreur}
-            onSuccess={() => unlockBooklet('folheto_inspecteur')}
-          />
+          // 🛡️ FIX (Audit): Wrap lazy component in Suspense
+          <Suspense fallback={<div>Chargement...</div>}>
+            <InspecteurEngine
+              lang={sequencer.lang}
+              onExit={() => setViewMode('roda')}
+              caixaParfaite={inspecteurCaixaParfaite}
+              caixaErreur={inspecteurCaixaErreur}
+              onSuccess={() => unlockBooklet('folheto_inspecteur')}
+            />
+          </Suspense>
         )}
 
         {viewMode === 'mestre' && (
@@ -1028,13 +1089,16 @@ export default function App() {
         )}
 
         {viewMode === 'varal' && (
-          <VaralCordel
-            lang={sequencer.lang}
-            onExit={() => setViewMode('roda')}
-            unlockedFolhetos={unlockedFolhetos}
-            justUnlockedBookletId={justUnlockedBookletId}
-            onClearJustUnlocked={() => setJustUnlockedBookletId(null)}
-          />
+          // 🛡️ FIX (Audit): Wrap lazy component in Suspense
+          <Suspense fallback={<div>Chargement...</div>}>
+            <VaralCordel
+              lang={sequencer.lang}
+              onExit={() => setViewMode('roda')}
+              unlockedFolhetos={unlockedFolhetos}
+              justUnlockedBookletId={justUnlockedBookletId}
+              onClearJustUnlocked={() => setJustUnlockedBookletId(null)}
+            />
+          </Suspense>
         )}
 
         {viewMode === 'studio' && (
@@ -1127,11 +1191,11 @@ export default function App() {
                     type="checkbox" 
                     className="w-4 h-4 cursor-pointer accent-[var(--cordel-wood)]"
                     checked={
-                      sequencer.tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.id !== 'apito' && instrumentsConfig[t.instrumentIdx]?.id !== 'voice').length === selectedExportTracks.size
+                      tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.id !== 'apito' && instrumentsConfig[t.instrumentIdx]?.id !== 'voice').length === selectedExportTracks.size
                     }
                     onChange={(e) => {
                       if (e.target.checked) {
-                        const allIds = sequencer.tracks
+                        const allIds = tracks
                           .filter(t => instrumentsConfig[t.instrumentIdx]?.id !== 'apito' && instrumentsConfig[t.instrumentIdx]?.id !== 'voice')
                           .map(t => t.id);
                         setSelectedExportTracks(new Set(allIds));
@@ -1146,7 +1210,7 @@ export default function App() {
                   </span>
                 </label>
 
-                {sequencer.tracks.map(track => {
+                {tracks.map(track => {
                   const conf = instrumentsConfig[track.instrumentIdx];
                   if (!conf || conf.id === 'apito' || conf.id === 'voice') return null;
                   

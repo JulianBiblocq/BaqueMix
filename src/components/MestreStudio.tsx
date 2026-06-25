@@ -18,7 +18,7 @@ import {
   Settings,
   Cloud
 } from 'lucide-react';
-import { CircleSequencer } from './CircleSequencer';
+const CircleSequencer = React.lazy(() => import('./CircleSequencer').then(m => ({ default: m.CircleSequencer })));
 import { TrackGroup, Language } from '../types';
 import { useGameData } from '../contexts/GameDataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +26,13 @@ import { saveExerciseToCloud, saveProgressionToCloud, GameType, CloudExercise, f
 import { instrumentsConfig } from '../data';
 import LZString from 'lz-string';
 
+let sharedAudioCtx: AudioContext | null = null;
+const getSharedAudioCtx = () => {
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  return sharedAudioCtx;
+};
 interface MestreStudioProps {
   lang: Language;
   onExit: () => void;
@@ -85,6 +92,15 @@ export const MestreStudio: React.FC<MestreStudioProps> = ({
   const [showCopyModal, setShowCopyModal] = useState(false);
   const { userProfile } = useAuth();
   const mestreUid = userProfile?.uid || 'local';
+
+  useEffect(() => {
+    return () => {
+      // 🛡️ FIX (Audit): Reset playhead to clear highlights on unmount
+      window.dispatchEvent(new CustomEvent('o-girador-tick', { 
+        detail: { step: -1, measure: 0, maxTicks: 16 } 
+      }));
+    };
+  }, []);
 
   // Cloud States
   const [cloudSaveModalOpen, setCloudSaveModalOpen] = useState(false);
@@ -376,6 +392,50 @@ export const MestreStudio: React.FC<MestreStudioProps> = ({
   const [rythmeLivePlaybackTracks, setRythmeLivePlaybackTracks] = useState<TrackGroup[]>(() => createInitialTracks('live_play'));
   const [rythmeLiveTargetTracks, setRythmeLiveTargetTracks] = useState<TrackGroup[]>(() => createInitialSingleTrack(3, 'TARGET_CAIXA'));
 
+  const allStudioTracks = useMemo(() => [
+    ...dicteeTracks,
+    ...inspecteurPerfectTracks,
+    ...inspecteurSabotagedTracks,
+    ...rythmeLivePlaybackTracks,
+    ...rythmeLiveTargetTracks,
+    ...sablierSeqFond,
+    ...sablierSeqCible,
+    ...sablierSeqPiege1,
+    ...sablierSeqPiege2,
+    ...sablierSeqPiege3
+  ], [dicteeTracks, inspecteurPerfectTracks, inspecteurSabotagedTracks, rythmeLivePlaybackTracks, rythmeLiveTargetTracks, sablierSeqFond, sablierSeqCible, sablierSeqPiege1, sablierSeqPiege2, sablierSeqPiege3]);
+
+  useEffect(() => {
+    let previousTick: number | null = null;
+    const handleTick = (e: Event) => {
+      const customEvent = e as CustomEvent<{ step: number }>;
+      const { step } = customEvent.detail;
+      
+      if (previousTick !== null) {
+        const prevH = document.getElementsByClassName('step-active-highlight');
+        while (prevH.length > 0) prevH[0].classList.remove('step-active-highlight', 'border-[#8b2a1a]');
+        const prevV = document.getElementsByClassName('step-active-highlight-v');
+        while (prevV.length > 0) prevV[0].classList.remove('step-active-highlight-v', 'border-[#8b2a1a]');
+      }
+      
+      if (step >= 0) {
+        allStudioTracks.forEach(t => {
+          t.patterns.forEach(ptn => {
+            let el = document.getElementById(`step-cell-${t.id}-${ptn.id}-${step}`);
+            if (el) el.classList.add('step-active-highlight', 'border-[#8b2a1a]');
+            el = document.getElementById(`step-cell-v-${t.id}-${ptn.id}-${step}`);
+            if (el) el.classList.add('step-active-highlight-v', 'border-[#8b2a1a]');
+          });
+        });
+      }
+      
+      previousTick = step;
+    };
+    window.addEventListener('o-girador-tick', handleTick);
+    return () => window.removeEventListener('o-girador-tick', handleTick);
+  }, [allStudioTracks]);
+
+
   // Sync rythme live target track type with selected student instrument
   useEffect(() => {
     const instIdx = getInstrumentIdxFromName(rythmeLiveStudentInstrument);
@@ -426,7 +486,11 @@ export const MestreStudio: React.FC<MestreStudioProps> = ({
 
     const playSynthTick = (freq: number, duration: number) => {
       try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // 🛡️ FIX (Audit): Reuse shared AudioContext and resume if suspended
+        const audioCtx = getSharedAudioCtx();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
@@ -1823,7 +1887,7 @@ export const MestreStudio: React.FC<MestreStudioProps> = ({
                   lang={lang}
                   tracks={dicteeTracks}
                   isPlaying={studioPlaying}
-                  currentStepIndex={studioStep}
+
                   currentMeasure={dicteeMeasureIndex}
                   maxTicks={16}
                   timeSig="4/4"
@@ -1997,7 +2061,7 @@ export const MestreStudio: React.FC<MestreStudioProps> = ({
                     lang={lang}
                     tracks={inspecteurPerfectTracks}
                     isPlaying={studioPlaying}
-                    currentStepIndex={studioStep}
+
                     currentMeasure={inspecteurCurrentMeasure}
                     maxTicks={16}
                     timeSig="4/4"
@@ -2026,7 +2090,7 @@ export const MestreStudio: React.FC<MestreStudioProps> = ({
                     lang={lang}
                     tracks={inspecteurSabotagedTracks}
                     isPlaying={studioPlaying}
-                    currentStepIndex={studioStep}
+
                     currentMeasure={inspecteurCurrentMeasure}
                     maxTicks={16}
                     timeSig="4/4"
@@ -2365,7 +2429,7 @@ export const MestreStudio: React.FC<MestreStudioProps> = ({
                     lang={lang}
                     tracks={rythmeLivePlaybackTracks}
                     isPlaying={studioPlaying}
-                    currentStepIndex={studioStep}
+
                     currentMeasure={0}
                     maxTicks={16}
                     timeSig="4/4"
@@ -2394,7 +2458,7 @@ export const MestreStudio: React.FC<MestreStudioProps> = ({
                     lang={lang}
                     tracks={rythmeLiveTargetTracks}
                     isPlaying={studioPlaying}
-                    currentStepIndex={studioStep}
+
                     currentMeasure={0}
                     maxTicks={16}
                     timeSig="4/4"

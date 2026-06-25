@@ -18,6 +18,7 @@ import { GoogleLoginButton } from './GoogleLoginButton';
 import { useSequencer } from '../contexts/SequencerContext';
 import { useAudio } from '../contexts/AudioContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useSequencerStore } from '../stores/useSequencerStore';
 
 interface HeaderProps {
   presetFiles: string[];
@@ -68,15 +69,16 @@ const HeaderComponent: React.FC<HeaderProps> = ({
     lang,
     setLang,
     timeSig,
-    totalMeasures,
     setTotalMeasures,
-    tracksHistory,
-    tracksRedoHistory,
     handleUndo,
     handleRedo,
     handleClear,
     handleAddTrackInstrument,
   } = sequencer;
+
+  const tracksHistory = useSequencerStore(state => state.tracksHistory);
+  const tracksRedoHistory = useSequencerStore(state => state.tracksRedoHistory);
+  const totalMeasures = useSequencerStore(state => state.totalMeasures);
 
   const {
     activePresetName: preset,

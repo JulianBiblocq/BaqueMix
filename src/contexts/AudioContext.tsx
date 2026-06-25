@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useSequencerStore } from '../stores/useSequencerStore';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as Tone from 'tone';
 import { useAudioSync, audioEngine, masterVolumeNode } from '../hooks/useAudioSync';
@@ -148,6 +149,8 @@ function writeString(view: DataView, offset: number, string: string) {
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const sequencer = useSequencer();
+  const totalMeasures = useSequencerStore(state => state.totalMeasures);
+  const measureTimeSigs = useSequencerStore(state => state.measureTimeSigs);
 
   const [masterVol, setMasterVol] = useState<number>(-10);
   const [masterEQ, setMasterEQ] = useState<{ low: number; mid: number; high: number }>({ low: 0, mid: 0, high: 0 });
@@ -181,11 +184,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [isRecording]);
 
   const audioSync = useAudioSync({
-    tracks: sequencer.tracks,
     tracksRef: sequencer.tracksRef,
-    totalMeasures: sequencer.totalMeasures,
+    totalMeasures: totalMeasures,
     totalMeasuresRef: sequencer.totalMeasuresRef,
-    measureTimeSigs: sequencer.measureTimeSigs,
+    measureTimeSigs: measureTimeSigs,
     measureTimeSigsRef: sequencer.measureTimeSigsRef,
     measureBpms: sequencer.measureBpms,
     measureBpmsRef: sequencer.measureBpmsRef,
@@ -343,7 +345,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       updateRadii(loadedTracks);
 
-      sequencer.setTracks(loadedTracks);
+      useSequencerStore.getState().setTracks(loadedTracks);
       sequencer.setTotalMeasures(loadedMeasures);
       sequencer.setBpmRaw(Math.round(p.bpm || 90));
       sequencer.setTimeSig(p.timeSig || '4/4');
@@ -419,7 +421,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       audioSync.setIsSwingOn(true);
 
       // Sync refs
-      sequencer.tracksRef.current = loadedTracks;
       sequencer.totalMeasuresRef.current = loadedMeasures;
       sequencer.measureBpmsRef.current = loadedBpms;
       sequencer.measureTimeSigsRef.current = loadedTimeSigs;
@@ -428,7 +429,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       sequencer.measureVolTransitionsRef.current = loadedVolTransitions;
 
       // La compilation asynchrone est désormais automatiquement déclenchée par le changement 
-      // de références (sequencer.setTracks) via le useEffect du useAudioSync hook.
+      // de références (useSequencerStore.getState().setTracks) via le useEffect du useAudioSync hook.
 
       sequencer.measureCountRef.current = 0;
       audioSync.setCurrentMeasure(0);
@@ -452,7 +453,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     } else if (name.startsWith('local:')) {
       const id = name.replace('local:', '');
-      const { getLocalLibrary } = await import('../library');
+      // 🛡️ FIX (Audit): Use static import for getLocalLibrary to fix Vite duplicate chunk warning
       p = getLocalLibrary()[id];
       if (!p) {
         window.alert(t('invalidFile') || 'Error');
@@ -484,7 +485,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (shouldResize) {
       sequencer.pushUndoState();
       sequencer.setTimeSig(selectValue);
-      audioSync.setCurrentStepIndex(-1);
+      audioSync.currentStepIndexRef.current = -1;
       audioSync.setCurrentMeasure(0);
       
       let targetSteps = 16;
@@ -492,7 +493,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (selectValue === '2/4') targetSteps = 8;
       if (selectValue === '12/8') targetSteps = 24;
 
-      const resizedList = sequencer.tracks.map((t) => {
+      const tracks = useSequencerStore.getState().tracks;
+      const resizedList = tracks.map((t) => {
         const nextPatterns = t.patterns.map(p => {
           const nextStepsArr = Array(targetSteps).fill(0);
           const nextLyrics = Array(targetSteps).fill('');
@@ -522,13 +524,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return { ...t, patterns: nextPatterns };
       });
 
-      sequencer.setTracks(resizedList);
-      sequencer.tracksRef.current = resizedList;
+      useSequencerStore.getState().setTracks(resizedList);
     }
   };
 
   const handleSaveState = async () => {
-    const tracksCopy = JSON.parse(JSON.stringify(sequencer.tracks));
+    const tracksCopy = JSON.parse(JSON.stringify(useSequencerStore.getState().tracks));
     for (const t of tracksCopy) {
       const inst = instrumentsConfig[t.instrumentIdx];
       if (inst && inst.type === 'voice') {
@@ -546,29 +547,30 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
+    const storeState = useSequencerStore.getState();
     const dataToSave: Preset = {
       bpm: sequencer.bpm,
       timeSig: sequencer.timeSig,
       version: 3,
-      totalMeasures: sequencer.totalMeasures,
+      totalMeasures: storeState.totalMeasures,
       tracks: tracksCopy,
       letras: sequencer.letras,
       metadata: sequencer.metadata,
-      measureTimeSigs: sequencer.measureTimeSigs,
+      measureTimeSigs: storeState.measureTimeSigs,
       measureBpms: sequencer.measureBpms,
       measureBpmTransitions: sequencer.measureBpmTransitions,
       measureVols: sequencer.measureVols,
       measureVolTransitions: sequencer.measureVolTransitions,
-      songSections: sequencer.songSections,
+      songSections: storeState.songSections,
       measureSignals: sequencer.measureSignals,
       masterEQ,
       masterCompressor,
       masterVol,
       reverbType,
       isSwingOn: audioSync.isSwingOn,
-      loopStartMeasure: sequencer.loopStartMeasure,
-      loopEndMeasure: sequencer.loopEndMeasure,
-      isLoopRegionActive: sequencer.isLoopRegionActive,
+      loopStartMeasure: storeState.loopStartMeasure,
+      loopEndMeasure: storeState.loopEndMeasure,
+      isLoopRegionActive: storeState.isLoopRegionActive,
       isLooping: sequencer.isLooping
     };
     const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
@@ -623,7 +625,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const getCurrentPresetData = (): Preset => {
-    const tracksCopy = JSON.parse(JSON.stringify(sequencer.tracks));
+    const tracksCopy = JSON.parse(JSON.stringify(useSequencerStore.getState().tracks));
     tracksCopy.forEach((t: any) => t.patterns?.forEach((p: any) => { delete p.vocalAudioData; }));
 
     const cleanMetadata = sequencer.metadata ? {
@@ -631,20 +633,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       partitionImage: undefined
     } : undefined;
 
+    const storeState = useSequencerStore.getState();
+
     return {
       bpm: sequencer.bpm,
       timeSig: sequencer.timeSig,
       version: 3,
-      totalMeasures: sequencer.totalMeasures,
+      totalMeasures: storeState.totalMeasures,
       tracks: tracksCopy,
       letras: sequencer.letras,
       metadata: cleanMetadata,
-      measureTimeSigs: sequencer.measureTimeSigs,
+      measureTimeSigs: storeState.measureTimeSigs,
       measureBpms: sequencer.measureBpms,
       measureBpmTransitions: sequencer.measureBpmTransitions,
       measureVols: sequencer.measureVols,
       measureVolTransitions: sequencer.measureVolTransitions,
-      songSections: sequencer.songSections,
+      songSections: storeState.songSections,
       measureSignals: sequencer.measureSignals,
       masterEQ,
       masterCompressor,

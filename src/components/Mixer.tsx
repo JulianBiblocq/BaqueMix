@@ -24,6 +24,7 @@ import { useSequencer } from '../contexts/SequencerContext';
 import { useAudio } from '../contexts/AudioContext';
 import { meters } from '../hooks/useAudioSync';
 import { useSequencerStore } from '../stores/useSequencerStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Pattern } from '../types';
 
 interface MixerProps {
@@ -52,8 +53,6 @@ const MixerComponent: React.FC<MixerProps> = ({
   const {
     lang,
     isLeftHanded = false,
-    tracks,
-    totalMeasures,
     timeSig,
     copiedPattern,
     handleCopyPattern,
@@ -97,11 +96,26 @@ const MixerComponent: React.FC<MixerProps> = ({
     handleVocalBpmSyncToggle: onVocalBpmSyncToggle,
     activeAoVivoTrackId,
     setActiveAoVivoTrackId,
+    activeVariationsRef,
   } = sequencer;
+
+  const tracks = useSequencerStore(state => state.tracks);
+  const setTracks = useSequencerStore(state => state.setTracks);
+  const totalMeasures = useSequencerStore(state => state.totalMeasures);
+
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  useEffect(() => {
+    const handleTick = (e: Event) => {
+      const customEvent = e as CustomEvent<{ step: number }>;
+      setCurrentStepIndex(customEvent.detail.step);
+    };
+    window.addEventListener('o-girador-tick', handleTick);
+    return () => window.removeEventListener('o-girador-tick', handleTick);
+  }, []);
 
   const {
     isPlaying,
-    currentStepIndex,
     maxTicksRef,
     soloPatternPlayId,
     soloPatternVariationId,
@@ -115,7 +129,6 @@ const MixerComponent: React.FC<MixerProps> = ({
 
   const [isTracksCollapsed, setIsTracksCollapsed] = React.useState(true);
   const [editingTrackId, setEditingTrackId] = React.useState<number | null>(null);
-  const [activeId, setActiveId] = React.useState<string | null>(null);
   const [addDropOpen, setAddDropOpen] = useState(false);
   const addDropRef = useRef<HTMLDivElement>(null);
 
@@ -149,7 +162,7 @@ const MixerComponent: React.FC<MixerProps> = ({
       if (activeId.startsWith('pattern-') && overId.startsWith('pattern-')) {
         const activePatternId = parseInt(activeId.replace('pattern-', ''), 10);
         const overPatternId = parseInt(overId.replace('pattern-', ''), 10);
-        const track = tracks.find(t => t.patterns.some(p => p.id === activePatternId));
+        const track = useSequencerStore.getState().tracks.find(t => t.patterns.some(p => p.id === activePatternId));
         if (track && onReorderPatternsDnd) {
           const oldIndex = track.patterns.findIndex(p => p.id === activePatternId);
           const newIndex = track.patterns.findIndex(p => p.id === overPatternId);
@@ -165,18 +178,15 @@ const MixerComponent: React.FC<MixerProps> = ({
     }
   };
 
-  const trackIds = tracks ? tracks.map(t => `track-${t.id}`) : [];
-
-
-  if (!tracks) return null;
+  const trackIds = useMemo(() => tracks.map(t => `track-${t.id}`), [tracks]);
 
   const onTrackSelectPattern = (trackId: number, patternId: number) => {
-    sequencer.setTracks(prev => prev.map(t => t.id === trackId ? { ...t, selectedPatternId: patternId } : t));
+    setTracks(prev => prev.map(t => t.id === trackId ? { ...t, selectedPatternId: patternId } : t));
   };
 
   const onPatternAssign = (trackId: number, patternId: number, measureIdx: number, val: boolean) => {
     sequencer.pushUndoState();
-    sequencer.setTracks(prev => prev.map(t => {
+    setTracks(prev => prev.map(t => {
       if (t.id === trackId) {
         const nextPatterns = t.patterns.map(p => {
           if (p.id === patternId) {
@@ -194,7 +204,7 @@ const MixerComponent: React.FC<MixerProps> = ({
 
   const onAddPattern = (trackId: number) => {
     sequencer.pushUndoState();
-    sequencer.setTracks(prev => prev.map(t => {
+    setTracks(prev => prev.map(t => {
       if (t.id === trackId) {
         const p = t.patterns[0];
         const newPattern: Pattern = {
@@ -218,7 +228,7 @@ const MixerComponent: React.FC<MixerProps> = ({
 
   const onDeletePattern = (trackId: number, patternId: number) => {
     sequencer.pushUndoState();
-    sequencer.setTracks(prev => prev.map(t => {
+    setTracks(prev => prev.map(t => {
       if (t.id === trackId && t.patterns.length > 1) {
         const nextPatterns = t.patterns.filter(p => p.id !== patternId);
         const nextSelected = t.selectedPatternId === patternId ? nextPatterns[0].id : t.selectedPatternId;
@@ -284,10 +294,10 @@ const MixerComponent: React.FC<MixerProps> = ({
                   key={track.id}
                   lang={lang}
                   isLeftHanded={isLeftHanded}
-                  track={track}
+                  trackId={track.id}
                   index={idx}
                   totalTracks={tracks.length}
-                  meter={meters ? meters[instrumentsConfig[track.instrumentIdx].id] : undefined}
+                  meter={meters && instrumentsConfig[track.instrumentIdx] ? meters[instrumentsConfig[track.instrumentIdx].id] : undefined}
                   soloPatternPlayId={soloPatternPlayId}
                   onInstrumentChange={(val) => onInstrumentChange(track.id, val)}
                   onMuteToggle={() => onMuteToggle(track.id)}
@@ -339,17 +349,23 @@ const MixerComponent: React.FC<MixerProps> = ({
           isMobile={window.innerWidth <= 768}
           lang={lang}
           isLeftHanded={isLeftHanded}
-          track={tracks.find(t => t.id === editingTrackId)!}
+          track={useSequencerStore.getState().tracks.find(t => t.id === editingTrackId)!}
           onClose={() => setEditingTrackId(null)}
           onNavigatePrev={() => {
             const idx = tracks.findIndex(t => t.id === editingTrackId);
             if (idx > 0) setEditingTrackId(tracks[idx - 1].id);
-            else if (tracks.length > 0) setEditingTrackId(tracks[tracks.length - 1].id);
           }}
           onNavigateNext={() => {
             const idx = tracks.findIndex(t => t.id === editingTrackId);
             if (idx >= 0 && idx < tracks.length - 1) setEditingTrackId(tracks[idx + 1].id);
-            else if (tracks.length > 0) setEditingTrackId(tracks[0].id);
+          }}
+          onKeyDown={(e) => {
+            const idx = tracks.findIndex(t => t.id === editingTrackId);
+            if (e.key === 'ArrowDown') {
+              if (idx >= 0 && idx < tracks.length - 1) setEditingTrackId(tracks[idx + 1].id);
+            } else if (e.key === 'ArrowUp') {
+              if (idx > 0) setEditingTrackId(tracks[idx - 1].id);
+            }
           }}
           soloPatternPlayId={soloPatternPlayId}
           soloPatternVariationId={soloPatternVariationId}

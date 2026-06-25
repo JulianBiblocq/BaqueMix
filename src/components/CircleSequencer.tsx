@@ -18,12 +18,20 @@ interface CircleSequencerProps {
   isLeftHanded?: boolean;
   tracks?: TrackGroup[];
   isPlaying?: boolean;
-  currentStepIndex?: number;
+
   currentMeasure?: number;
   maxTicks?: number;
   timeSig?: TimeSignature;
   onTogglePlay?: () => void;
   onStepChange?: (trackId: number, patternId: number, stepIdx: number, newState: string | number, lyric?: string, note?: string) => void;
+  onStepTouchStart?: (
+    e: React.MouseEvent | React.TouchEvent,
+    patternId: number,
+    stepIdx: number,
+    instId: string,
+    currentVal: string | number,
+    onSelect: (val: string) => void
+  ) => void;
   langPromptVoiceText?: string;
   isMetroOn?: boolean;
   activeCircleIdByInst?: { [instIdx: number]: number | null };
@@ -57,17 +65,30 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
 
   const lang = props.lang !== undefined ? props.lang : sequencer.lang;
   const isLeftHanded = props.isLeftHanded !== undefined ? props.isLeftHanded : sequencer.isLeftHanded;
-  const tracks = props.tracks !== undefined ? props.tracks : sequencer.tracks;
-  const totalMeasures = props.totalMeasures !== undefined ? props.totalMeasures : sequencer.totalMeasures;
+  const tracksFromStore = useSequencerStore(state => state.tracks);
+  const tracks = props.tracks !== undefined ? props.tracks : tracksFromStore;
+  const totalMeasuresFromStore = useSequencerStore(state => state.totalMeasures);
+  const totalMeasures = props.totalMeasures !== undefined ? props.totalMeasures : totalMeasuresFromStore;
   const bpm = props.bpm !== undefined ? props.bpm : sequencer.bpm;
   const measureBpms = props.measureBpms !== undefined ? props.measureBpms : sequencer.measureBpms;
   const measureVols = props.measureVols !== undefined ? props.measureVols : sequencer.measureVols;
   const measureSignals = props.measureSignals !== undefined ? props.measureSignals : (sequencer.measureSignals || []);
-  const songSections = props.songSections !== undefined ? props.songSections : (sequencer.songSections || []);
+  const songSectionsFromStore = useSequencerStore(state => state.songSections);
+  const songSections = props.songSections !== undefined ? props.songSections : (songSectionsFromStore || []);
 
   const isPlaying = props.isPlaying !== undefined ? props.isPlaying : audio.isPlaying;
-  const currentStepIndex = props.currentStepIndex !== undefined ? props.currentStepIndex : audio.currentStepIndex;
+  const currentStepRef = useRef<number>(-1);
+
+  useEffect(() => {
+    const handleTick = (e: Event) => {
+      const customEvent = e as CustomEvent<{ step: number }>;
+      currentStepRef.current = customEvent.detail.step;
+    };
+    window.addEventListener('o-girador-tick', handleTick);
+    return () => window.removeEventListener('o-girador-tick', handleTick);
+  }, []);
   const globalCurrentMeasure = useSequencerStore(state => state.currentMeasure);
+  const measureTimeSigs = useSequencerStore(state => state.measureTimeSigs);
   const currentMeasure = props.currentMeasure !== undefined ? props.currentMeasure : globalCurrentMeasure;
   const isMetroOn = props.isMetroOn !== undefined ? props.isMetroOn : audio.isMetroOn;
   const soloPatternPlayId = props.soloPatternPlayId !== undefined ? props.soloPatternPlayId : audio.soloPatternPlayId;
@@ -78,11 +99,12 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
   const mestreSignals = props.mestreSignals !== undefined ? props.mestreSignals : [];
 
   const maxTicks = props.maxTicks !== undefined ? props.maxTicks : audio.maxTicksRef.current;
-  const timeSig = props.timeSig !== undefined ? props.timeSig : (sequencer.measureTimeSigs[currentMeasure] || sequencer.timeSig);
+  const timeSig = props.timeSig !== undefined ? props.timeSig : (measureTimeSigs[currentMeasure] || sequencer.timeSig);
 
   const onTogglePlay = props.onTogglePlay !== undefined ? props.onTogglePlay : audio.handleTogglePlay;
   const onNavigateMeasure = props.onNavigateMeasure !== undefined ? props.onNavigateMeasure : ((mIdx: number) => audio.handleTimelineNavigate(mIdx, 0, 16));
   const onStepChange = props.onStepChange !== undefined ? props.onStepChange : sequencer.handleStepValueSelectAndToggle;
+  const onStepTouchStart = props.onStepTouchStart;
 
   const t = (key: string) => (i18n[lang] as any)[key] || key;
   const langPromptVoiceText = props.langPromptVoiceText !== undefined ? props.langPromptVoiceText : t('promptVoice');
@@ -300,7 +322,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
   const stateRef = useRef({
     tracks,
     isPlaying,
-    currentStepIndex,
+    currentStepIndex: currentStepRef.current,
     currentMeasure,
     maxTicks,
     timeSig,
@@ -326,7 +348,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
     stateRef.current = {
       tracks,
       isPlaying,
-      currentStepIndex,
+      currentStepIndex: currentStepRef.current,
       currentMeasure,
       maxTicks,
       timeSig,
@@ -347,7 +369,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
       songSections,
       isLeftHanded,
     };
-  }, [tracks, isPlaying, currentStepIndex, currentMeasure, maxTicks, timeSig, lang, isMetroOn, activeCircleIdByInst, totalMeasures, activePatternIdByTrack, hitTriggersRef, bpm, measureBpms, measureVols, isMobile, soloPatternPlayId, measureSignals, rhythmSignals, mestreSignals, songSections, isLeftHanded]);
+  }, [tracks, isPlaying, currentMeasure, maxTicks, timeSig, lang, isMetroOn, activeCircleIdByInst, totalMeasures, activePatternIdByTrack, hitTriggersRef, bpm, measureBpms, measureVols, isMobile, soloPatternPlayId, measureSignals, rhythmSignals, mestreSignals, songSections, isLeftHanded]);
 
   // Handle click on canvas
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -377,6 +399,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
     // Detect click on any track
     currentTracks.forEach((track) => {
       const inst = instrumentsConfig[track.instrumentIdx];
+      if (!inst) return null;
       if (track.isHidden || inst?.id === 'apito') return;
       
       const hasSolo = currentTracks.some(t => t.isSolo);
@@ -402,6 +425,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
           // Inside target step hitbox
           if (angleDiff < stepAngleSize / 2) {
             const inst = instrumentsConfig[track.instrumentIdx];
+      if (!inst) return null;
             const currentVal = activePattern.activeSteps[i];
 
             if (inst.type === 'voice') {
@@ -439,10 +463,23 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
                 }
               }
             } else {
-              const visualVal = getVisualStrokeSymbol(currentVal, stateRef.current.isLeftHanded || false, inst.id);
-              const nextVisualVal = getNextStepValue(inst.id, inst.type, visualVal);
-              const nextSemanticVal = getVisualStrokeSymbol(nextVisualVal, stateRef.current.isLeftHanded || false, inst.id);
-              onStepChange(track.id, activePattern.id, i, nextSemanticVal);
+              if (onStepTouchStart) {
+                onStepTouchStart(
+                  e,
+                  activePattern.id,
+                  i,
+                  inst.id,
+                  currentVal,
+                  (nextVal) => {
+                    onStepChange(track.id, activePattern.id, i, nextVal);
+                  }
+                );
+              } else {
+                const visualVal = getVisualStrokeSymbol(currentVal, stateRef.current.isLeftHanded || false, inst.id);
+                const nextVisualVal = getNextStepValue(inst.id, inst.type, visualVal);
+                const nextSemanticVal = getVisualStrokeSymbol(nextVisualVal, stateRef.current.isLeftHanded || false, inst.id);
+                onStepChange(track.id, activePattern.id, i, nextSemanticVal);
+              }
             }
             return;
           }
@@ -551,6 +588,7 @@ export const CircleSequencer: React.FC<CircleSequencerProps> = (props) => {
             const track = currentTracks.find(t => t.id === hit.trackId);
           if (track && !track.isHidden && !track.isMute) {
             const inst = instrumentsConfig[track.instrumentIdx];
+      if (!inst) return null;
             const color = inst.colors[hit.state as any] || themeText;
             const activePatternId = getLiveActivePatternId(track);
             if (activePatternId === null) return;

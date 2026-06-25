@@ -545,6 +545,8 @@ export class AudioEngine {
         activeGain.gain.setValueAtTime(activeGain.gain.value, time);
         activeGain.gain.linearRampToValueAtTime(0, time + fadeTime);
         activeNode.stop(time + fadeTime);
+        // 🛡️ FIX (Audit): Explicitly disconnect node to allow garbage collection
+        try { activeNode.disconnect(); } catch (_) {}
         
         // Schedule disconnect after fade out
         setTimeout(() => {
@@ -566,5 +568,36 @@ export class AudioEngine {
     for (const key of keys) {
       this.stopBarulho(key);
     }
+  }
+
+  /**
+   * Cleans up all resources, stops the high-precision worker, and closes the AudioContext
+   */
+  public dispose(): void {
+    this.stopAllBarulho();
+    
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
+    }
+    
+    if (this.fallbackTimerId) {
+      window.clearInterval(this.fallbackTimerId);
+      this.fallbackTimerId = null;
+    }
+    
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      try {
+        this.audioContext.close();
+      } catch (e) {
+        console.warn("Failed to close AudioContext during dispose:", e);
+      }
+    }
+    
+    this.bufferPool.clear();
+    this.activeBarulhoNodes.clear();
+    this.activeBarulhoGains.clear();
+    this.scheduledHits.clear();
+    this.gainNodePools.clear();
   }
 }

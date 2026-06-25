@@ -11,7 +11,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { TrackGroup, TimeSignature, SongSection, Pattern, PresetMetadata, Language } from '../types';
-import { instrumentsConfig, getMarkers, getVisualStrokeSymbol } from '../data';
+import { instrumentsConfig, getMarkers, getDefaultTrackPan, getVisualStrokeSymbol } from '../data';
 import { audioEngine } from './useAudioSync';
 import { useAuth } from '../contexts/AuthContext';
 import { useSequencerStore } from '../stores/useSequencerStore';
@@ -20,19 +20,25 @@ export function useSequencerState() {
   const { userProfile, updateUserPreference } = useAuth();
   const setTracks = (useSequencerStore as any)(state => state.setTracks) as any;
   const [bpm, setBpm] = useState<number>(83);
+  const totalMeasures = useSequencerStore(state => state.totalMeasures);
   const setTotalMeasures = (useSequencerStore as any)(state => state.setTotalMeasures) as any;
   const [timeSig, setTimeSig] = useState<TimeSignature>('4/4');
 
+  const measureTimeSigs = useSequencerStore(state => state.measureTimeSigs);
   const setMeasureTimeSigs = (useSequencerStore as any)(state => state.setMeasureTimeSigs) as any;
   const [measureBpms, setMeasureBpms] = useState<number[]>(() => Array(8).fill(83));
   const [measureBpmTransitions, setMeasureBpmTransitions] = useState<('immediate' | 'ramp')[]>(() => Array(8).fill('immediate'));
   const [measureVols, setMeasureVols] = useState<number[]>(() => Array(8).fill(100));
   const [measureVolTransitions, setMeasureVolTransitions] = useState<('immediate' | 'ramp')[]>(() => Array(8).fill('immediate'));
+  const songSections = useSequencerStore(state => state.songSections);
   const setSongSections = (useSequencerStore as any)(state => state.setSongSections) as any;
   const [measureSignals, setMeasureSignals] = useState<(string | null)[]>(() => Array(8).fill(null));
 
+  const loopStartMeasure = useSequencerStore(state => state.loopStartMeasure);
   const setLoopStartMeasure = (useSequencerStore as any)(state => state.setLoopStartMeasure) as any;
+  const loopEndMeasure = useSequencerStore(state => state.loopEndMeasure);
   const setLoopEndMeasure = (useSequencerStore as any)(state => state.setLoopEndMeasure) as any;
+  const isLoopRegionActive = useSequencerStore(state => state.isLoopRegionActive);
   const setIsLoopRegionActive = (useSequencerStore as any)(state => state.setIsLoopRegionActive) as any;
   const [isLooping, setIsLooping] = useState<boolean>(true);
 
@@ -115,41 +121,36 @@ export function useSequencerState() {
 
   // Keep refs in sync
   useEffect(() => {
-    // 🛡️ FIX (Audit): Subscribe to Zustand store instead of using reactive hooks to avoid re-renders
-    const unsub = useSequencerStore.subscribe(state => {
-      totalMeasuresRef.current = state.totalMeasures;
-      measureTimeSigsRef.current = state.measureTimeSigs;
-      songSectionsRef.current = state.songSections;
-      loopStartRef.current = state.loopStartMeasure;
-      loopEndRef.current = state.loopEndMeasure;
-      isLoopRegionActiveRef.current = state.isLoopRegionActive;
-    });
-    // Init refs
-    const state = useSequencerStore.getState();
-    totalMeasuresRef.current = state.totalMeasures;
-    measureTimeSigsRef.current = state.measureTimeSigs;
-    songSectionsRef.current = state.songSections;
-    loopStartRef.current = state.loopStartMeasure;
-    loopEndRef.current = state.loopEndMeasure;
-    isLoopRegionActiveRef.current = state.isLoopRegionActive;
-
+    tracksRef.current = tracks;
+    totalMeasuresRef.current = totalMeasures;
+    measureTimeSigsRef.current = measureTimeSigs;
     measureBpmsRef.current = measureBpms;
     measureBpmTransitionsRef.current = measureBpmTransitions;
     measureVolsRef.current = measureVols;
     measureVolTransitionsRef.current = measureVolTransitions;
+    songSectionsRef.current = songSections;
     measureSignalsRef.current = measureSignals;
+    loopStartRef.current = loopStartMeasure;
+    loopEndRef.current = loopEndMeasure;
+    isLoopRegionActiveRef.current = isLoopRegionActive;
     isLoopingRef.current = isLooping;
     tracksHistoryRef.current = tracksHistory;
     tracksRedoHistoryRef.current = tracksRedoHistory;
     songStructureHistoryRef.current = songStructureHistory;
     songStructureRedoHistoryRef.current = songStructureRedoHistory;
-    return unsub;
   }, [
+    tracks,
+    totalMeasures,
+    measureTimeSigs,
     measureBpms,
     measureBpmTransitions,
     measureVols,
     measureVolTransitions,
+    songSections,
     measureSignals,
+    loopStartMeasure,
+    loopEndMeasure,
+    isLoopRegionActive,
     isLooping,
     activeVariationsRef,
     tracksRef,
@@ -159,8 +160,7 @@ export function useSequencerState() {
 
   // Adjust measure arrays length when totalMeasures changes
   useEffect(() => {
-    const totalMeasures = totalMeasuresRef.current;
-    setMeasureTimeSigs((prev: any) => {
+    setMeasureTimeSigs(prev => {
       const arr = [...prev];
       if (arr.length === totalMeasures) return prev;
       while (arr.length < totalMeasures) {
@@ -231,34 +231,30 @@ export function useSequencerState() {
       }
       return arr;
     });
-  }, [timeSig, bpm]); // removed totalMeasures from deps since it's now tracked via ref/store
+  }, [totalMeasures, timeSig, bpm]);
 
   // Enforce Apito is always the last track in the list
   useEffect(() => {
-    const unsub = useSequencerStore.subscribe((state) => {
-      tracksRef.current = state.tracks;
-
-      let needsSort = false;
-      let seenApito = false;
-      for (const t of state.tracks) {
-        const isApito = instrumentsConfig[t.instrumentIdx]?.id === 'apito';
-        if (isApito) {
-          seenApito = true;
-        } else if (seenApito) {
-          needsSort = true;
-          break;
-        }
+    let needsSort = false;
+    let seenApito = false;
+    for (const t of tracks) {
+      const isApito = instrumentsConfig[t.instrumentIdx]?.id === 'apito';
+      if (isApito) {
+        seenApito = true;
+      } else if (seenApito) {
+        // We saw a non-apito AFTER an apito. It needs sorting!
+        needsSort = true;
+        break;
       }
-      
-      if (needsSort) {
-        const apitos = state.tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.id === 'apito');
-        const others = state.tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.id !== 'apito');
-        const sorted = [...others, ...apitos];
-        setTracks(applyRadii(sorted));
-      }
-    });
-    return unsub;
-  }, []);
+    }
+    
+    if (needsSort) {
+      const apitos = tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.id === 'apito');
+      const others = tracks.filter(t => instrumentsConfig[t.instrumentIdx]?.id !== 'apito');
+      const sorted = [...others, ...apitos];
+      setTracks(applyRadii(sorted));
+    }
+  }, [tracks]);
 
 
   const pushUndoState = (customTracksState?: TrackGroup[]) => {
@@ -409,7 +405,6 @@ export function useSequencerState() {
 
   const handleTrackInstrumentIdxChange = (id: number, targetInstIdx: number) => {
     pushUndoState();
-    const tracks = useSequencerStore.getState().tracks;
     const updated = tracks.map((t) => {
       if (t.id === id) {
         return {
@@ -780,7 +775,7 @@ export function useSequencerState() {
       if (t.id === trackId) {
         const nextPatterns = t.patterns.map(p => {
           if (p.id === patternId) {
-            const currentAllow = p.measureAllowVariations ? [...p.measureAllowVariations] : Array(totalMeasuresRef.current).fill(false);
+            const currentAllow = p.measureAllowVariations ? [...p.measureAllowVariations] : Array(totalMeasures).fill(false);
             currentAllow[measureIdx] = val;
             return { ...p, measureAllowVariations: currentAllow };
           }
@@ -794,11 +789,9 @@ export function useSequencerState() {
 
   const handleMeasureTimeSigChange = (measureIdx: number, val: TimeSignature) => {
     pushUndoState();
-    setMeasureTimeSigs((prev: any) => {
+    setMeasureTimeSigs(prev => {
       const arr = [...prev];
       arr[measureIdx] = val;
-      measureTimeSigsRef.current = arr;
-      useSequencerStore.setState({ measureTimeSigs: arr });
       return arr;
     });
   };
@@ -808,8 +801,6 @@ export function useSequencerState() {
     setMeasureBpms(prev => {
       const arr = [...prev];
       arr[measureIdx] = val;
-      measureBpmsRef.current = arr;
-      useSequencerStore.setState({ measureBpms: arr });
       return arr;
     });
   };
@@ -819,8 +810,6 @@ export function useSequencerState() {
     setMeasureBpmTransitions(prev => {
       const arr = [...prev];
       arr[measureIdx] = val;
-      measureBpmTransitionsRef.current = arr;
-      useSequencerStore.setState({ measureBpmTransitions: arr });
       return arr;
     });
   };
@@ -830,8 +819,6 @@ export function useSequencerState() {
     setMeasureVols(prev => {
       const arr = [...prev];
       arr[measureIdx] = val;
-      measureVolsRef.current = arr;
-      useSequencerStore.setState({ measureVols: arr });
       return arr;
     });
   };
@@ -852,8 +839,8 @@ export function useSequencerState() {
 
   const handleDeleteMeasure = (measureIdx: number) => {
     pushUndoState();
-    if (totalMeasuresRef.current <= 1) return;
-    setTotalMeasures((prev: number) => prev - 1);
+    if (totalMeasures <= 1) return;
+    setTotalMeasures(prev => prev - 1);
     setMeasureTimeSigs(prev => prev.filter((_, idx) => idx !== measureIdx));
     setMeasureBpms(prev => prev.filter((_, idx) => idx !== measureIdx));
     setMeasureBpmTransitions(prev => prev.filter((_, idx) => idx !== measureIdx));
@@ -871,8 +858,8 @@ export function useSequencerState() {
 
   const handleInsertMeasure = (measureIdx: number) => {
     pushUndoState();
-    setTotalMeasures((prev: number) => prev + 1);
-    const refSig = measureTimeSigsRef.current[measureIdx] || timeSig;
+    setTotalMeasures(prev => prev + 1);
+    const refSig = measureTimeSigs[measureIdx] || timeSig;
     const refBpm = measureBpms[measureIdx] || bpm;
     const refVol = measureVols[measureIdx] !== undefined ? measureVols[measureIdx] : 100;
 
@@ -920,7 +907,7 @@ export function useSequencerState() {
     pushUndoState();
     setLoopStartMeasure(measureIdx);
     setIsLoopRegionActive(true);
-    if (loopEndRef.current !== null && measureIdx > loopEndRef.current) {
+    if (loopEndMeasure !== null && measureIdx > loopEndMeasure) {
       setLoopEndMeasure(measureIdx);
     }
   };
@@ -929,7 +916,7 @@ export function useSequencerState() {
     pushUndoState();
     setLoopEndMeasure(measureIdx);
     setIsLoopRegionActive(true);
-    if (loopStartRef.current !== null && measureIdx < loopStartRef.current) {
+    if (loopStartMeasure !== null && measureIdx < loopStartMeasure) {
       setLoopStartMeasure(measureIdx);
     }
   };
@@ -992,7 +979,7 @@ export function useSequencerState() {
             activeSteps: [...patternToPaste.activeSteps],
             lyrics: [...patternToPaste.lyrics],
             notes: [...patternToPaste.notes],
-            measureAssignments: Array(totalMeasuresRef.current).fill(false),
+            measureAssignments: Array(totalMeasures).fill(false),
             volumes: patternToPaste.volumes ? [...patternToPaste.volumes] : Array(firstP.steps).fill(80),
             decays: patternToPaste.decays ? [...patternToPaste.decays] : Array(firstP.steps).fill(100),
             microtimings: patternToPaste.microtimings ? [...patternToPaste.microtimings] : Array(firstP.steps).fill(0),
@@ -1107,7 +1094,6 @@ export function useSequencerState() {
     const length = section.endMeasure - section.startMeasure + 1;
     const assignments: { [trackId: number]: (number | null)[] } = {};
 
-    const tracks = useSequencerStore.getState().tracks;
     tracks.forEach(t => {
       const arr: (number | null)[] = [];
       for (let m = section.startMeasure; m <= section.endMeasure; m++) {
@@ -1134,7 +1120,7 @@ export function useSequencerState() {
     const len = copiedSection.length;
     const end = destStartMeasure + len - 1;
 
-    if (end >= totalMeasuresRef.current) {
+    if (end >= totalMeasures) {
       setTotalMeasures(end + 1);
     }
 
@@ -1167,7 +1153,6 @@ export function useSequencerState() {
     optNote?: string
   ) => {
     pushUndoState();
-    const tracks = useSequencerStore.getState().tracks;
     setTracks(tracks.map((t) => {
       if (t.id === trackId) {
         const nextPatterns = t.patterns.map(p => {
@@ -1215,7 +1200,6 @@ export function useSequencerState() {
   };
 
   const handleVoiceSylChange = (trackId: number, patternId: number, stepIdx: number, val: string) => {
-    const tracks = useSequencerStore.getState().tracks;
     const activePattern = tracks.find(t => t.id === trackId)?.patterns.find(p => p.id === patternId);
     const prevVal = activePattern?.lyrics?.[stepIdx] || '';
     if (prevVal === '' && val !== '') {
@@ -1248,7 +1232,6 @@ export function useSequencerState() {
   };
 
   const handleVoiceNoteChange = (trackId: number, patternId: number, stepIdx: number, val: string) => {
-    const tracks = useSequencerStore.getState().tracks;
     const activePattern = tracks.find(t => t.id === trackId)?.patterns.find(p => p.id === patternId);
     const prevVal = activePattern?.notes?.[stepIdx] || '';
     if (prevVal === '' && val !== '') {
@@ -1295,7 +1278,6 @@ export function useSequencerState() {
   };
 
   const handleExtractLyrics = () => {
-    const tracks = useSequencerStore.getState().tracks;
     const voiceTracks = tracks.filter((t) => instrumentsConfig[t.instrumentIdx].type === 'voice');
     const htmlArr: string[] = [];
 
@@ -1515,7 +1497,7 @@ export function useSequencerState() {
     pushUndoState();
     setTracks([]);
     setLetras('');
-    setMeasureSignals(Array(totalMeasuresRef.current).fill(null));
+    setMeasureSignals(Array(totalMeasures).fill(null));
     setSongSections([]);
     setActiveAoVivoTrackId(null);
     setMetadata({ toada: '', nacao: '', compositor: '', ritmo: '', youtubeUrl: '', partitionImage: undefined, rhythmSignals: [] });
@@ -1644,7 +1626,7 @@ export function useSequencerState() {
           activeSteps: Array(16).fill(0),
           lyrics: Array(16).fill(''),
           notes: Array(16).fill(''),
-          measureAssignments: Array(totalMeasuresRef.current).fill(false),
+          measureAssignments: Array(totalMeasures).fill(false),
           volumes: Array(16).fill(80),
           decays: Array(16).fill(100),
           microtimings: Array(16).fill(0),
@@ -1811,18 +1793,18 @@ export function useSequencerState() {
     bpm, 
     setBpm: handleGlobalBpmChange as React.Dispatch<React.SetStateAction<number>>,
     setBpmRaw: setBpm as React.Dispatch<React.SetStateAction<number>>,
-    setTotalMeasures, totalMeasuresRef,
+    totalMeasures, setTotalMeasures, totalMeasuresRef,
     timeSig, setTimeSig,
-    setMeasureTimeSigs, measureTimeSigsRef,
+    measureTimeSigs, setMeasureTimeSigs, measureTimeSigsRef,
     measureBpms, setMeasureBpms, measureBpmsRef,
     measureBpmTransitions, setMeasureBpmTransitions, measureBpmTransitionsRef,
     measureVols, setMeasureVols, measureVolsRef,
     measureVolTransitions, setMeasureVolTransitions, measureVolTransitionsRef,
-    setSongSections, songSectionsRef,
+    songSections, setSongSections, songSectionsRef,
     measureSignals, setMeasureSignals, measureSignalsRef,
-    setLoopStartMeasure, loopStartRef,
-    setLoopEndMeasure, loopEndRef,
-    setIsLoopRegionActive, isLoopRegionActiveRef,
+    loopStartMeasure, setLoopStartMeasure, loopStartRef,
+    loopEndMeasure, setLoopEndMeasure, loopEndRef,
+    isLoopRegionActive, setIsLoopRegionActive, isLoopRegionActiveRef,
     isLooping, setIsLooping, isLoopingRef,
     letras, setLetras,
     metadata, setMetadata,

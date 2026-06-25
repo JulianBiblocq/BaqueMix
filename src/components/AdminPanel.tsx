@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth, UserProfile, UserRole } from '../contexts/AuthContext';
 import { Shield, ShieldAlert, CheckCircle, Search, User as UserIcon } from 'lucide-react';
@@ -17,7 +17,8 @@ export const AdminPanel: React.FC = () => {
   const fetchUsers = async () => {
     try {
       const usersCollection = collection(db, 'users');
-      const usersSnapshot = await getDocs(usersCollection);
+      const q = query(usersCollection, limit(100));
+      const usersSnapshot = await getDocs(q);
       const usersList = usersSnapshot.docs.map(doc => doc.data() as UserProfile);
       // Sort by creation date descending
       usersList.sort((a, b) => b.createdAt - a.createdAt);

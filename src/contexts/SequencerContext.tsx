@@ -8,6 +8,8 @@ import { useSequencerState } from '../hooks/useSequencerState';
 import { useVocalRecorder } from '../hooks/useVocalRecorder';
 import { audioEngine, channels, masterVolumeNode } from '../hooks/useAudioSync';
 
+import { useSequencerStore } from '../stores/useSequencerStore';
+
 export interface CustomDialogState {
   type: 'alert' | 'confirm' | 'prompt';
   message: string;
@@ -36,6 +38,7 @@ const SequencerContext = createContext<SequencerContextType | undefined>(undefin
 
 export const SequencerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const sequencerState = useSequencerState();
+  const totalMeasures = useSequencerStore(state => state.totalMeasures);
 
   // Shared audio and transport Refs to resolve hook circular dependency
   const isPlayingRef = useRef<boolean>(false);
@@ -66,12 +69,10 @@ export const SequencerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const vocalRecorder = useVocalRecorder({
-    tracks: sequencerState.tracks,
-    setTracks: sequencerState.setTracks,
     pushUndoState: sequencerState.pushUndoState,
     bpm: sequencerState.bpm,
     measureBpms: sequencerState.measureBpms,
-    totalMeasures: sequencerState.totalMeasures,
+    totalMeasures: totalMeasures,
     audioEngine,
     setIsPlaying: (val) => setIsPlayingRef.current(val),
     channels,

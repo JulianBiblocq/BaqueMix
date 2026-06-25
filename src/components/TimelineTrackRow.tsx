@@ -7,7 +7,6 @@ import { TimelineUIContext } from '../contexts/TimelineUIContext';
 
 interface TimelineTrackRowProps {
   trackId: number;
-  onNavigate?: (measureIdx: number, stepIdx: number) => void;
 }
 
 function getDisplayVal(val: string | number) {
@@ -15,11 +14,9 @@ function getDisplayVal(val: string | number) {
   return String(val);
 }
 
-const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId, onNavigate }) => {
+const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId }) => {
   // 1. Contextes UI (injectés par TimelineSequencer pour éviter les props)
   const uiContext = useContext(TimelineUIContext);
-  if (!uiContext) return null;
-  const { MEASURE_W, HEADER_W, totalContentW, isMobile, isMacro, isMinZoom, isPanningActive, lang } = uiContext;
 
   // 2. Audio Context (Supprimé pour préserver le React.memo)
 
@@ -41,9 +38,13 @@ const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId, o
   const onPatternAssignForMeasure = useSequencerStore(state => state.handleTimelinePatternAssign);
   const onPatternVariationToggleForMeasure = useSequencerStore(state => state.handleTimelinePatternVariationToggle);
 
+  if (!uiContext) return null;
+  const { MEASURE_W, HEADER_W, totalContentW, isMobile, isMacro, isMinZoom, isPanningActive, lang } = uiContext;
+
   if (!track) return null;
 
   const inst = instrumentsConfig[track.instrumentIdx];
+  if (!inst) return null;
   const isMutedBySolo = hasSolo && !track.isSolo;
   const canPlay = track.isSolo || (!track.isMute && !isMutedBySolo);
 
@@ -138,16 +139,20 @@ const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId, o
             }}
             onClick={(e) => {
               if (isPanningActive) return; // Prevent navigations when panning
-              if (onNavigate) {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const ratio = Math.max(0, Math.min(1, clickX / MEASURE_W));
-                onNavigate(mIdx, Math.floor(ratio * steps));
-              }
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              const ratio = Math.max(0, Math.min(1, clickX / MEASURE_W));
+              const stepIdx = Math.floor(ratio * steps);
+              window.dispatchEvent(
+                new CustomEvent('o-girador-timeline-nav', {
+                  detail: { mIdx, sIdx: stepIdx }
+                })
+              );
             }}
           >
             {/* Cell content (Detailed View) */}
-            <div className="cell-detailed w-full h-full relative">
+            {!isMacro && (
+              <div className="cell-detailed w-full h-full relative">
               {/* Pattern selector */}
               <div
                 className={`absolute top-1 left-1 z-20 ${isPanningActive ? 'pointer-events-none opacity-65' : ''}`}
@@ -287,9 +292,11 @@ const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId, o
                 </div>
               )}
             </div>
+            )}
 
             {/* Cell content (Macro View) */}
-            <div className="cell-macro w-full h-full p-1">
+            {isMacro && (
+              <div className="cell-macro w-full h-full p-1">
               {!activePattern ? (
                 /* Faded silence hatched block */
                 <div
@@ -354,6 +361,7 @@ const TimelineTrackRowComponent: React.FC<TimelineTrackRowProps> = ({ trackId, o
                 </div>
               )}
             </div>
+            )}
           </div>
         );
       })}

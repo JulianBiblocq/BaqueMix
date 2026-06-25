@@ -13,9 +13,6 @@ import { instrumentsConfig, getMaxTicks, getMarkers } from '../data';
 import { ScheduledNote } from '../workers/audioCompiler.worker';
 
 // Module scope audio engines and nodes to avoid duplicate instantiations on React re-renders
-export let bMetroClick: Tone.Synth | null = null;
-export let metroClaveClick: Tone.MembraneSynth | null = null;
-export let metroCowbellClick: Tone.MetalSynth | null = null;
 export let metroChannel: Tone.Channel | null = null;
 export const channels: { [id: string]: Tone.Channel } = {};
 export const meters: { [id: string]: Tone.Meter } = {};
@@ -222,7 +219,6 @@ function buildDynamicMeasureSchedule(
 }
 
 interface UseAudioSyncProps {
-  tracks: TrackGroup[];
   tracksRef: React.MutableRefObject<TrackGroup[]>;
   totalMeasures: number;
   totalMeasuresRef: React.MutableRefObject<number>;
@@ -272,7 +268,6 @@ interface UseAudioSyncProps {
 }
 
 export function useAudioSync({
-  tracks,
   tracksRef,
   totalMeasures,
   totalMeasuresRef,
@@ -317,6 +312,22 @@ export function useAudioSync({
   masterCompressor,
   reverbType
 }: UseAudioSyncProps) {
+  // 🛡️ FIX (Audit): Rapatrie instanciation à l'intérieur du hook React via des useRef
+  const bMetroClickRef = useRef<Tone.Synth | null>(null);
+  const metroClaveClickRef = useRef<Tone.MembraneSynth | null>(null);
+  const metroCowbellClickRef = useRef<Tone.MetalSynth | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // 🛡️ FIX (Audit): Cleanup orphan synths to prevent memory leaks
+      try {
+        if (bMetroClickRef.current) { bMetroClickRef.current.dispose(); bMetroClickRef.current = null; }
+        if (metroClaveClickRef.current) { metroClaveClickRef.current.dispose(); metroClaveClickRef.current = null; }
+        if (metroCowbellClickRef.current) { metroCowbellClickRef.current.dispose(); metroCowbellClickRef.current = null; }
+      } catch (_) {}
+    };
+  }, []);
+
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
@@ -324,7 +335,6 @@ export function useAudioSync({
   const isRecordingRef = useRef(false);
   const currentMeasure = useSequencerStore(state => state.currentMeasure);
   const setCurrentMeasure = (useSequencerStore as any)(state => state.setCurrentMeasure) as any;
-  const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
 
   const [isMetroOn, setIsMetroOn] = useState<boolean>(false);
   const [metroVolume, setMetroVolume] = useState<number>(80);
@@ -441,6 +451,7 @@ export function useAudioSync({
         reverbNode.dampening = config.dampening;
         
         // Update all existing track sends instantly when eco mode toggles
+        const tracks = useSequencerStore.getState().tracks;
         tracks.forEach((t) => {
           const inst = instrumentsConfig[t.instrumentIdx];
           if (inst && reverbSends[inst.id]) {
@@ -452,8 +463,18 @@ export function useAudioSync({
 
     applyReverb();
     window.addEventListener('eco-mode-changed', applyReverb);
-    return () => window.removeEventListener('eco-mode-changed', applyReverb);
-  }, [reverbType, tracks]);
+
+    const unsub = useSequencerStore.subscribe((state, prevState) => {
+      if (state.tracks !== prevState.tracks) {
+        applyReverb();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('eco-mode-changed', applyReverb);
+      unsub();
+    };
+  }, [reverbType]);
 
   // Sync Transport BPM
   useEffect(() => {
@@ -469,9 +490,61 @@ export function useAudioSync({
     }
   }, [isPlaying]);
 
-  const tracksMusicalSignature = useMemo(() => {
-    return JSON.stringify(
-      tracks.map(t => ({
+  // Instancier le Web Worker de compilation une seule fois au montage du composant
+  useEffect(() => {
+    compilerWorkerRef.current = new Worker(
+      new URL('../workers/audioCompiler.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+
+    return () => {
+      if (compilerWorkerRef.current) {
+        compilerWorkerRef.current.terminate();
+        compilerWorkerRef.current = null;
+        setIsCompiling(false);
+      }
+    };
+  }, []);
+
+  // Recompile tick schedule when state changes (Async Worker)
+  useEffect(() => {
+    let lastSignature = "";
+    let lastTotalMeasures = 0;
+    let lastMeasureTimeSigs: any = null;
+    let lastSoloPatternPlayId = soloPatternPlayId;
+
+    const compile = (stateTracks: any, totalM: number, mTimeSigs: any, soloId: number | null) => {
+      const worker = compilerWorkerRef.current;
+      if (!worker) return;
+
+      setIsCompiling(true);
+
+      worker.onmessage = (e) => {
+        setIsCompiling(false);
+        if (e.data.success) {
+          const serialized = e.data.data;
+          const newSchedule = new Map<number, Map<number, ScheduledNote[]>>();
+          for (const [mIdx, measureEntries] of serialized) {
+            const mMap = new Map<number, ScheduledNote[]>(measureEntries);
+            newSchedule.set(mIdx, mMap);
+          }
+          tickScheduleRef.current = newSchedule;
+        } else {
+          console.error("❌ Worker compilation failed:", e.data.error);
+        }
+      };
+
+      worker.postMessage({
+        tracks: stateTracks,
+        totalMeasures: totalM,
+        measureTimeSigs: mTimeSigs,
+        instConfig: instrumentsConfig,
+        soloPatternPlayId: soloId
+      });
+    };
+
+    const getTracksSignature = (tracksList: any[]) => JSON.stringify(
+      tracksList.map(t => ({
         id: t.id,
         isMute: t.isMute,
         isSolo: t.isSolo,
@@ -482,64 +555,52 @@ export function useAudioSync({
         })
       }))
     );
-  }, [tracks]);
 
-  // Recompile tick schedule when state changes (Async Worker)
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-    }
+    // Initial compile
+    const initialState = useSequencerStore.getState();
+    lastSignature = getTracksSignature(initialState.tracks);
+    lastTotalMeasures = initialState.totalMeasures;
+    lastMeasureTimeSigs = initialState.measureTimeSigs;
 
-    if (compilerWorkerRef.current) {
-      compilerWorkerRef.current.terminate();
-    }
-    
-    setIsCompiling(true);
-    const worker = new Worker(new URL('../workers/audioCompiler.worker.ts', import.meta.url), { type: 'module' });
-    compilerWorkerRef.current = worker;
+    compile(initialState.tracks, initialState.totalMeasures, initialState.measureTimeSigs, soloPatternPlayId);
 
-    worker.onmessage = (e) => {
-      setIsCompiling(false);
-      if (e.data.success) {
-        const serialized = e.data.data;
-        const newSchedule = new Map<number, Map<number, ScheduledNote[]>>();
-        for (const [mIdx, measureEntries] of serialized) {
-          const mMap = new Map<number, ScheduledNote[]>(measureEntries);
-          newSchedule.set(mIdx, mMap);
+    // Subscribe to Zustand for store changes
+    const unsub = useSequencerStore.subscribe((state, prevState) => {
+      let changed = false;
+      
+      if (state.tracks !== prevState.tracks) {
+        const newSignature = getTracksSignature(state.tracks);
+        if (newSignature !== lastSignature) {
+          lastSignature = newSignature;
+          changed = true;
         }
-        tickScheduleRef.current = newSchedule;
-      } else {
-        console.error("❌ Worker compilation failed:", e.data.error);
       }
-    };
-
-    worker.postMessage({
-      tracks,
-      totalMeasures,
-      measureTimeSigs,
-      instConfig: instrumentsConfig,
-      soloPatternPlayId
+      
+      if (state.totalMeasures !== prevState.totalMeasures) {
+        lastTotalMeasures = state.totalMeasures;
+        changed = true;
+      }
+      
+      if (state.measureTimeSigs !== prevState.measureTimeSigs) {
+        lastMeasureTimeSigs = state.measureTimeSigs;
+        changed = true;
+      }
+      
+      if (changed) {
+        compile(state.tracks, state.totalMeasures, state.measureTimeSigs, lastSoloPatternPlayId);
+      }
     });
 
     return () => {
-      if (compilerWorkerRef.current) {
-        compilerWorkerRef.current.terminate();
-        compilerWorkerRef.current = null;
-        setIsCompiling(false);
-      }
+      unsub();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    tracksMusicalSignature,
-    totalMeasures,
-    measureTimeSigs,
-    soloPatternPlayId
-  ]);
+  }, [soloPatternPlayId]);
 
   // Initialize stable Audio Engine Nodes
   useEffect(() => {
     const initAudio = async () => {
       try {
-        if (bMetroClick) return; // already initialized
+        if (bMetroClickRef.current) return; // already initialized
 
       if (!masterVolumeNode) {
         if (!Tone.context || Tone.context.state !== 'running') {
@@ -582,26 +643,26 @@ export function useAudioSync({
       metroChannel = new Tone.Channel({ volume: Tone.gainToDb(metroVolumeRef.current / 100) }).connect(masterVolumeNode);
       metroChannel.mute = !isMetroOnRef.current;
 
-      bMetroClick = new Tone.Synth({
+      bMetroClickRef.current = new Tone.Synth({
         oscillator: { type: 'square' },
         envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.01 },
       }).connect(metroChannel);
 
-      metroClaveClick = new Tone.MembraneSynth({
+      metroClaveClickRef.current = new Tone.MembraneSynth({
         pitchDecay: 0.008,
         octaves: 2,
         oscillator: { type: 'sine' },
         envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.01 }
       }).connect(metroChannel);
 
-      metroCowbellClick = new Tone.MetalSynth({
+      metroCowbellClickRef.current = new Tone.MetalSynth({
         envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
         harmonicity: 5.1,
         modulationIndex: 32,
         resonance: 4000,
         octaves: 1.5
       }).connect(metroChannel);
-      metroCowbellClick.frequency.value = 200;
+      metroCowbellClickRef.current.frequency.value = 200;
 
       if (!reverbNode) {
         reverbNode = new Tone.Freeverb({ roomSize: 0.6, dampening: 3000 }).connect(masterVolumeNode);
@@ -845,12 +906,12 @@ export function useAudioSync({
             if (metroVolLinear > 0) {
               if (metroSoundRef.current === 'clave') {
                 const noteVal = stepIdx === 0 ? 'A5' : 'E5';
-                metroClaveClick?.triggerAttackRelease(noteVal, '32n', time, metroVolLinear);
+                metroClaveClickRef.current?.triggerAttackRelease(noteVal, '32n', time, metroVolLinear);
               } else if (metroSoundRef.current === 'cowbell') {
-                metroCowbellClick?.triggerAttackRelease('32n', time, (stepIdx === 0 ? 1 : 0.6) * metroVolLinear);
+                metroCowbellClickRef.current?.triggerAttackRelease('32n', time, (stepIdx === 0 ? 1 : 0.6) * metroVolLinear);
               } else {
                 const noteVal = stepIdx === 0 ? 'A5' : 'E5';
-                bMetroClick?.triggerAttackRelease(noteVal, '32n', time, metroVolLinear);
+                bMetroClickRef.current?.triggerAttackRelease(noteVal, '32n', time, metroVolLinear);
               }
             }
           }
@@ -990,8 +1051,8 @@ export function useAudioSync({
                   player.playbackRate = playbackRate;
                   player.start(triggerTime, 0, measureDurationSec);
 
-                  if (isVocalGuideEnabledRef.current && bMetroClick) {
-                    bMetroClick.triggerAttackRelease('C6', '16n', triggerTime);
+                  if (isVocalGuideEnabledRef.current && bMetroClickRef.current) {
+                    bMetroClickRef.current.triggerAttackRelease('C6', '16n', triggerTime);
                   }
                 }
               }
@@ -1030,6 +1091,8 @@ export function useAudioSync({
         }
       );
 
+      inputManager = new InputManager(audioEngine);
+
       // Connect channels to audioEngine
       instrumentsConfig.forEach((inst) => {
         if (inst.type !== 'voice' && channels[inst.id]) {
@@ -1051,26 +1114,43 @@ export function useAudioSync({
     };
 
     initAudio();
+
+    return () => {
+      if (audioEngine) {
+        audioEngine.dispose();
+        audioEngine = null;
+      }
+      inputManager = null;
+    };
   }, []);
 
   // Dynamic RAM Management for Mobile
   useEffect(() => {
     const isMobileDevice = window.innerWidth <= 768 || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-    if (!audioEngine || !isMobileDevice || tracks.length === 0) return;
+    if (!audioEngine || !isMobileDevice) return;
 
-    const hasSolo = tracks.some(t => t.isSolo);
-    const activeIndexes = new Set<number>();
-    
-    tracks.forEach(t => {
-      const isMuted = t.isMute || (hasSolo && !t.isSolo);
-      if (!isMuted && !t.isHidden) {
-        activeIndexes.add(t.instrumentIdx);
+    const unsub = useSequencerStore.subscribe((state, prevState) => {
+      if (state.tracks !== prevState.tracks) {
+        const tracks = state.tracks;
+        if (tracks.length === 0) return;
+
+        const hasSolo = tracks.some(t => t.isSolo);
+        const activeIndexes = new Set<number>();
+        
+        tracks.forEach(t => {
+          const isMuted = t.isMute || (hasSolo && !t.isSolo);
+          if (!isMuted && !t.isHidden) {
+            activeIndexes.add(t.instrumentIdx);
+          }
+        });
+
+        audioEngine.syncActiveInstrumentsMemory(Array.from(activeIndexes))
+          .catch(e => console.warn("Dynamic RAM sync failed:", e));
       }
     });
 
-    audioEngine.syncActiveInstrumentsMemory(Array.from(activeIndexes))
-      .catch(e => console.warn("Dynamic RAM sync failed:", e));
-  }, [tracks, audioEngine]);
+    return unsub;
+  }, [audioEngine]);
 
   const handleTogglePlay = async () => {
     if (import.meta.env.DEV) {
@@ -1114,7 +1194,7 @@ export function useAudioSync({
       });
       setIsPlaying(false);
       setCurrentMeasure(measureCountRef.current);
-      setCurrentStepIndex(currentStepIndexRef.current);
+
 
       const pausedStep = currentStepIndexRef.current;
       const pausedMeasure = measureCountRef.current;
@@ -1161,7 +1241,6 @@ export function useAudioSync({
       } catch (_) {}
     });
     setIsPlaying(false);
-    setCurrentStepIndex(-1);
     currentStepIndexRef.current = -1;
     measureCountRef.current = 0;
     setCurrentMeasure(0);
@@ -1196,7 +1275,6 @@ export function useAudioSync({
 
     setSoloPatternPlayId(patternId);
     setSoloPatternVariationId(variationId || null);
-    setCurrentStepIndex(-1);
     currentStepIndexRef.current = -1;
     measureCountRef.current = 0;
     setCurrentMeasure(0);
@@ -1218,15 +1296,15 @@ export function useAudioSync({
     }
   };
 
-  const handleTimelineNavigate = (measureIdx: number, stepIdxInMeasure: number, stepsInMeasure: number) => {
+  const handleTimelineNavigate = (measureIdx: number, stepIdxInMeasure: number, stepsInMeasure?: number) => {
     const mSig = measureTimeSigs[measureIdx] || '4/4';
     const currentTicks = getMaxTicks(mSig);
-    const tickIdx = Math.max(0, Math.min(currentTicks - 1, Math.floor((stepIdxInMeasure / stepsInMeasure) * currentTicks)));
+    const steps = stepsInMeasure || (mSig === '6/8' || mSig === '12/8' ? 24 : 16);
+    const tickIdx = Math.max(0, Math.min(currentTicks - 1, Math.floor((stepIdxInMeasure / steps) * currentTicks)));
     
     measureCountRef.current = measureIdx;
     setCurrentMeasure(measureIdx % totalMeasures);
     currentStepIndexRef.current = tickIdx - 1; // -1 so the next loop cycle increments to tickIdx
-    setCurrentStepIndex(tickIdx);
     maxTicksRef.current = currentTicks;
 
     const ratioVal = tickIdx / currentTicks;
@@ -1242,47 +1320,68 @@ export function useAudioSync({
     }));
   };
 
+  const navigateRef = useRef(handleTimelineNavigate);
+  useEffect(() => {
+    navigateRef.current = handleTimelineNavigate;
+  });
+
+  useEffect(() => {
+    const handleTimelineNav = (e: Event) => {
+      const customEvent = e as CustomEvent<{ mIdx: number; sIdx: number }>;
+      const { mIdx, sIdx } = customEvent.detail;
+      navigateRef.current(mIdx, sIdx);
+    };
+    window.addEventListener('o-girador-timeline-nav', handleTimelineNav);
+    return () => window.removeEventListener('o-girador-timeline-nav', handleTimelineNav);
+  }, []);
+
   const lastAppliedTracksParamsRef = useRef<Record<string, string>>({});
 
   // Synchronize track volume, panning, reverb levels, and mute/solo dynamically when React state changes
   useEffect(() => {
     if (Object.keys(channels).length === 0) return;
 
-    const hasSolo = tracks.some((t: any) => t.isSolo);
+    const unsub = useSequencerStore.subscribe((state, prevState) => {
+      if (state.tracks !== prevState.tracks) {
+        const tracks = state.tracks;
+        const hasSolo = tracks.some((t: any) => t.isSolo);
 
-    tracks.forEach((t) => {
-      const inst = instrumentsConfig[t.instrumentIdx];
-      if (!inst || !channels[inst.id]) return;
+        tracks.forEach((t) => {
+          const inst = instrumentsConfig[t.instrumentIdx];
+          if (!inst || !channels[inst.id]) return;
 
-      const gain = Math.max(0.00001, (t.volumeVal ?? 100) / 100);
-      const db = t.volumeVal === 0 ? -Infinity : Tone.gainToDb(gain);
-      const pan = (t.panVal || 0) / 100;
-      const muteState = t.isMute || (hasSolo && !t.isSolo);
-      const reverb = (t.reverbVal || 0) / 100;
+          const gain = Math.max(0.00001, (t.volumeVal ?? 100) / 100);
+          const db = t.volumeVal === 0 ? -Infinity : Tone.gainToDb(gain);
+          const pan = (t.panVal || 0) / 100;
+          const muteState = t.isMute || (hasSolo && !t.isSolo);
+          const reverb = (t.reverbVal || 0) / 100;
 
-      const paramHash = `${db}_${pan}_${muteState}_${reverb}`;
+          const paramHash = `${db}_${pan}_${muteState}_${reverb}`;
 
-      if (lastAppliedTracksParamsRef.current[t.id] !== paramHash) {
-        channels[inst.id].volume.value = db;
-        channels[inst.id].pan.value = pan;
-        channels[inst.id].mute = muteState;
+          if (lastAppliedTracksParamsRef.current[t.id] !== paramHash) {
+            channels[inst.id].volume.value = db;
+            channels[inst.id].pan.value = pan;
+            channels[inst.id].mute = muteState;
 
-        if (reverbSends[inst.id]) {
-          const isEco = (window as any).oGiradorEcoMode;
-          reverbSends[inst.id].gain.value = isEco ? 0 : reverb;
-        }
+            if (reverbSends[inst.id]) {
+              const isEco = (window as any).oGiradorEcoMode;
+              reverbSends[inst.id].gain.value = isEco ? 0 : reverb;
+            }
 
-        lastAppliedTracksParamsRef.current[t.id] = paramHash;
+            lastAppliedTracksParamsRef.current[t.id] = paramHash;
+          }
+        });
       }
     });
-  }, [tracks]);
+    
+    return unsub;
+  }, [channels]);
 
   return {
     isPlaying,
     isLoading,
-    currentStepIndex,
+
     setCurrentMeasure,
-    setCurrentStepIndex,
     setIsLoading,
     isCompiling,
     isMetroOn,
