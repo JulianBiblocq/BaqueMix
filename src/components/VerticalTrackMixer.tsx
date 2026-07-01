@@ -124,7 +124,6 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
   const hasSolo = useSequencerStore(state => state.tracks.some(t => t.isSolo));
   const currentMeasure = useSequencerStore(state => state.currentMeasure);
   const track = useSequencerStore(state => state.tracks.find(t => t.id === trackId));
-  if (!track || !instrumentsConfig[track.instrumentIdx]) return null;
   const [instDropdownOpen, setInstDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [editingPatternId, setEditingPatternId] = useState<number | null>(null);
@@ -149,7 +148,7 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const activePattern = track.patterns.find(p => p.id === liveActivePatternId) || track.patterns[0];
+  const activePattern = track ? track.patterns.find(p => p.id === liveActivePatternId) || track.patterns[0] : null;
 
   useEffect(() => {
     let activeElements: HTMLElement[] = [];
@@ -289,7 +288,7 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, []);
 
-  const inst = instrumentsConfig[track.instrumentIdx];
+  const inst = track ? instrumentsConfig[track.instrumentIdx] : null;
   const t = (key: string) => (i18n[lang] as any)[key] || key;
 
   const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
@@ -357,6 +356,8 @@ const VerticalTrackMixerComponent: React.FC<VerticalTrackMixerProps> = ({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  if (!track || !instrumentsConfig[track.instrumentIdx]) return null;
 
   return (
     <div 

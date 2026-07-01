@@ -611,7 +611,7 @@ export default function App() {
       }));
 
       const dataToSave = {
-        version: 2,
+        version: 3,
         tracks: tracksCopy,
         bpm: state.bpm,
         timeSig: state.timeSig,
@@ -622,6 +622,7 @@ export default function App() {
         measureVols: state.measureVols,
         measureVolTransitions: state.measureVolTransitions,
         songSections: state.songSections,
+        songMarkers: state.songMarkers,
         measureSignals: state.measureSignals,
         loopStartMeasure: state.loopStartMeasure,
         loopEndMeasure: state.loopEndMeasure,
@@ -632,6 +633,9 @@ export default function App() {
         masterEQ: audioRef.current.masterEQ,
         masterCompressor: audioRef.current.masterCompressor,
         masterVol: audioRef.current.masterVol,
+        masterReverbVol: audioRef.current.masterReverbVol,
+        reverbDecay: audioRef.current.reverbDecay,
+        globalSwing: audioRef.current.globalSwing,
       };
       try {
         localStorage.setItem('o_girador_autosave', JSON.stringify(dataToSave));

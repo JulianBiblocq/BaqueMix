@@ -304,11 +304,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         if (version < 3) {
           loadedTracks.forEach(t => {
-            if (t.instrumentIdx >= 8) {
-              t.instrumentIdx += 1;
+            if (t.instrumentIdx === 8) {
+              const isApito = t.patterns.some(p => p.activeSteps && p.activeSteps.some(s => s === 'W' || s === 'w'));
+              if (!isApito) {
+                t.instrumentIdx = 9;
+              }
+            } else if (t.instrumentIdx > 8) {
+              t.instrumentIdx = 9;
             }
           });
         }
+        // Clamp any out-of-bounds instrumentIdx
+        loadedTracks.forEach(t => {
+          if (t.instrumentIdx >= instrumentsConfig.length) {
+            t.instrumentIdx = instrumentsConfig.length - 1;
+          }
+        });
         loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx, loadedMeasures)));
       } else if (p.circles) {
         const oldCircles = JSON.parse(JSON.stringify(p.circles));
@@ -321,11 +332,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         if (version < 3) {
           oldCircles.forEach((c: any) => {
-            if (c.instrumentIdx >= 8) {
-              c.instrumentIdx += 1;
+            if (c.instrumentIdx === 8) {
+              const isApito = c.activeSteps && c.activeSteps.some((s: any) => s === 'W' || s === 'w');
+              if (!isApito) {
+                c.instrumentIdx = 9;
+              }
+            } else if (c.instrumentIdx > 8) {
+              c.instrumentIdx = 9;
             }
           });
         }
+        // Clamp any out-of-bounds instrumentIdx
+        oldCircles.forEach((c: any) => {
+          if (c.instrumentIdx >= instrumentsConfig.length) {
+            c.instrumentIdx = instrumentsConfig.length - 1;
+          }
+        });
         loadedTracks = migrateCirclesToTracks(oldCircles, loadedMeasures);
         loadedTracks.forEach(t => t.patterns.forEach(ptn => normalizePatternData(ptn, t.instrumentIdx, loadedMeasures)));
       }
@@ -686,12 +708,19 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       measureVols: sequencer.measureVols,
       measureVolTransitions: sequencer.measureVolTransitions,
       songSections: storeState.songSections,
+      songMarkers: storeState.songMarkers,
       measureSignals: sequencer.measureSignals,
       masterEQ,
       masterCompressor,
       masterVol,
       masterReverbVol,
-      reverbDecay
+      reverbDecay,
+      isSwingOn: audioSync.globalSwing.mode !== 'off',
+      globalSwing: audioSync.globalSwing,
+      loopStartMeasure: storeState.loopStartMeasure,
+      loopEndMeasure: storeState.loopEndMeasure,
+      isLoopRegionActive: storeState.isLoopRegionActive,
+      isLooping: sequencer.isLooping
     };
   };
 

@@ -124,7 +124,6 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
 }) => {
   const track = useSequencerStore(state => state.tracks.find(t => t.id === trackId));
   const hasSolo = useSequencerStore(state => state.tracks.some(t => t.isSolo));
-  if (!track || !instrumentsConfig[track.instrumentIdx]) return null;
   const [instDropdownOpen, setInstDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -159,8 +158,9 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
   const [hasClipboard, setHasClipboard] = useState(false);
   const wasSelectedRef = useRef(false);
 
-  const isAoVivo = activeAoVivoTrackId === track.id;
+  const isAoVivo = track ? activeAoVivoTrackId === track.id : false;
   const toggleAoVivo = () => {
+    if (!track) return;
     if ((window as any).oGiradorEcoMode) {
       alert("Mode Éco activé : Les animations d'instruments (AoVivo) ont été désactivées pour préserver les performances de la tablette.");
       return;
@@ -169,6 +169,7 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
   };
 
   const liveActivePatternId = (() => {
+    if (!track) return '';
     if (liveMeasure >= 0) {
       if (soloPatternPlayId !== undefined && soloPatternPlayId !== null) {
         const hasSoloPattern = track.patterns.some(p => p.id === soloPatternPlayId);
@@ -180,7 +181,7 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
     return track.selectedPatternId;
   })();
 
-  const activePattern = track.patterns.find(p => p.id === liveActivePatternId) || track.patterns[0];
+  const activePattern = track ? track.patterns.find(p => p.id === liveActivePatternId) || track.patterns[0] : null;
 
   const activateElement = (el: HTMLElement) => {
     const type = el.getAttribute('data-step-type');
@@ -216,12 +217,13 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
 
   // Event-based VU meters do not need a requestAnimationFrame loop, they are animated directly in handleTick
 
-  const inst = instrumentsConfig[track.instrumentIdx];
+  const inst = track ? instrumentsConfig[track.instrumentIdx] : null;
   const t = (key: string) => (i18n[lang] as any)[key] || key;
 
   const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
   const handleStart = (e: React.MouseEvent | React.TouchEvent, stepIdx: number, currentVal: string | number) => {
+    if (!inst || !activePattern) return;
     if ('shiftKey' in e && e.shiftKey) return;
     const visualVal = getVisualStrokeSymbol(currentVal, isLeftHanded, inst.id);
     if (onStepTouchStart) {
@@ -637,6 +639,8 @@ const TrackMixerComponent: React.FC<TrackMixerProps> = ({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  if (!track || !inst || !activePattern) return null;
 
   return (
     <div
