@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Primary SEO -->
-    <title>O Girador - Sequenciador de Ritmos de Maracatu de Baque Virado</title>
-    <meta name="description" content="O Girador é um sequenciador interativo de ritmos de Maracatu de Baque Virado. Crie, visualize e escute padrões rítmicos de alfaia, caixa, gonguê, agbê e mineiro diretamente no seu navegador. Ferramenta gratuita para músicos, mestres e aprendizes de maracatu." />
-    <meta name="keywords" content="maracatu, baque virado, sequenciador, ritmo, alfaia, caixa, gonguê, agbê, mineiro, percussão, música brasileira, recife, pernambuco, nação, bloco, toada, maracatu sequencer, drum machine, o-girador, roda de maracatu, pattern, séquenceur maracatu" />
+    <title>O Girador | Séquenceur dédié au Maracatu de Baque Virado</title>
+    <meta name="description" content="Découvrez O Girador, l'application et séquenceur dédié au Maracatu de Baque Virado. Samples haute qualidade, balanço, humanisation et partage d'arrangements." />
+    <meta name="keywords" content="maracatu, baque virado, séquenceur, boîte à rythmes, sequenciador, ritmo, alfaia, caixa, gonguê, agbê, mineiro, percussão, percussion brésilienne, recife, pernambuco, nação, bloco, toada, drum machine, o-girador, roda de maracatu" />
     <meta name="author" content="Julian Biblocq" />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#0a0807" />
@@ -22,8 +22,8 @@
     <!-- Open Graph (Facebook, WhatsApp, Discord, LinkedIn...) -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://julianbiblocq.github.io/o-girador/" />
-    <meta property="og:title" content="O Girador - Sequenciador de Maracatu de Baque Virado" />
-    <meta property="og:description" content="Crie, visualize e escute padrões rítmicos de Maracatu de Baque Virado diretamente no seu navegador. Alfaia, Caixa, Gonguê, Agbê, Mineiro e Vozes." />
+    <meta property="og:title" content="O Girador - Séquenceur de Maracatu de Baque Virado" />
+    <meta property="og:description" content="Boîte à rythmes en ligne et séquenceur interactif pour créer et écouter des patterns de Maracatu de Baque Virado. Ferramenta gratuita de percussão." />
     <meta property="og:image" content="https://julianbiblocq.github.io/o-girador/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -33,8 +33,8 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="O Girador - Sequenciador de Maracatu" />
-    <meta name="twitter:description" content="Crie e escute padrões rítmicos de Maracatu de Baque Virado. Ferramenta gratuita e interativa." />
+    <meta name="twitter:title" content="O Girador - Séquenceur de Maracatu" />
+    <meta name="twitter:description" content="Créez et écoutez des rythmes de Maracatu de Baque Virado. Séquenceur gratuit et interactif." />
     <meta name="twitter:image" content="https://julianbiblocq.github.io/o-girador/og-image.jpg" />
 
     <!-- Schema.org Structured Data (JSON-LD) -->
@@ -44,7 +44,7 @@
       "@type": "WebApplication",
       "name": "O Girador",
       "url": "https://julianbiblocq.github.io/o-girador/",
-      "description": "Sequenciador interativo de ritmos de Maracatu de Baque Virado. Crie, visualize e escute padrões rítmicos de alfaia, caixa, gonguê, agbê e mineiro.",
+      "description": "Séquenceur interactif et boîte à rythmes en ligne de Maracatu de Baque Virado. Sequenciador interativo de ritmos. Crie, visualize e escute padrões rítmicos de alfaia, caixa, gonguê, agbê e mineiro.",
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "Web",
       "offers": {
@@ -61,11 +61,360 @@
       "keywords": "maracatu, baque virado, sequenciador, ritmo, alfaia, caixa, gonguê, agbê, mineiro, percussão brasileira"
     }
     </script>
-    <script type="module" crossorigin src="/o-girador/assets/index-Cl-C_3M9.js"></script>
-    <link rel="stylesheet" crossorigin href="/o-girador/assets/index-DBTFLWs9.css">
+
+    <!-- Font for Landing Page -->
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+      @font-face {
+        font-family: 'Cactus';
+        src: url('/o-girador/fonts/Cactus%20Regular.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Landing Page Styles */
+      body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0a0807; overflow-x: hidden; }
+      
+      #landing-page {
+        position: fixed;
+        inset: 0;
+        background-color: #f4ecd8; /* Papier brut texturé */
+        color: #1a1a1a;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 1.5rem;
+        box-sizing: border-box;
+        overflow-x: hidden;
+        overflow-y: auto;
+        transition: opacity 0.8s ease-out;
+        font-family: 'Lora', serif;
+      }
+      
+      /* Background texture simulation */
+      #landing-page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.4;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+      }
+
+      /* Top Right: Login */
+      .lp-header {
+        display: flex;
+        justify-content: flex-end;
+        position: relative;
+        z-index: 2;
+      }
+      .lp-login {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid #1a1a1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        cursor: pointer;
+        background: transparent;
+        color: #1a1a1a;
+        transition: all 0.2s;
+        font-family: 'Cactus', sans-serif;
+      }
+      .lp-login:hover {
+        background: #1a1a1a;
+        color: #f4ecd8;
+      }
+
+      .lp-center {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding-left: clamp(1rem, 4vw, 6rem);
+        gap: 2rem;
+        position: relative;
+        z-index: 2;
+        flex: 1; /* Take middle space */
+      }
+      
+      .lp-o-container {
+        position: relative;
+        width: clamp(130px, 20vw, 250px);
+        height: clamp(130px, 20vw, 250px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .lp-alfaia-svg {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        animation: lp-spin 40s linear infinite;
+      }
+      @keyframes lp-spin { 100% { transform: rotate(360deg); } }
+
+      .lp-entra-btn {
+        position: relative;
+        z-index: 10;
+        background: #f4ecd8;
+        border: 2px solid #1a1a1a;
+        border-radius: 50%;
+        width: 65%;
+        height: 65%;
+        font-family: 'Cactus', sans-serif;
+        font-size: clamp(0.9rem, 2vw, 1.5rem);
+        color: #1a1a1a;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.1;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+      }
+      .lp-entra-btn:hover {
+        background: #b33939; /* Ocre / Brique */
+        color: #f4ecd8;
+        border-color: #b33939;
+        transform: scale(1.05);
+      }
+
+      .lp-title {
+        font-family: 'Cactus', sans-serif;
+        font-size: clamp(4rem, 12vw, 12rem);
+        line-height: 1;
+        margin: 0;
+        color: #1a1a1a;
+        letter-spacing: -0.05em;
+      }
+
+      /* Bottom: Text & Bandeira */
+      .lp-footer {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: clamp(1rem, 3vw, 3rem);
+        align-items: end;
+        position: relative;
+        z-index: 2;
+        margin-top: -10vh;
+      }
+
+      .lp-text-container {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(1rem, 2vh, 1.5rem);
+        margin-left: clamp(1rem, 4vw, 6rem);
+        margin-bottom: clamp(1rem, 3vh, 2rem);
+      }
+
+      .lp-text {
+        max-width: 750px;
+        font-size: clamp(0.75rem, 1vw, 0.95rem);
+        line-height: 1.4;
+        color: #1a1a1a;
+      }
+      .lp-text p {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+      }
+      .lp-text p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Mestre Message Box - Styled as Cordel Woodcut */
+      .lp-mestre-message {
+        width: clamp(200px, 25vw, 300px);
+        background-color: #f4ecd8; /* Papier brut */
+        border: 3px solid #1a1a1a;
+        box-shadow: 6px 6px 0px #1a1a1a;
+        padding: 1.5rem;
+        font-family: 'Lora', serif;
+        font-style: italic;
+        transform: rotate(-1deg);
+        margin-bottom: clamp(3rem, 12vh, 6rem);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+      }
+      .lp-mestre-message::before {
+        content: "";
+        position: absolute;
+        top: 4px; left: 4px; right: 4px; bottom: 4px;
+        border: 1px dashed #1a1a1a;
+        pointer-events: none;
+        opacity: 0.3;
+      }
+      .lp-mestre-message:hover {
+        transform: rotate(0deg) scale(1.02);
+        box-shadow: 8px 8px 0px #1a1a1a;
+      }
+      .lp-message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+      .lp-message-title {
+        font-family: 'Cactus', sans-serif;
+        font-weight: bold;
+        font-style: normal;
+        color: #1a1a1a;
+        font-size: 1.2rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border-bottom: 2px solid #1a1a1a;
+        padding-bottom: 0.2rem;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+      }
+      .lp-edit-btn {
+        background: transparent;
+        border: none;
+        color: #1a1a1a;
+        opacity: 0.5;
+        cursor: pointer;
+        padding: 4px;
+        transition: opacity 0.2s, color 0.2s;
+      }
+      .lp-edit-btn:hover {
+        opacity: 1;
+        color: #8b2a1a;
+      }
+      .lp-message-content {
+        font-size: 1rem;
+        line-height: 1.5;
+        color: #1a1a1a;
+        white-space: pre-wrap;
+      }
+      .lp-textarea {
+        width: 100%;
+        min-height: 80px;
+        background: transparent;
+        border: 1px solid rgba(0,0,0,0.2);
+        border-radius: 4px;
+        padding: 0.5rem;
+        font-family: 'Lora', serif;
+        font-size: 1rem;
+        resize: vertical;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
+      }
+      .lp-textarea:focus {
+        outline: none;
+        border-color: #8b2a1a;
+      }
+      .lp-editor-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+      .lp-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+        transition: background 0.2s;
+      }
+      .lp-btn-cancel {
+        background: rgba(0,0,0,0.1);
+        color: #1a1a1a;
+      }
+      .lp-btn-cancel:hover { background: rgba(0,0,0,0.2); }
+      .lp-btn-save {
+        background: #27ae60;
+        color: #fff;
+      }
+      .lp-btn-save:hover { background: #219653; }
+
+      .lp-bandeira {
+        width: clamp(280px, 40vw, 450px);
+        position: relative;
+      }
+      .lp-bandeira svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        overflow: visible;
+      }
+      .lp-fringes {
+        transform-origin: 100px 220px;
+        animation: lp-wind 3s ease-in-out infinite alternate;
+      }
+      @keyframes lp-wind {
+        0% { transform: skewX(2deg) scaleY(1); }
+        100% { transform: skewX(-6deg) scaleY(1.05); }
+      }
+      
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
+      }
+
+      @media (max-width: 1024px) {
+        .lp-center { flex-direction: column; text-align: center; gap: 1rem; padding-left: 0; }
+        .lp-footer { grid-template-columns: 1fr; gap: 2rem; justify-items: center; margin-top: 2rem; }
+        .lp-text-container { margin-left: 0; margin-bottom: 0; text-align: center; align-items: center; }
+        .lp-text { text-align: center; margin-left: 0; }
+        .lp-mestre-message { transform: none; width: 90%; max-width: 400px; margin-bottom: 0; margin-top: 1rem; }
+        .lp-mestre-message:hover { transform: none; }
+        .lp-bandeira { width: 100%; margin: 0 auto; max-width: 300px; transform: none; }
+        .lp-title { font-size: 3.5rem; }
+      }
+    </style>
+    <script type="module" crossorigin src="/o-girador/assets/index-BbU1dGE3.js"></script>
+    <link rel="modulepreload" crossorigin href="/o-girador/assets/firebase-CPPhYbOL.js">
+    <link rel="modulepreload" crossorigin href="/o-girador/assets/tone-DbVIoGca.js">
+    <link rel="stylesheet" crossorigin href="/o-girador/assets/index-BljZ2bTq.css">
   <link rel="manifest" href="/o-girador/manifest.webmanifest"></head>
   <body>
-    <div id="root"></div>
+    <!-- React App Container -->
+    <div id="app-container" style="width: 100%; height: 100%;">
+      <div id="root"></div>
+    </div>
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        document.body.innerHTML = '<div style="color:red; padding: 20px; font-family: monospace; z-index: 999999; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white;">' + 
+          '<h1>JS Error:</h1>' + 
+          '<p>' + message + '</p>' + 
+          '<pre>' + (error && error.stack ? error.stack : '') + '</pre>' + 
+          '</div>';
+      };
+    </script>
+
+    <script>
+      window.addEventListener('error', function(event) {
+        const div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.zIndex = '9999';
+        div.style.background = 'red';
+        div.style.color = 'white';
+        div.style.padding = '10px';
+        div.innerHTML = 'Error: ' + event.message + ' at ' + event.filename + ':' + event.lineno;
+        document.body.appendChild(div);
+      });
+      window.addEventListener('unhandledrejection', function(event) {
+        const div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.right = '0';
+        div.style.zIndex = '9999';
+        div.style.background = 'orange';
+        div.style.color = 'white';
+        div.style.padding = '10px';
+        div.innerHTML = 'Promise Error: ' + (event.reason && event.reason.message ? event.reason.message : event.reason);
+        document.body.appendChild(div);
+      });
+    </script>
     <script>
       if ('serviceWorker' in navigator) {
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
