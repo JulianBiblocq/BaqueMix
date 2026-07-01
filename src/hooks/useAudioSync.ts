@@ -466,9 +466,9 @@ export function useAudioSync({
 
     const applyReverb = () => {
       if (reverbNode) {
-        reverbNode.decay = reverbDecay;
-        reverbNode.preDelay = 0.02; // Fixed standard predelay
-        reverbNode.generate().catch(e => console.warn('Reverb update error:', e));
+        if (reverbNode.decay !== reverbDecay) {
+          reverbNode.decay = reverbDecay;
+        }
       }
     };
 
@@ -681,14 +681,17 @@ export function useAudioSync({
       }
 
       if (!reverbNode) {
-        reverbNode = new Tone.Reverb({ decay: 2.5, preDelay: 0.02 }).connect(masterReverbVolumeNode);
-        reverbNode.generate().catch(e => console.warn('Reverb init error:', e));
+        reverbNode = new Tone.Reverb({ decay: 2.5, preDelay: 0.02, wet: 1 }).connect(masterReverbVolumeNode);
       }
 
       instrumentsConfig.forEach((inst) => {
-        channels[inst.id] = new Tone.Channel({ volume: 0 }).connect(masterVolumeNode!);
-        meters[inst.id] = new Tone.Meter();
-        channels[inst.id].connect(meters[inst.id]);
+        if (!channels[inst.id]) {
+          channels[inst.id] = new Tone.Channel({ volume: 0 }).connect(masterVolumeNode!);
+        }
+        if (!meters[inst.id]) {
+          meters[inst.id] = new Tone.Meter();
+          channels[inst.id].connect(meters[inst.id]);
+        }
 
         if (!reverbSends[inst.id]) {
           reverbSends[inst.id] = new Tone.Gain(0);
@@ -697,13 +700,15 @@ export function useAudioSync({
         }
 
         if (inst.type === 'voice') {
-          voiceSynths[inst.id] = new Tone.AMSynth({
-            harmonicity: 1,
-            oscillator: { type: 'sine' },
-            modulation: { type: 'sine' },
-            envelope: { attack: 0.05, decay: 0.2 },
-            volume: -10,
-          }).connect(channels[inst.id]);
+          if (!voiceSynths[inst.id]) {
+            voiceSynths[inst.id] = new Tone.AMSynth({
+              harmonicity: 1,
+              oscillator: { type: 'sine' },
+              modulation: { type: 'sine' },
+              envelope: { attack: 0.05, decay: 0.2 },
+              volume: -10,
+            }).connect(channels[inst.id]);
+          }
         }
       });
 

@@ -602,6 +602,7 @@ const ConsoleMixerComponent: React.FC<ConsoleMixerProps> = ({
                   onChange={(val) => setMasterReverbVol(val)}
                   className="w-full accent-green-700 h-1 bg-[#1a1a1a]/10 cursor-pointer"
                 />
+                
               </div>
             </div>
 
